@@ -1,0 +1,27 @@
+{
+ "ApprovalType": "Executive approval (signed)",
+ "ApprovedDate": "Jun 26 2023",
+ "ChapterNumber": "15",
+ "ChapterText": "<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\"><em>Be it enacted by the Senate and House of Representatives in General Court assembled, and by the authority of the same, as follows:</em></p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 1. Notwithstanding any general or special law to the contrary, the amount of $6,660,000,000 is hereby appropriated for the fiscal year ending June 30, 2024, to meet necessary obligations before the enactment of the general appropriation act for that fiscal year, for the maintenance and operations of the various departments, boards, commissions and institutions, including federal grant and Intragovernmental Service Fund expenditures, for other necessary services and for meeting certain requirements of law. This appropriation shall cease to be operative on the effective date of the general appropriation act and all actions taken under this section shall apply against that general appropriation act. All expenditures made under this section shall be consistent with appropriations made in the general appropriation act.</p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 2. The state treasurer shall make advance payments for some or all of periodic local reimbursement or assistance programs to any city, town, regional school district or independent agricultural and technical school that demonstrates an emergency cash shortfall, as certified by the commissioner of revenue and approved by the secretary of administration and finance, pursuant to guidelines issued by the secretary.</p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 3. Notwithstanding any general or special law to the contrary, unexpended balances of all capital accounts which otherwise would revert on June 30, 2023 but which are necessary to fund obligations during fiscal year 2024 are hereby reauthorized; provided, however, that the reauthorization shall terminate upon enactment of a capital account extension law.</p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 4. This act shall take effect on June 30, 2023.</p>\r\n<p style=\"text-align: center;\">Approved, June 26, 2023.</p>",
+ "OriginBill": {
+  "BillNumber": "H3936",
+  "Cosponsors": [],
+  "Details": "https://malegislature.gov/api/GeneralCourts/193/Documents/H3936",
+  "DocketNumber": "HD4408",
+  "GeneralCourtNumber": 193,
+  "IsDocketBookOnly": false,
+  "JointSponsor": null,
+  "PrimarySponsor": {
+   "Details": "https://malegislature.gov/api/GeneralCourts/193/LegislativeMembers/GOV7",
+   "Id": "GOV7",
+   "Name": "Maura T. Healey",
+   "ResponseDate": "2023-06-20T13:47:24.413",
+   "Type": 1
+  },
+  "Title": "An Act making certain appropriations for Fiscal Year 2024 before final action on the General Appropriation Bill"
+ },
+ "Status": "Approved by the Acting Governor, June 26, 2023",
+ "Title": "AN ACT MAKING CERTAIN APPROPRIATIONS FOR FISCAL YEAR 2024 BEFORE FINAL ACTION ON THE GENERAL APPROPRIATION BILL",
+ "Type": "Acts",
+ "Year": 2023
+}

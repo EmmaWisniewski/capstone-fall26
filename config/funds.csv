@@ -1,0 +1,7 @@
+fund_name,fund_number,is_federal,notes
+General Fund,,false,Default fund for GAA section 2.
+General Federal Grants Fund,,true,GAA section 2D (§9.5).
+Federal COVID-19 Response Fund,,true,"ARPA (§9.5); e.g. 2021-102, 2022-268."
+Coronavirus Relief Fund,,true,CARES Act (§9.5).
+Education and Transportation Fund,,false,"Fair Share surtax, GAA section 2F (FY2024+)."
+Transitional Escrow Fund,,false,Created by 2021-76; appropriated from in 2025-1 §2A.
