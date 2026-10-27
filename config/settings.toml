@@ -1,0 +1,27 @@
+# Pipeline settings (DESIGN §15). Secrets never go here: ANTHROPIC_API_KEY comes from the environment.
+
+[scope]
+approved_from = "2021-01-01"
+approved_to = "2025-12-31"
+# Acts volumes scanned by discover (2020 and 2026 for reference-only laws, §1)
+discover_years = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+
+[http]
+# Identify the scraper (§3.6). Set contact_email to the group's shared contact before running fetch.
+user_agent = "ma-approps-capstone/0.1 (Northeastern University capstone research)"
+contact_email = ""
+min_interval_seconds = 1.0
+max_retries = 5
+backoff_base_seconds = 2.0
+timeout_seconds = 60
+
+[sources]
+api_base = "https://malegislature.gov/api"
+session_law_url = "https://malegislature.gov/Laws/SessionLaws/Acts/{acts_year}/Chapter{chapter}"
+cthru_dataset = "https://cthru.data.socrata.com/resource/kv7m-35wn.json"
+
+[classify]
+# Q9 is open; this is the §12 default. Change only through the Decision Log.
+model_id = "claude-sonnet-5-5"
+temperature = 0
+prompt_version = "v0"

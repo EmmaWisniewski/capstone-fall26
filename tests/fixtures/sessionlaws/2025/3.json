@@ -1,0 +1,27 @@
+{
+ "ApprovalType": "Executive approval (signed)",
+ "ApprovedDate": "May 15 2025",
+ "ChapterNumber": "3",
+ "ChapterText": "<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\"><em>Whereas,</em> The deferred operation of this act would tend to defeat its purposes, which are forthwith to make supplemental appropriations for fiscal year 2025 and to make certain changes in law, each of which is immediately necessary to carry out those appropriations or to accomplish other important public purposes, therefore it is hereby declared to be an emergency law, necessary for the immediate preservation of the public convenience.</p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\"><em>Be it enacted by the Senate and House of Representatives in General Court assembled, and by the authority of the same, as follows:</em></p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 1. To provide for supplementing certain items in the general appropriation act and other appropriation acts for fiscal year 2025, the sums set forth in section 2 are hereby appropriated from the General Fund unless specifically designated otherwise in this act or in those appropriation acts, for the several purposes and subject to the conditions specified in this act or in those appropriation acts, and subject to the laws regulating the disbursement of public funds for the fiscal year ending June 30, 2025. These sums shall be in addition to any amounts previously appropriated and made available for the purposes of those items. These sums shall be made available through the fiscal year ending June 30, 2025.</p>\r\n<p class=\"MsoNormal\" style=\"text-align: justify; text-indent: .4in;\">SECTION 2.</p>\r\n<p style=\"text-align: center;\">EXECUTIVE OFFICE FOR ADMINISTRATION AND FINANCE</p>\r\n<p style=\"text-align: center;\">Group Insurance Commission</p>\r\n<p>1108-5200&nbsp;&nbsp;&nbsp;&nbsp;Group Insurance Premium and Plan Costs ..................................................................................... $240,000,000.</p>\r\n<p style=\"text-align: center;\">Approved, May 15, 2025.</p>",
+ "OriginBill": {
+  "BillNumber": "H4100",
+  "Cosponsors": [],
+  "Details": "https://malegislature.gov/api/GeneralCourts/194/Documents/H4100",
+  "DocketNumber": null,
+  "GeneralCourtNumber": 194,
+  "IsDocketBookOnly": false,
+  "JointSponsor": null,
+  "PrimarySponsor": {
+   "Details": "https://malegislature.gov/api/GeneralCourts/194/Committees/H34",
+   "Id": "H34",
+   "Name": "House Committee on Ways and Means",
+   "ResponseDate": "2025-05-12T08:29:29.543",
+   "Type": 2
+  },
+  "Title": "An Act making appropriations for the fiscal year 2025 to provide for supplementing certain existing appropriations and for certain other activities and projects."
+ },
+ "Status": "Approved by the Governor, May 15, 2025",
+ "Title": "AN ACT MAKING APPROPRIATIONS FOR THE FISCAL YEAR 2025 TO PROVIDE FOR SUPPLEMENTING CERTAIN EXISTING APPROPRIATIONS AND FOR CERTAIN OTHER ACTIVITIES AND PROJECTS.",
+ "Type": "Acts",
+ "Year": 2025
+}

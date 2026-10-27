@@ -98,6 +98,7 @@ Use these terms consistently in code, comments, commit messages, and conversatio
 - **Swagger spec:** `https://malegislature.gov/api/swagger/v1/swagger.json`
 - **`GET /api/SessionLaws/{year}`** returns **every chapter in a year** as JSON, with `Year`, `ChapterNumber`, `Type` (`Acts`/`Resolves`), `ApprovalType`, `Title`, `Status`, `ApprovedDate` (e.g., `"Feb 28 2025"`), `ChapterText` (full HTML), and `OriginBill` (`BillNumber`, `GeneralCourtNumber`, and a `Details` URL).
   - Discovery is cheap: there are about 1,160 Acts in 2021–2025. Pulling one call per year gives the whole corpus.
+  - **Quirk:** in the year list, each record's `Year` is the **approval** year, not the Acts volume, and its type varies (string or int). For example, 2020 ch. 358 appears in `/SessionLaws/2020` with `Year: 2021`. Always take the volume year from the year requested.
 - **`GET /api/SessionLaws/{year}/{chapter}`** returns one chapter.
 - **`GET /api/GeneralCourts/{court}/Documents/{bill}`** returns bill metadata.
 - **`.../Documents/{bill}/DocumentHistoryActions`** returns the bill's action history, including veto overrides.
@@ -201,7 +202,7 @@ This is the candidate list produced during design research (2026-10-21) by scann
 
 **Reference-only seeds:**
 - 2020-227 (FY2021 GAA).
-- FY2021 supplementals approved in 2020.
+- FY2021 supplementals approved in 2020. A title scan at M0 found none (2020 ch. 201 is the FY2020 closeout; ch. 101, 131 and 198 are FY2021 interims). Discover's full-text scan should confirm this.
 - FY2026 supplementals approved in 2026: 2026-55 and 2026-101.
 - Any act named as an amendment target, such as 2019-5.
 
@@ -318,7 +319,7 @@ flowchart LR
 
 ## 7. File contracts (schemas)
 
-> **Draft v0. Freeze these at Milestone M0 (§17).** After freezing, change them only through the Decision Log. All CSVs are UTF-8 with a header row, comma-delimited, and quoted per RFC 4180. Money is an **integer number of dollars** (no commas, no `$`) in interim files. Dates are ISO `YYYY-MM-DD` in interim files; the export reformats them to match `exampledata.csv`.
+> **Draft v0. Freeze these at Milestone M0 (§17).** After freezing, change them only through the Decision Log. All CSVs are UTF-8 with a header row, comma-delimited, and quoted per RFC 4180. Money is an **integer number of dollars** (no commas, no `$`) in interim files. Dates are ISO `YYYY-MM-DD` in interim files; the export reformats them to match `exampledata.csv`. Booleans are `true`/`false`, lists are `;`-separated, and an empty cell is null. The code copy of these contracts is `src/ma_approps/schemas.py`.
 
 ### 7.1 `config/laws_registry.csv` (human-curated)
 | column | type | notes |
@@ -331,10 +332,10 @@ flowchart LR
 | `api_title` | str | full formal title |
 | `law_name` | str | **curated** short name, e.g. `FY2024 General Appropriations Act`, `FY2023 Supplemental Appropriations Act (December 2023)` |
 | `law_type` | enum | §9.1 |
-| `role` | enum | `in_scope`, `reference_only`, `excluded` |
+| `role` | enum | `in_scope`, `reference_only`, `excluded`, `tbd` (a discovered candidate awaiting a human decision) |
 | `include_reason` | str | why it is included, excluded, or reference-only |
 | `primary_fy` | int | FY stated in the title or appropriation section, if any |
-| `origin_bill` | str | e.g. `H58` (court 194) |
+| `origin_bill` | str | `{court}/{bill}`, e.g. `194/H58`, matching the API path `/GeneralCourts/{court}/Documents/{bill}` |
 | `veto_message_docs` | str | `;`-separated bill docs, e.g. `H4055` |
 | `parse_strategy` | enum | `auto`, `manual`, `auto+manual` |
 | `notes` | str | |
@@ -425,6 +426,9 @@ The same columns as `ledger.csv` (§7.7), except `record_id`, which assemble gen
 
 ### 7.13 Export
 `data/output/ma_appropriations_cy2021_2025.csv` uses **exactly** the 19 columns of `exampledata.csv`, in the same order (§8). `…_extended.csv` adds every ledger column.
+
+### 7.14 `config/funds.csv` (human-curated)
+`fund_name`, `fund_number`, `is_federal` (bool), `notes`. Drives the federal flag (§9.5).
 
 ---
 
@@ -820,6 +824,8 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-21 | The primary source is the MA Legislature JSON API (`/api/SessionLaws`), not bill search; CTHRU `kv7m-35wn` is the validation oracle. | Design research: the API returns full text of all enacted laws; CTHRU exactly matches the example rows. |
 | 2026-10-21 | Event-ledger data model with `amount_kind` and `additive`; the export is a view. | Design review: handles amendments, vetoes, cuts, and interim budgets without double counting. |
 | 2026-10-21 | Work split by layer (A–E), not by law type. | Design review: one shared item extractor and one outside-section grammar. |
+| 2026-10-21 | **Proposed, pending group sign-off at M0:** contract clarifications in `schemas.py`: add registry `role = tbd` (§6 stage 1 already appends candidates as TBD); `origin_bill` as `{court}/{bill}`; CSV booleans `true`/`false`; new `config/funds.csv` contract (§7.14). | Claude session (M0 scaffolding). Needed so the files written at M0 validate; reverse any the group rejects. |
+| 2026-10-21 | **Proposed, pending group sign-off at M0:** fixtures are the full, untrimmed chapter records (~4.4 MB total), not trimmed sections. | Claude session. Avoids deciding a trimming rule before the normalizer exists; revisit if repo size becomes a problem. |
 
 ---
 
@@ -830,9 +836,10 @@ Update this table in the same commit as the work it describes.
 | Item | Owner | Status | Notes |
 |---|---|---|---|
 | Assign workstream owners A–E | group | ☐ todo | |
-| M0: contracts frozen | E | ☐ todo | |
-| M0: registry seeded and curated | A | ☐ todo | start from §4 |
-| M0: fixtures and expected rows | B, C | ☐ todo | |
+| M0: repo skeleton, `pyproject.toml`, CLI, CI | E | ◐ in progress | branch `e/m0-foundations`; stub stages skipped; `pytest` + `ruff` + `validate` green locally (re-run 2026-10-25); CI not yet run on GitHub |
+| M0: contracts frozen | E | ◐ in progress | `schemas.py` written from §7/§9; clarifications in the Decision Log await sign-off |
+| M0: registry seeded and curated | A | ◐ in progress | `config/laws_registry.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the golden laws and 2019-5; API fields re-checked against the cache 2026-10-25 (2019-5 corrected from `gaa` to `supplemental`); all rows need human review |
+| M0: fixtures and expected rows | B, C | ◐ in progress | six §15 fixture laws committed; `expected/golden.csv` for EX-001…004; expected rows for other fixtures still to write |
 | M1: vertical slice and golden test | all | ☐ todo | |
 | M2: all GAAs reconciled | B, E | ☐ todo | |
 | M3: supplementals, surplus, interim, vetoes | C, A | ☐ todo | |

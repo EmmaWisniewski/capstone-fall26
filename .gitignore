@@ -1,1 +1,20 @@
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Data (DESIGN §15): raw cache is never committed; interim only as small samples
+data/raw/
+data/interim/*
+!data/interim/.gitkeep
+
+# Secrets
+.env
