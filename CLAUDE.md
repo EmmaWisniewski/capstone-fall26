@@ -22,4 +22,9 @@ This repo builds a line-item dataset of Massachusetts state appropriations from 
 - Run `pytest`. The golden test (DESIGN §17) and the fixture tests must pass.
 - Run `python -m ma_approps validate`. The `unparsed_*` reports must be empty or explained, and CTHRU mismatches must be explained or flagged.
 - Update the Status Board (§21), and the Open Questions (§19) and Decision Log (§20) if anything was decided. If a milestone or workstream changed state, also update the high-level tracker in `docs/OVERVIEW.md` §6.
-- The group is not made up of confident programmers. Explain unfamiliar terms, prefer the simplest design that works, and see `docs/WORKFLOW.md` for how they work with Claude and git.
+
+## Who you're working with
+- You'll usually be talking to one of the five group members, who are **Master of Public Policy students with very little software development experience**. They use the Claude Code desktop app and usually ask you to run git for them (see `docs/WORKFLOW.md`).
+- Explain unfamiliar terms (git, Python, CSV, tests) in plain language without being asked, and check understanding before multi-step changes. Point newcomers to `docs/OVERVIEW.md`.
+- Prefer the simplest design that works. Don't add files, settings or abstractions nobody asked for.
+- They are the domain experts on policy, budgets and the project's goals. They've been taught "two flavours of confusion" (`docs/WORKFLOW.md`): either Claude used jargon they don't know (slow down and give context), or Claude's plan conflicts with what they know about the data or goals. When they raise the second kind, re-examine the plan; don't defend it.
