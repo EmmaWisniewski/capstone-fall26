@@ -81,46 +81,7 @@ that haven't been written yet are skipped with a message.
 
 ---
 
-## 4. Six ideas you need
-
-**CTHRU first, law text second.** For the annual budgets (about 85% of rows), the amounts come
-straight from the Comptroller, already reflecting the governor's vetoes and any overrides. We
-compare them with the amounts printed in the law. Where they differ, we record what happened
-(vetoed, reduced, overridden) or flag it for a human.
-([DESIGN §3.4](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else))
-
-**The ledger: one row per legal action, not one row per item.** Item 2330-0100 can have several
-rows: its original amount in the budget, then a supplemental increase. Each action has its own
-law, date, and signed dollar amount. The final CSV is a view of this table.
-([DESIGN §5](DESIGN.md#5-core-data-model-the-event-ledger))
-
-**Don't count money twice.** Some rows describe money that is already counted somewhere else:
-stopgap "interim" budgets (just an advance on the real budget), charges between agencies,
-extensions of old money, and transfers. Every ledger row has an `additive` true/false flag, and
-totals add up only the `true` rows. Bond money is totaled separately. Federal money is flagged and
-left out of the main total for now.
-([DESIGN §10](DESIGN.md#10-counting-rules-net-new-appropriation-authority))
-
-**Every row has a permanent ID.** For example, `2023-077-S178-2330-0100-INC-1` means: 2023 ch. 77,
-Section 178, item 2330-0100, a supplemental increase, the first one. Running the program again
-always produces the same IDs. Never renumber them. ([DESIGN §9.6](DESIGN.md#96-record-id))
-
-**Labels are decided once per line item, then reused every year.** A spreadsheet,
-`config/line_item_catalog.csv`, says which policy area each line item number belongs to.
-New items get a default from their department (`config/department_policy.csv`), or go to a human
-if the department spans several areas. Next year, every known item is labeled automatically. There
-is no AI in this step: rules are cheaper, predictable, and need no API key.
-([DESIGN §12](DESIGN.md#12-policy-area-classification))
-
-**Automate everything; humans make judgment calls only.** Every routine kind of law is read by
-code, not typed in. Human work is limited to things code shouldn't decide: approving which
-laws count, labeling genuinely new items, and explaining mismatches with CTHRU. Never edit the
-program's generated files by hand. Put labels in the catalog, and one-off fixes in
-`review/overrides.csv`. ([DESIGN §14](DESIGN.md#14-human-review-workflow))
-
----
-
-## 5. Where things live
+## 4. Where things live
 
 ```
 README.md, CLAUDE.md          setup steps; rules Claude follows in this repo
@@ -138,7 +99,7 @@ reports/                      check results the program generates (never edit by
 
 ---
 
-## 6. Tracker
+## 5. Tracker
 
 This is the at-a-glance view. Item-by-item detail lives in the
 [DESIGN §21 Status Board](DESIGN.md#21-status-board). **When a milestone or workstream changes
@@ -183,7 +144,7 @@ Open questions waiting on the group or our State Auditor partner are listed in
 
 ---
 
-## 7. Where to go next
+## 6. Where to go next
 
 - **How to work day to day** (branches, commits, pull requests, working with Claude):
   [`WORKFLOW.md`](WORKFLOW.md)
