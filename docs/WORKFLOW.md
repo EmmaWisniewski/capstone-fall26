@@ -48,15 +48,15 @@ Make sure you're building on everyone's newest work.
 > **Say:** "Switch to main and pull the latest changes. Tell me if I have any uncommitted work first."
 
 ### Step 2: Make a branch for this task
-Name it with your workstream letter and a few words: `a/fetch-cache`, `b/item-state-machine`,
-`c/figure-change`, `d/agency-crosswalk`, `e/assemble-ids`. Use **one branch per task**, kept small:
+Name it with your workstream letter and a few words: `a/bond-fixture`, `b/paragraphs`,
+`c/figure-change`, `d/department-table`, `e/cthru-snapshot`. Use **one branch per task**, kept small:
 roughly a day or two of work.
-> **Say:** "Create a new branch called `b/item-state-machine`."
+> **Say:** "Create a new branch called `b/paragraphs`."
 
 ### Step 3: Ask for the change
 Point Claude at the relevant part of the design so it doesn't guess.
 > **Say:** "Read DESIGN §11.2. Then make a plan for handling trailing periods on amounts in
-> `extract_items.py`. Don't edit anything yet."
+> `read_items.py`. Don't edit anything yet."
 >
 > Then, once you understand and agree with the plan: "OK, go ahead."
 
@@ -67,7 +67,7 @@ Also look at the **diff** (see §4) so you know what actually changed. If you ca
 change roughly in your own words, ask Claude to walk you through it before you continue.
 
 ### Step 5: Commit
-A good message says what changed and why, e.g. `extract_items: allow trailing period after amount (2025 ch. 3)`.
+A good message says what changed and why, e.g. `read_items: allow trailing period after amount (2025 ch. 3)`.
 > **Say:** "Commit these changes with a clear message. Show me which files you're including first."
 
 Check that the list has **no** files from `data/raw/`, `data/interim/`, `data/output/`, `reports/`,
@@ -187,4 +187,4 @@ that our goal doesn't need, or you're being asked to decide between two options 
 
 That creates the `.venv` folder (the project's private copy of Python and its libraries), installs
 the project, and runs `pytest` and `validate`. Also set `contact_email` in
-`config/settings.toml` before anyone runs `fetch` (ask the group which address to use).
+`config/settings.toml` before anyone runs the `laws` stage (ask the group which address to use).

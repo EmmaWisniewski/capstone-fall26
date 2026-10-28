@@ -9,13 +9,14 @@ This repo builds a line-item dataset of Massachusetts state appropriations from 
 ## Rules
 - **Stages talk only through the file contracts in DESIGN §7.** Don't add, rename or retype columns, or add enum values, without updating §7/§9 and `src/ma_approps/schemas.py` and adding a Decision Log entry.
 - **Record IDs are stable and deterministic (§9.6).** Never renumber them. Human review depends on them.
-- **Never hand-edit generated CSVs** (`data/interim/`, `data/output/`, `review/review_queue.csv`, `reports/`). Record human decisions in `review/overrides.csv` and longer reasoning in `review/research_log.md`.
+- **Never hand-edit generated CSVs** (`data/interim/`, `data/output/`, `review/review_queue.csv`, `reports/`). Record policy-area decisions in `config/line_item_catalog.csv`, one-row fixes in `review/overrides.csv`, and longer reasoning in `review/research_log.md`.
 - **Scope filters on the approval date** (`ApprovedDate` 2021-01-01 → 2025-12-31), not on the Acts volume year.
-- **Don't trust inline veto markup.** Reconcile against CTHRU (§11.4, §13).
+- **CTHRU first (§3.4).** GAA amounts and agencies come from CTHRU; law text is read only for what CTHRU lacks. Inline veto markup is a hint, not truth (§11.4).
+- **Automate, don't hand-annotate.** Every routine kind of law is read by code; `config/manual_rows.csv` is an escape hatch only. Nothing may be hard-coded to 2021–2025: future cohorts re-run the program each year (§1).
 - **Use `amount_kind` and `additive` for every ledger row.** Interim budgets, ISF chargebacks, reauthorizations, transfers and bond authorizations are not summed into the operating totals (§10).
 - **Federal money stays in the data but is flagged**, pending the Office of the State Auditor partner (Q1).
 - Be polite to malegislature.gov: about 1 request per second, cache in `data/raw/`, and use offline fixtures in tests.
-- Never commit `data/raw/` or API keys (`ANTHROPIC_API_KEY` comes from the environment).
+- Never commit `data/raw/` or API keys. The pipeline uses no LLM (DESIGN §12); don't add one without a Decision Log entry.
 
 ## Before saying a stage is done
 - Run `pytest`. The golden test (DESIGN §17) and the fixture tests must pass.

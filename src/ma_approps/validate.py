@@ -1,9 +1,9 @@
-"""Stage 10: validation suite (DESIGN §13).
+"""`validate`: the validation suite (DESIGN §13). Owner: workstream E.
 
 M0 implements check 1 (schema and vocabulary) and the coverage check on the
 ``unparsed_*`` reports. The remaining checks land with their milestones:
-golden (M1), CTHRU reconciliation (M2/M3), struck-figure (M3), bond totals (M4),
-law status and override health (M5).
+golden (M1), CTHRU comparison (M2/M3), struck-figure (M3), bond totals (M4),
+law status and orphaned overrides (M5).
 """
 
 from __future__ import annotations
@@ -28,19 +28,20 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("laws_registry", ctx.config_dir / "laws_registry.csv"),
         ("manual_rows", ctx.config_dir / "manual_rows.csv"),
         ("funds", ctx.config_dir / "funds.csv"),
+        ("line_item_catalog", ctx.config_dir / "line_item_catalog.csv"),
+        ("department_policy", ctx.config_dir / "department_policy.csv"),
         ("overrides", ctx.review_dir / "overrides.csv"),
         *(
             (name, interim / f"{name}.csv")
             for name in (
                 "items_raw",
+                "bond_items_raw",
                 "actions_raw",
-                "veto_events",
+                "cthru_accounts",
                 "ledger",
                 "fund_splits",
-                "line_item_master",
                 "amount_ledger",
-                "enrichment",
-                "classifications",
+                "descriptions",
             )
         ),
     ]

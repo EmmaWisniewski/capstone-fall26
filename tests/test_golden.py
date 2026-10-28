@@ -1,6 +1,6 @@
 """Golden test (DESIGN §17, M1): parser- and assemble-derived fields for EX-001…EX-004.
 
-Runs the pipeline offline on tests/fixtures and compares against
+Runs the pipeline offline on tests/fixtures (law texts plus a CTHRU snapshot) and compares against
 tests/fixtures/expected/golden.csv. Skipped until the M1 stages exist.
 """
 
@@ -9,7 +9,7 @@ import pytest
 from ma_approps import cli, schemas
 from ma_approps.context import Context
 
-M1_STAGES = ("normalize", "extract_items", "extract_actions", "assemble", "export")
+M1_STAGES = ("cthru", "read_items", "read_amendments", "assemble", "export")
 CHECKED = (
     "Law citation",
     "Enactment date",
@@ -37,14 +37,14 @@ def test_golden(root, fixtures_dir, tmp_path):
         offline=True,
     )
     stages = [*M1_STAGES]
-    enrich_done = getattr(cli.stage_module("enrich"), "IMPLEMENTED", False)
-    if enrich_done:
-        stages.append("enrich")
+    describe_done = getattr(cli.stage_module("describe"), "IMPLEMENTED", False)
+    if describe_done:
+        stages.append("describe")
     assert cli.run_stages(ctx, stages) == 0
 
     _, exported = schemas.read_csv(ctx.output_dir / "ma_appropriations_cy2021_2025.csv")
     _, golden = schemas.read_csv(fixtures_dir / "expected" / "golden.csv")
-    fields = (*CHECKED, "Agency / office") if enrich_done else CHECKED
+    fields = (*CHECKED, "Agency / office") if describe_done else CHECKED
     for g in golden:
         matches = [
             r

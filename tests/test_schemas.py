@@ -62,12 +62,12 @@ def test_manual_rows_are_ledger_minus_record_id_plus_provenance():
 
 
 def test_validate_rows_flags_bad_values():
-    header = schemas.columns("veto_events")
+    header = schemas.columns("line_item_catalog")
     row = dict.fromkeys(header, "")
-    row.update(law_key="2023-28", section="2", event="bogus", evidence="inline",
-               event_date="08/09/2023", amount_after="1,000")
-    problems = {p.column for p in schemas.validate_rows("veto_events", header, [row])}
-    assert problems == {"event", "event_date", "amount_after"}
+    row.update(line_item="2330-0100", policy_area="Fisheries", label_every_year="yes",
+               decided_on="08/09/2023")
+    problems = {p.column for p in schemas.validate_rows("line_item_catalog", header, [row])}
+    assert problems == {"policy_area", "label_every_year", "decided_on"}
 
 
 def test_validate_rows_flags_header_order():

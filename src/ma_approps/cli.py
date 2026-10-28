@@ -1,6 +1,6 @@
 """Command line for the pipeline.
 
-    python -m ma_approps run --stage {discover…export|all} [--law 2023-28] [--offline]
+    python -m ma_approps run --stage {laws…validate|all} [--law 2023-28] [--offline]
     python -m ma_approps validate
 
 Stages run in DESIGN §6 order. A stage module exposes ``IMPLEMENTED`` and ``run(ctx)``; stubs
@@ -15,20 +15,17 @@ from pathlib import Path
 
 from ma_approps.context import Context
 
-# (stage name, module, workstream owner) in DESIGN §6 order
+# (stage name, module, workstream owner) in DESIGN §6 order. "all" = Putting it together.
 STAGES = (
-    ("discover", "ma_approps.discover", "A"),
-    ("fetch", "ma_approps.fetch", "A"),
-    ("normalize", "ma_approps.normalize", "B"),
-    ("extract_items", "ma_approps.extract_items", "B"),
-    ("extract_actions", "ma_approps.extract_actions", "C"),
-    ("vetoes", "ma_approps.vetoes", "A"),
-    ("assemble", "ma_approps.assemble", "E"),
-    ("enrich", "ma_approps.enrich", "D"),
-    ("classify", "ma_approps.classify", "D"),
+    ("laws", "ma_approps.laws", "A"),
+    ("cthru", "ma_approps.cthru", "E"),
+    ("read_items", "ma_approps.read_items", "B"),
+    ("read_bonds", "ma_approps.read_bonds", "A"),
+    ("read_amendments", "ma_approps.read_amendments", "C"),
+    ("assemble", "ma_approps.assemble", "all"),
+    ("describe", "ma_approps.describe", "D"),
+    ("export", "ma_approps.export", "all"),
     ("validate", "ma_approps.validate", "E"),
-    ("review", "ma_approps.review", "E"),
-    ("export", "ma_approps.export", "E"),
 )
 STAGE_NAMES = tuple(name for name, _, _ in STAGES)
 
@@ -45,7 +42,7 @@ def run_stages(ctx: Context, names: list[str]) -> int:
             continue
         mod = stage_module(name)
         if not getattr(mod, "IMPLEMENTED", False):
-            print(f"[{name}] skipped: not implemented yet (workstream {owner})")
+            print(f"[{name}] skipped: not implemented yet (owner: {owner})")
             continue
         print(f"[{name}] running")
         status = mod.run(ctx) or 0

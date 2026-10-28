@@ -104,7 +104,7 @@ FLAGS = (
 )
 
 # §9.7
-HUMAN_REVIEW_STATUSES = ("Not human reviewed", "Human reviewed", "Review stale")
+HUMAN_REVIEW_STATUSES = ("Not human reviewed", "Human reviewed")
 
 # §9.8: exactly the values in policyareas.csv (note the typographic apostrophe)
 POLICY_AREAS = (
@@ -128,7 +128,7 @@ POLICY_AREAS = (
     "Unclassified/other",
 )
 
-# §7.3 / §7.4 / §7.5 / §7.9 / §7.10 enums
+# §7.3 / §7.4 / §7.7 / §7.9 enums
 CONFIDENCE_LEVELS = ("high", "medium", "low")
 VETO_KINDS_INLINE = ("none", "disapproved", "reduced", "reduced_and_wording", "overridden")
 ACTION_TYPES = (
@@ -143,17 +143,13 @@ ACTION_TYPES = (
     "transfer",
     "direct_appropriation",
 )
-VETO_EVENTS = (
-    "item_veto",
-    "item_reduction",
-    "wording_veto",
-    "override_restoration",
-    "veto_sustained",
-)
-VETO_EVIDENCE = ("inline", "bill_history", "veto_message", "cthru_inferred")
+# §5.7 vetoes are netted into the amount; veto_status records what happened (Q4)
+VETO_STATUSES = ("none", "vetoed", "reduced", "overridden", "unknown")
+# §5.2 where a ledger row's amount came from
+AMOUNT_SOURCES = ("cthru", "law_text", "manual")
 FY_RULES = ("stated", "target_act", "enactment_fy")
-PROGRAM_PURPOSE_METHODS = ("rule", "llm", "human")
-CLASSIFICATION_METHODS = ("crosswalk", "rule", "llm", "human")
+PROGRAM_PURPOSE_METHODS = ("rule", "human")
+POLICY_AREA_METHODS = ("catalog", "department", "human")
 PREVIOUSLY_FUNDED = ("Yes", "No", "Unknown")
 ONE_TIME_OR_RECURRING = ("Recurring", "One-time", "Not classified")
 NEW_OR_REAPPROP = ("New", "Re-appropriation", "Transfer of existing authority", "Pending")
@@ -194,7 +190,6 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "include_reason",
         Col("primary_fy", "int"),
         "origin_bill",
-        "veto_message_docs",
         Col("parse_strategy", "enum", PARSE_STRATEGIES),
         "notes",
     ),
@@ -237,20 +232,23 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "source_text",
         *_PARSER,
     ),
-    # §7.5 data/interim/veto_events.csv
-    "veto_events": _cols(
-        Col("law_key", required=True),
-        Col("section", required=True),
-        "line_item",
-        Col("event", "enum", VETO_EVENTS, required=True),
-        Col("amount_before", "int"),
-        Col("amount_after", "int"),
-        Col("event_date", "date"),
-        Col("evidence", "enum", VETO_EVIDENCE, required=True),
-        "evidence_ref",
-        Col("confidence", "enum", CONFIDENCE_LEVELS),
+    # §7.5 data/interim/cthru_accounts.csv (one row per fiscal year x account, aggregated)
+    "cthru_accounts": _cols(
+        Col("fiscal_year", "int", required=True),
+        Col("line_item", required=True),
+        "account_name",
+        "department_code",
+        "department_name",
+        "secretariat",
+        "fund_numbers",
+        Col("original_enacted", "int"),
+        Col("supplemental", "int"),
+        Col("rr_ceiling", "int"),
+        Col("total_enacted", "int"),
     ),
 }
+# §7.3 data/interim/bond_items_raw.csv: same columns as items_raw (workstream A writes it)
+SCHEMAS["bond_items_raw"] = SCHEMAS["items_raw"]
 
 # §7.7 data/interim/ledger.csv (canonical)
 LEDGER = _cols(
@@ -268,6 +266,9 @@ LEDGER = _cols(
     Col("funding_action", "enum", FUNDING_ACTIONS, required=True),
     Col("amount_kind", "enum", AMOUNT_KINDS, required=True),
     Col("amount", "int"),
+    Col("amount_source", "enum", AMOUNT_SOURCES, required=True),
+    Col("amount_printed", "int"),
+    Col("veto_status", "enum", VETO_STATUSES),
     Col("additive", "bool", required=True),
     "fund_primary",
     Col("federal_share", "float"),
@@ -276,7 +277,6 @@ LEDGER = _cols(
     "item_text",
     "source_url",
     Col("source_para_start", "int"),
-    "source_text_sha1",
     "parser_version",
 )
 SCHEMAS["ledger"] = LEDGER
@@ -297,17 +297,6 @@ SCHEMAS["fund_splits"] = _cols(
     Col("share", "float", required=True),
     Col("is_federal", "bool", required=True),
 )
-SCHEMAS["line_item_master"] = _cols(
-    Col("line_item", required=True),
-    Col("fiscal_year", "int", required=True),
-    "cthru_account_name",
-    "cthru_department_name",
-    "cthru_department_code",
-    "cthru_secretariat",
-    "agency_header_raw",
-    "agency_normalized_id",
-    "agency_office_display",
-)
 SCHEMAS["amount_ledger"] = _cols(
     Col("target_law_key", required=True),
     Col("section", required=True),
@@ -316,27 +305,38 @@ SCHEMAS["amount_ledger"] = _cols(
     Col("amount_after", "int"),
 )
 
-# §7.9 data/interim/enrichment.csv
-SCHEMAS["enrichment"] = _cols(
+# §7.9 data/interim/descriptions.csv
+SCHEMAS["descriptions"] = _cols(
     Col("record_id", required=True),
     "agency_office",
     "program_purpose",
     Col("program_purpose_method", "enum", PROGRAM_PURPOSE_METHODS),
+    Col("policy_area", "enum", POLICY_AREAS),
+    Col("policy_area_method", "enum", POLICY_AREA_METHODS),
     Col("previously_funded", "enum", PREVIOUSLY_FUNDED),
     Col("one_time_or_recurring", "enum", ONE_TIME_OR_RECURRING),
     Col("new_or_reapprop", "enum", NEW_OR_REAPPROP),
 )
 
-# §7.10 data/interim/classifications.csv
-SCHEMAS["classifications"] = _cols(
-    Col("record_id", required=True),
+# §7.10 config/line_item_catalog.csv (human-curated; carries labels from year to year)
+SCHEMAS["line_item_catalog"] = _cols(
+    Col("line_item", required=True),
     Col("policy_area", "enum", POLICY_AREAS, required=True),
-    Col("method", "enum", CLASSIFICATION_METHODS, required=True),
-    Col("confidence", "float"),
-    "rationale",
-    "model_id",
-    "prompt_version",
-    "input_sha1",
+    Col("label_every_year", "bool", required=True),
+    "decided_by",
+    Col("decided_on", "date"),
+    "note",
+)
+
+# §7.10 config/department_policy.csv (human-curated; rule for items not yet in the catalog)
+SCHEMAS["department_policy"] = _cols(
+    Col("department_code", required=True),
+    "department_name",
+    Col("policy_area", "enum", POLICY_AREAS),
+    Col("mixed", "bool", required=True),
+    "decided_by",
+    Col("decided_on", "date"),
+    "note",
 )
 
 # §7.11 review/overrides.csv (human-edited)
@@ -345,7 +345,6 @@ SCHEMAS["overrides"] = _cols(
     Col("field", required=True),
     "new_value",
     "expected_old_value",
-    "source_text_sha1",
     Col("reviewer", required=True),
     Col("review_date", "date", required=True),
     "note",
