@@ -76,10 +76,8 @@ that haven't been written yet are skipped with a message.
 | 7 | `describe.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
 | 8 | `export.py` | Applies human corrections and writes the final CSV in exactly the `exampledata.csv` format | everyone |
 | — | `validate.py` | Runs the checks: our numbers vs. CTHRU, nothing left unread, IDs unique | Mario (E) |
-
-Two more shared files: `paragraphs.py` turns a law's web-page code into clean paragraphs. Tierney
-(B) owns it, and all three law readers use it. `schemas.py` is the single list of every column
-name and allowed value, and Mario (E) owns it.
+| shared | `paragraphs.py` | Turns a law's web-page code into clean, numbered paragraphs; used by all three law readers (stages 3–5) | Tierney (B) |
+| shared | `schemas.py` | The single list of every column name and allowed value that the stages pass between each other | Mario (E) |
 
 ---
 
