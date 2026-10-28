@@ -1,20 +1,14 @@
 # Working with Claude Code and git
 
-A refresher for everyday work in this repo with the Claude Code desktop app. Keep it open
-while you work. For what the program does and who owns what, see [`OVERVIEW.md`](OVERVIEW.md).
+A refresher for the "how" of making progress on this project. For what the program does and who owns what, see [`OVERVIEW.md`](OVERVIEW.md).
 
 ---
 
 ## 1. The mental model
 
-- **The program *is* the `.py` files** in `src/ma_approps/`. That's all it is: text files of
-  Python code. The program "changes" only when those files change.
-- **Chatting with Claude is how you change those files.** When you ask Claude to "add a check for
-  trailing periods", it opens the right `.py` file and edits it, just as you would in a text
-  editor. The chat itself isn't the program. If a conversation ends without any file being edited,
-  nothing about the program has changed, however good the discussion was.
-- **Tests check the files.** `pytest` runs the automatic checks in `tests/`. Passing tests are
-  how we know an edit didn't break something. Claude can run them for you.
+- **The program is the `.py` files** in `src/ma_approps/`. These are text files of
+  Python code.
+- **Chatting with Claude Code can change those files.** You can edit them yourself too, but if you are in "code" more (rather than the regular "chat" mode), Claude will directly program for you in your copy of these files.
 - **Git saves and shares snapshots of the files.** Edits sit only on your computer until you
   **commit** them (save a snapshot), **push** them (upload to GitHub), and **merge** them (add them
   to the shared version). Teammates see your work only after it's merged, or if they look at your
@@ -85,9 +79,9 @@ or anything with a key or password.
 
 Claude uses the `gh` tool for this. The first time, it may ask you to log in to GitHub (see §8).
 
-### Step 7: Get one teammate's review
+### Step 7 (maybe optional): Get one teammate's review
 Post the PR link in the group chat. Any one teammate can review (see §5). Wait for **CI to be
-green** (a ✅ on the PR page) and **one approval**.
+green** (a ✅ on the PR page) and **one approval**. You can also accept & merge your own PRs, but it's good practice to have a second set of eyes.
 
 ### Step 8: Merge and tidy up
 Merge on the GitHub PR page with the green **Merge pull request** button, or:
@@ -97,9 +91,9 @@ Then start the next task at Step 1.
 
 ---
 
-## 4. Doing it with the desktop app's own controls
+## 4. Doing it with the desktop app
 
-Some things are easier to see in the app than through chat. This is what the app's
+Some things are easier to see in the app than through Claude's chat. This is what the app's
 [documentation](https://code.claude.com/docs/en/desktop) describes. If your version looks
 different, ask Claude ("where do I see my changes in this app?").
 
@@ -144,57 +138,30 @@ Reviewing is real work, so spread it around. Try to review roughly as many PRs a
 
 ---
 
-## 6. Project rules on one screen
-
-From [`CLAUDE.md`](../CLAUDE.md). Claude follows these too, but you're the backstop.
-
-- **Never hand-edit generated files** (`data/interim/`, `data/output/`, `reports/`,
-  `review/review_queue.csv`). Human decisions go in **`review/overrides.csv`**; longer reasoning in
-  **`review/research_log.md`**.
-- **Don't change columns or allowed values** without updating DESIGN §7/§9 and `schemas.py`, and
-  adding a Decision Log entry (§20). Talk to the group first.
-- **Never renumber Record IDs.**
-- **Never commit `data/raw/` or API keys.** The Anthropic key lives only in the
-  `ANTHROPIC_API_KEY` environment variable.
-- **Be polite to malegislature.gov**: about one request per second, and use the saved copies.
-- **Before calling a stage done:** `pytest` passes, `validate` is clean or explained, and the
-  tracker is updated.
-
----
-
-## 7. Working well with Claude
+## 6. Working well with Claude
 
 ### Two flavours of confusion
-When you feel lost, first ask yourself *which kind* of confused you are. The right response is
-different for each.
+When you feel lost, first ask yourself *which kind* of confused you are.
 
 **Flavour 1: "I've never heard of this."** Claude talks as if you'll obviously recognize a term,
-tool, or step that is actually new to you, like "just rebase onto main" or "add a fixture". This
-is a gap in context, not a failing on your part. **Slow down and ask for more context.**
+tool, or step that is actually new to you, like "just rebase onto main" or "add a fixture". **Slow down and ask for more context.**
 > - "What is a rebase? Explain it as if I'm new to programming."
 > - "Before we continue, why is this step needed?"
 > - "Show me the file you're talking about and point to the line."
 
 **Flavour 2: "This doesn't fit what I know."** Claude's approach clashes with what you know about
-the actual laws, the data, or the project's goals. For example, it wants to trust the veto
-markup in the FY2025 budget, which we know is incomplete. Or it's building something elaborate
-that our goal doesn't need. **Claude may simply be wrong. You are the domain expert.** Raise the
-conflicting information and don't follow the plan blindly.
+the actual laws, the data, or the project's goals. For example, it's building something elaborate
+that our goal doesn't need, or you're being asked to decide between two options when both seem wrong. **Use your domain knowledge as the deciding factor.**
 > - "That doesn't match what I know: the FY2025 GAA is missing most veto markup. How does your plan handle that?"
 > - "Our goal is X. Why does this need Y?"
 > - "This seems more complicated than the problem. What's the simplest version?"
 
-**Telling them apart:** if you could say *why* it seems wrong, it's probably flavour 2. If you just
-don't know what the words mean, it's flavour 1. Both are worth stopping for.
-
 ### Other habits
-- **Ask for a plan before edits** on anything non-trivial (or use **Plan** mode).
+- **Ask for a plan before edits** on anything non-trivial (you can use **Plan** mode for this).
 - **Ask it to explain** code you don't understand. "What does this function do, line by line?"
   is a perfectly good question.
 - **Keep PRs small.** One idea per PR is easier to review, test, and undo.
 - **Look at the diff before committing.** Know what you're saving.
-- **Tests are the referee.** Claude can be confidently wrong. If tests fail or numbers don't
-  match CTHRU, believe the tests.
 - **Watch for bloat.** If Claude adds a new file, setting, or helper you didn't ask for, ask
   whether it's needed. Less code means less to understand.
 - **Start a fresh chat for a new task.** Long chats about many topics get muddled.
