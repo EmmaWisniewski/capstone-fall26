@@ -1,9 +1,9 @@
-"""Stage 6 `assemble`: build ledger.csv, fund_splits.csv, amount_ledger.csv (DESIGN §5,
+"""Stage 6 `assemble`: build funding_actions.csv, fund_splits.csv, running_amounts.csv (DESIGN §5,
 §7.6–§7.8).
 
 Stub. Owner: everyone (Putting it together), coordinated by E. GAA rows come from
-cthru_accounts.csv; everything else from items_raw, bond_items_raw, actions_raw and the
-manual_rows escape hatch. C owns the amount-ledger logic; E owns the CTHRU comparison that sets
+cthru_accounts.csv; everything else from items_raw, bond_items_raw, amendments_raw and the
+manual_rows escape hatch. C owns the running-amounts logic; E owns the CTHRU comparison that sets
 veto_status. Use schemas.record_id_prefix / assign_record_ids.
 """
 

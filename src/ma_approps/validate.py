@@ -36,11 +36,11 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
             for name in (
                 "items_raw",
                 "bond_items_raw",
-                "actions_raw",
+                "amendments_raw",
                 "cthru_accounts",
-                "ledger",
+                "funding_actions",
                 "fund_splits",
-                "amount_ledger",
+                "running_amounts",
                 "descriptions",
             )
         ),
@@ -98,7 +98,7 @@ def check_schemas(ctx: Context) -> list[tuple[Path, Problem]]:
         if not any(p.row == 0 for p in problems):
             if table == "laws_registry":
                 problems += check_registry(rows, ctx.settings["scope"])
-            if table == "ledger":
+            if table == "funding_actions":
                 problems += check_record_ids(table, rows)
         found += [(path, p) for p in problems]
     return found

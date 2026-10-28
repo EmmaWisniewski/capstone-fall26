@@ -16,7 +16,7 @@
 2. [Glossary](#2-glossary)
 3. [Sources](#3-sources)
 4. [Seed law registry](#4-seed-law-registry)
-5. [Core data model: the event ledger](#5-core-data-model-the-event-ledger)
+5. [Core data model: the funding actions table](#5-core-data-model-the-funding-actions-table)
 6. [Pipeline architecture](#6-pipeline-architecture)
 7. [File contracts (schemas)](#7-file-contracts-schemas)
 8. [Mapping to the `exampledata.csv` columns](#8-mapping-to-the-exampledatacsv-columns)
@@ -181,7 +181,7 @@ This is the candidate list produced during design research (2026-10-21) by scann
 | 2021-24 | 2021-07-16 | gaa | 1,178 | **FY2022 GAA.** |
 | 2021-25 | 2021-07-19 | bond | 1 | Chapter 90 municipal roads. |
 | 2021-29 | 2021-07-29 | supplemental | 28 | FY2021 supplemental. |
-| 2021-35 | 2021-08-03 | other | 1 | Policy act that **rewrites item 8100-1014 of 2019 ch. 5**. The delta needs the amount ledger. |
+| 2021-35 | 2021-08-03 | other | 1 | Policy act that **rewrites item 8100-1014 of 2019 ch. 5**. The delta needs the running amounts table. |
 | 2021-76 | 2021-10-20 | supplemental | 100 | FY2021 closeout. Creates the Transitional Escrow Fund. |
 | 2021-102 | 2021-12-13 | surplus (+federal) | 59 | ARPA (Federal COVID-19 Response Fund) **and** state surplus. Mixed funds; federal flag. |
 | 2022-22 | 2022-02-12 | supplemental | 3 | FY2022. |
@@ -229,13 +229,13 @@ This is the candidate list produced during design research (2026-10-21) by scann
 
 ---
 
-## 5. Core data model: the event ledger
+## 5. Core data model: the funding actions table
 
-### 5.1 Why a ledger
+### 5.1 Why one row per funding action
 A law doesn't just create items. It also raises, cuts, re-purposes, extends, transfers, vetoes, and restores them, sometimes in other laws and sometimes in a later calendar year. Storing **one row per legal action (event)** handles all of these the same way:
 
 - Every event has its own law, section, date, fiscal year, and signed amount.
-- The `exampledata.csv` export is a **view** over the ledger, filtered to in-window events.
+- The `exampledata.csv` export is a **view** over the funding actions table, filtered to in-window events.
 - Totals are sums over events flagged `additive = true`.
 
 ### 5.2 Event types (`funding_action`)
@@ -251,10 +251,10 @@ Each event carries:
 - **For amendments, take the FY of the act being amended.** EX-004 is in a law named "FY2023 Supplemental" but amends the FY2024 GAA, so its FY is **2024**.
 - Multi-year items ("made available until June 30, 2027", "for the fiscal year in which the sums are disbursed") and bond items use the **FY containing the approval date**, set `fy_rule = enactment_fy`, and record `available_through`.
 
-### 5.5 Amount ledger
+### 5.5 Running amounts
 Keep the **current amount** of every `(target law, section, item)` after each event, in date order. This makes it possible to:
 - compute deltas when an act replaces a whole item (2021 ch. 35) or inserts a new figure, and
-- run the **struck-figure self-check**: when an amendment says it is "striking out the figure '$9,310,231'", the ledger's current amount must equal $9,310,231 (§13).
+- run the **struck-figure self-check**: when an amendment says it is "striking out the figure '$9,310,231'", the item's running amount must equal $9,310,231 (§13).
 
 ### 5.6 Fund attribution
 Each event has zero or more fund splits (`fund_splits.csv`). The default fund is the one named in the section header (e.g., General Fund for GAA §2, General Federal Grants Fund for §2D, Education and Transportation Fund for §2F, Transitional Escrow Fund for 2025 ch. 1 §2A). Explicit split lines override the default. An item's own text can also name its fund. **The federal flag is computed from funds** (see §9.5).
@@ -281,13 +281,13 @@ flowchart LR
   RAW --> A[5 read_amendments]
   I --> IR[items_raw.csv]
   B --> BR[bond_items_raw.csv]
-  A --> AR[actions_raw.csv]
+  A --> AR[amendments_raw.csv]
   CA --> AS[6 assemble]
   IR --> AS
   BR --> AS
   AR --> AS
   MAN[config/manual_rows.csv<br/>escape hatch] --> AS
-  AS --> LED[ledger.csv + fund_splits.csv + amount_ledger.csv]
+  AS --> LED[funding_actions.csv + fund_splits.csv + running_amounts.csv]
   LED --> D[7 describe]
   CAT[config/line_item_catalog.csv<br/>config/department_policy.csv] --> D
   CA --> D
@@ -302,10 +302,10 @@ flowchart LR
 | 2 | `cthru` | CTHRU | `data/raw/cthru/{date}/…` (snapshot), `data/interim/cthru_accounts.csv` | E |
 | 3 | `read_items` | raw supplemental and GAA laws | `data/interim/items_raw.csv`, `reports/unparsed_paragraphs.csv` | B |
 | 4 | `read_bonds` | raw bond laws (incl. Chapter 90) | `data/interim/bond_items_raw.csv`, `reports/unparsed_paragraphs_bonds.csv` | A |
-| 5 | `read_amendments` | raw laws | `data/interim/actions_raw.csv`, `reports/unparsed_sections.csv` | C |
-| 6 | `assemble` | everything above, registry, `manual_rows.csv` | `data/interim/ledger.csv`, `fund_splits.csv`, `amount_ledger.csv` | everyone (E coordinates; C owns the amount ledger; E owns the CTHRU comparison) |
-| 7 | `describe` | ledger, `cthru_accounts.csv`, catalog, department table | `data/interim/descriptions.csv` | D |
-| 8 | `export` | ledger, descriptions, `review/overrides.csv` | `data/output/ma_appropriations_cy2021_2025.csv`, `…_extended.csv`, `data_dictionary.md`, `review/review_queue.csv` | everyone (E coordinates) |
+| 5 | `read_amendments` | raw laws | `data/interim/amendments_raw.csv`, `reports/unparsed_sections.csv` | C |
+| 6 | `assemble` | everything above, registry, `manual_rows.csv` | `data/interim/funding_actions.csv`, `fund_splits.csv`, `running_amounts.csv` | everyone (E coordinates; C owns the running amounts table; E owns the CTHRU comparison) |
+| 7 | `describe` | funding actions, `cthru_accounts.csv`, catalog, department table | `data/interim/descriptions.csv` | D |
+| 8 | `export` | funding actions, descriptions, `review/overrides.csv` | `data/output/ma_appropriations_cy2021_2025.csv`, `…_extended.csv`, `data_dictionary.md`, `review/review_queue.csv` | everyone (E coordinates) |
 | — | `validate` | everything | `reports/validation/*.csv`, `reports/law_status.csv` | E |
 
 ### Stage notes
@@ -324,7 +324,7 @@ flowchart LR
    - **GAAs:** item text, printed amount, struck amount and inline veto markup only. A missed GAA item costs only a blank description (the amount comes from CTHRU) and is reported.
 4. **read_bonds.** The same state machine, applied to capital sections (§2–§2I) of bond laws and Chapter 90 bills. It shares `items_raw` columns.
 5. **read_amendments.** Grammar for outside sections (§11.3), including **direct appropriations**. Interim budgets are read here, not typed by hand.
-6. **assemble.** Builds GAA `ORIG` rows from `cthru_accounts.csv` (each FY has exactly one GAA in the registry). It adds rows from the readers, assigns Record IDs (§9.6), computes `additive`, fiscal year and fund splits, maintains the amount ledger, and sets `veto_status` from the CTHRU comparison.
+6. **assemble.** Builds GAA `ORIG` rows from `cthru_accounts.csv` (each FY has exactly one GAA in the registry). It adds rows from the readers, assigns Record IDs (§9.6), computes `additive`, fiscal year and fund splits, maintains the running amounts table, and sets `veto_status` from the CTHRU comparison.
 7. **describe.** Agency/office from CTHRU, Program/purpose by rule, policy area from the catalog or department table (§12), and the three yes/no-style columns (§8).
 8. **export.** Applies human overrides (§14) and writes the exact `exampledata.csv` columns and order, plus an extended file, a data dictionary, and the review queue.
 
@@ -364,7 +364,7 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 | `line_item` | `NNNN-NNNN` |
 | `secretariat_header_raw`, `agency_header_raw` | nearest headers as printed |
 | `item_text` | full description, including provisos |
-| `amount` | final printed amount (int). Null for RR items with no trailing amount. For GAAs this becomes the ledger's `amount_printed`. |
+| `amount` | final printed amount (int). Null for RR items with no trailing amount. For GAAs this becomes the funding action's `amount_printed`. |
 | `amount_struck` | struck-through original amount, if any |
 | `rr_ceiling` | retained-revenue ceiling parsed from the text, if any |
 | `fund_splits_raw` | e.g. `General Fund:52.63;High-Quality Early Education & Care Affordability Fund:47.37` |
@@ -373,7 +373,7 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 | `parser_version` | semver of the reader |
 | `confidence` | `high`, `medium`, `low` |
 
-### 7.4 `data/interim/actions_raw.csv`
+### 7.4 `data/interim/amendments_raw.csv`
 | column | notes |
 |---|---|
 | `law_key`, `section` | the amending law and outside section (e.g. `2023-77`, `178`) |
@@ -391,9 +391,9 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 One row per fiscal year × account, aggregated across CTHRU's per-department rows: `fiscal_year`, `line_item` (`NNNN-NNNN`), `account_name`, `department_code`, `department_name`, `secretariat`, `fund_numbers` (`;`-separated), `original_enacted`, `supplemental`, `rr_ceiling`, `total_enacted` (ints). Owned by E. If Q10 brings spending into scope, spending columns are added here through the Decision Log.
 
 ### 7.6 `config/manual_rows.csv` (escape hatch)
-The same columns as `ledger.csv` (§7.7), except `record_id`, which assemble generates. Adds `source_quote` (verbatim text), `entered_by`, `entered_on`. **Use only for a true one-off law no reader handles.** Validation reports the count (target zero), and the runbook asks whether a reader should be extended instead.
+The same columns as `funding_actions.csv` (§7.7), except `record_id`, which assemble generates. Adds `source_quote` (verbatim text), `entered_by`, `entered_on`. **Use only for a true one-off law no reader handles.** Validation reports the count (target zero), and the runbook asks whether a reader should be extended instead.
 
-### 7.7 `data/interim/ledger.csv` (canonical)
+### 7.7 `data/interim/funding_actions.csv` (canonical)
 | column | notes |
 |---|---|
 | `record_id` | §9.6 |
@@ -422,7 +422,7 @@ The same columns as `ledger.csv` (§7.7), except `record_id`, which assemble gen
 
 ### 7.8 Side tables
 - **`fund_splits.csv`**: `record_id`, `fund_name`, `fund_number` (if known), `share`, `is_federal`.
-- **`amount_ledger.csv`**: `target_law_key`, `section`, `line_item`, `as_of_event` (`record_id`), `amount_after`. Owned by C.
+- **`running_amounts.csv`**: `target_law_key`, `section`, `line_item`, `as_of_event` (`record_id`), `amount_after`. Owned by C.
 
 ### 7.9 `data/interim/descriptions.csv`
 `record_id`, `agency_office`, `program_purpose`, `program_purpose_method` (`rule`, `human`), `policy_area`, `policy_area_method` (`catalog`, `department`, `human`), `previously_funded` (`Yes`, `No`, `Unknown`), `one_time_or_recurring`, `new_or_reapprop`. An empty `policy_area` means the row is waiting in the review queue.
@@ -438,7 +438,7 @@ The same columns as `ledger.csv` (§7.7), except `record_id`, which assemble gen
 `record_id`, `reason` (e.g. `new_line_item`, `mixed_department`, `label_every_year`, `cthru_mismatch`, `catalog_drift`, `unparsed_neighbor`, `federal_mixed`), `priority`, and context columns.
 
 ### 7.13 Export
-`data/output/ma_appropriations_cy2021_2025.csv` uses **exactly** the 19 columns of `exampledata.csv`, in the same order (§8). `…_extended.csv` adds every ledger column.
+`data/output/ma_appropriations_cy2021_2025.csv` uses **exactly** the 19 columns of `exampledata.csv`, in the same order (§8). `…_extended.csv` adds every funding-actions column.
 
 ### 7.14 `config/funds.csv` (human-curated)
 `fund_name`, `fund_number`, `is_federal` (bool), `notes`. Drives the federal flag (§9.5).
@@ -460,7 +460,7 @@ The same columns as `ledger.csv` (§7.7), except `record_id`, which assemble gen
 | 11 | Policy area | one value from `policyareas.csv`, from the catalog or department table (§12) | describe |
 | 12 | Funding action | display label of `funding_action` (§9.2) | assemble |
 | 13 | Appropriation/change ($) | `amount`, formatted with thousands separators (e.g. `6,077,671`). Negative for reductions. | export |
-| 14 | Previously funded? | **Interim rule:** `Yes` if the same line item has non-zero enacted authority in any earlier fiscal year in CTHRU (history from FY2005) or the ledger; `No` if never seen; `Unknown` if the item number is new but the text suggests a renumbered program. **Note the example conflict:** EX-001's item 0930-0100 was funded in FY2023 (CTHRU shows $4,400,000) yet the example says `Unknown`. Confirm the definition with the partner (§19). | describe |
+| 14 | Previously funded? | **Interim rule:** `Yes` if the same line item has non-zero enacted authority in any earlier fiscal year in CTHRU (history from FY2005) or the funding actions table; `No` if never seen; `Unknown` if the item number is new but the text suggests a renumbered program. **Note the example conflict:** EX-001's item 0930-0100 was funded in FY2023 (CTHRU shows $4,400,000) yet the example says `Unknown`. Confirm the definition with the partner (§19). | describe |
 | 15 | One-time or recurring funding | **Interim rule:** default `Not classified`. GAA §2 items present in 2 or more consecutive GAAs → `Recurring`; supplemental, surplus, and bond events → `One-time`. Pending a partner definition. | describe |
 | 16 | New funding appropriation or re-appropriation of existing funding? | From `amount_kind`/`funding_action`: appropriation, delta, or bond → `New`; PAC or reauthorization → `Re-appropriation`; transfer or alteration of purpose → `Transfer of existing authority`. Default `Pending` until validated. | describe |
 | 17 | Human review status | `Human reviewed` if an override exists for the record or its policy area came from a human decision (catalog row or `human` method); otherwise `Not human reviewed` (§9.7) | export |
@@ -596,9 +596,9 @@ Resolve "said item … of said section 2 of said chapter 28" by carrying the las
 | Figure decrease | the same with a smaller new figure | `RED` (negative) |
 | Several items in one section | "items 1234-5678 and 2345-6789 … are hereby amended" | one action per item |
 | Date extension | 2023-77 §41: *Item 7008-1117 of section 2A of chapter 142 of the acts of 2019 is hereby amended by striking out the figure "2023" … inserting … 2024* | `date_extend` → `REAUTH` |
-| Whole-item replacement | 2021-35 §1: *Section 2A of chapter 5 of the acts of 2019 is hereby amended by striking out item 8100-1014 … and inserting in place thereof the following item:-* | `item_replace`; delta = new − ledger amount of the target |
+| Whole-item replacement | 2021-35 §1: *Section 2A of chapter 5 of the acts of 2019 is hereby amended by striking out item 8100-1014 … and inserting in place thereof the following item:-* | `item_replace`; delta = new − running amount of the target |
 | Item insertion | "…is hereby amended by inserting after item X the following item:-" | `item_insert` → `NEW` |
-| Item strike | "…by striking out item X" | `item_strike` → `RED` by the ledger amount |
+| Item strike | "…by striking out item X" | `item_strike` → `RED` by the running amount |
 | Text-only change | 2023-77 §179: inserting proviso words | `text_insert` → `PURP` with no amount, or ignore if trivial |
 | Transfer | "the comptroller shall transfer $X from item A to item B" | `transfer` → `XFER` |
 | Direct appropriation | "the sum of $X is hereby appropriated…" in an outside section or policy act | `direct_appropriation` → `NEW` |
@@ -655,14 +655,14 @@ Rules and humans only, with no LLM (Decision Log 2026-10-28). Each row records `
 
 1. **Schema and vocabulary:** every file matches §7 and every enum value is in §9. Record IDs are unique.
 2. **Golden test:** reproduces the parser- and assemble-derived fields of EX-001…EX-004 (§17, M1).
-3. **Struck-figure self-check:** for every `figure_change`, `old_figure` equals the amount ledger's current amount for the target. A mismatch means a missed amendment, a veto, or a parse error.
+3. **Struck-figure self-check:** for every `figure_change`, `old_figure` equals the running amount for the target. A mismatch means a missed amendment, a veto, or a parse error.
 4. **CTHRU comparison** per FY × line item (owned by E):
    - GAA: printed amount vs. `original_enacted` sets `veto_status` (§11.4). Unexplained differences go to `reports/validation/cthru_mismatches.csv`.
    - Supplementals: `Σ NEW + INC + RED` (for that FY, with reference-only laws loaded) vs. `supplemental`. Where several laws touch one item, a difference can't be attributed and is flagged.
    - RR items vs. `rr_ceiling`.
    - Report dollar and percent differences. Known non-law differences (9C cuts) are annotated.
 5. **Internal consistency:** fund splits sum to 100% (±0.01); the item-ID prefix is consistent with the CTHRU department; no item appears twice in one section without a reason.
-6. **Coverage:** `unparsed_*` reports are empty or every row is explained; every registry `in_scope` law has at least one ledger row; every GAA item in CTHRU has a description or is listed as missing.
+6. **Coverage:** `unparsed_*` reports are empty or every row is explained; every registry `in_scope` law has at least one funding-action row; every GAA item in CTHRU has a description or is listed as missing.
 7. **Bond totals:** for each bond act, the sum of `CAP` items is compared with the act's stated borrowing authorization.
 8. **Law status:** each law gets `checked` / `partially_checked` / `not_checked` plus a sentence. This text becomes the `Source or calculation for total` column.
 9. **Orphaned overrides:** overrides whose record ID no longer exists are listed in `reports/override_problems.csv`.
@@ -738,8 +738,8 @@ The work is split so that **every workstream has something to start on immediate
 |---|---|---|---|---|---|
 | **A** | **Law list and bond bills** | Emma | `laws` (find and download laws), registry curation, `read_bonds` (bond laws and Chapter 90), `manual_rows.csv` escape hatch; later `docs/RUNBOOK.md` and the 2026 held-out test (M6) | Review every registry row and decide Q7; build the downloader; save one bond law and one Chapter 90 bill as fixtures | B's paragraph format, for bond reading |
 | **B** | **Supplemental budgets** | Tierney | `paragraphs.py` (publish the paragraph format first), `read_items` (supplemental items; GAA descriptions and printed amounts) | `paragraphs.py` on the committed fixtures | — |
-| **C** | **Amendments** | Emily H. | `read_amendments` (§11.3, incl. interim budgets), "said …" resolution, the amount ledger, the struck-figure check | Write expected rows by hand for the 2023-77, 2021-35 and 2023-15 fixtures | B's paragraph format, to start coding |
-| **D** | **Labels** | Emily R. | `describe`: agency, Program/purpose rule, policy area, Previously funded and the other yes/no columns; `line_item_catalog.csv`, `department_policy.csv`, `funds.csv` | Pull CTHRU's account and department list; seed `department_policy.csv` and the catalog (§12 step 5) | Ledger, for final runs |
+| **C** | **Amendments** | Emily H. | `read_amendments` (§11.3, incl. interim budgets), "said …" resolution, the running amounts table, the struck-figure check | Write expected rows by hand for the 2023-77, 2021-35 and 2023-15 fixtures | B's paragraph format, to start coding |
+| **D** | **Labels** | Emily R. | `describe`: agency, Program/purpose rule, policy area, Previously funded and the other yes/no columns; `line_item_catalog.csv`, `department_policy.csv`, `funds.csv` | Pull CTHRU's account and department list; seed `department_policy.csv` and the catalog (§12 step 5) | The funding actions table, for final runs |
 | **E** | **Annual budgets and checks** | Mario | `cthru` (snapshots, `cthru_accounts.csv`), the CTHRU comparison and `veto_status`, `validate`, `schemas.py` and CI; coordinates "Putting it together"; **leads the spending-scope decision (Q10)** | Build the CTHRU download; commit a small CTHRU fixture; explain the 1231-1000 mismatch; prepare the Q10 discussion | — |
 | — | **Putting it together** | everyone (E coordinates) | `assemble` and `export`: combining the pieces, Record IDs, `additive`, the final CSV | — | All of the above (M1) |
 
@@ -755,7 +755,7 @@ Record the outcome in the Decision Log and update §1, §7 and the workstream ta
 
 **Freeze at M0, before parallel work starts:**
 1. `law_key` and Record ID formats (§9.6)
-2. Schemas for `paragraphs`, `items_raw`, `actions_raw`, `cthru_accounts`, `manual_rows`, `ledger`, `laws_registry`, `descriptions`, the label tables, and `overrides` (§7)
+2. Schemas for `paragraphs`, `items_raw`, `amendments_raw`, `cthru_accounts`, `manual_rows`, `funding_actions`, `laws_registry`, `descriptions`, the label tables, and `overrides` (§7)
 3. Vocabularies: `law_type`, `funding_action`, `amount_kind`, `section_type`, `flags`, `veto_status`, `amount_source` (§9)
 4. Committed fixtures **with expected rows** for each fixture law
 
@@ -833,7 +833,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-21 | Review lives in repo CSVs (`review/overrides.csv` keyed by Record ID). | Group. Versioned and re-applied each run. |
 | 2026-10-21 | Python stack. | Group. |
 | 2026-10-21 | The primary source is the MA Legislature JSON API (`/api/SessionLaws`), not bill search; CTHRU `kv7m-35wn` is the validation oracle. *(Amended 2026-10-28: CTHRU is also the source for GAA amounts.)* | Design research: the API returns full text of all enacted laws; CTHRU exactly matches the example rows. |
-| 2026-10-21 | Event-ledger data model with `amount_kind` and `additive`; the export is a view. | Design review: handles amendments, vetoes, cuts, and interim budgets without double counting. |
+| 2026-10-21 | Event-ledger data model with `amount_kind` and `additive`; the export is a view. *(Renamed 2026-10-28: the ledger is now the funding actions table.)* | Design review: handles amendments, vetoes, cuts, and interim budgets without double counting. |
 | 2026-10-21 | Work split by layer (A–E), not by law type. | Design review: one shared item extractor and one outside-section grammar. |
 | 2026-10-21 | **Proposed, pending group sign-off at M0:** contract clarifications in `schemas.py`: add registry `role = tbd` (§6 stage 1 already appends candidates as TBD); `origin_bill` as `{court}/{bill}`; CSV booleans `true`/`false`; new `config/funds.csv` contract (§7.14). | Claude session (M0 scaffolding). Needed so the files written at M0 validate; reverse any the group rejects. |
 | 2026-10-21 | **Proposed, pending group sign-off at M0:** fixtures are the full, untrimmed chapter records (~4.4 MB total), not trimmed sections. | Claude session. Avoids deciding a trimming rule before the normalizer exists; revisit if repo size becomes a problem. |
@@ -845,6 +845,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-28 | **Read everything by code:** bonds and Chapter 90 via `read_bonds`, interim budgets via `read_amendments`. `manual_rows.csv` becomes an escape hatch, with its row count reported. | Hand-typed rows don't scale to yearly re-runs. |
 | 2026-10-28 | **Stages: 12 → 8** (`laws`, `cthru`, `read_items`, `read_bonds`, `read_amendments`, `assemble`, `describe`, `export`) plus `validate`. Review-staleness hashes (`source_text_sha1`, `Review stale`) dropped; `line_item_master`, `enrichment` and `classifications` replaced by `cthru_accounts` and `descriptions`. | Fewer contracts for a small team and future cohorts. Enacted law text doesn't change, so staleness detection isn't needed. |
 | 2026-10-28 | **Workstreams renamed and rebalanced:** A Law list and bond bills, B Supplemental budgets, C Amendments, D Labels, E Annual budgets and checks. `assemble` and `export` are a shared "Putting it together" step. Owners review their own areas. | Every workstream can start immediately; E is no longer bottlenecked on everyone else. |
+| 2026-10-28 | **Renamed** `ledger.csv` → `funding_actions.csv`, `amount_ledger.csv` → `running_amounts.csv`, `actions_raw.csv` → `amendments_raw.csv`. | Instructor: "ledger" is jargon; the new names say what the tables hold. |
 | 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. | The instructor is not the subject expert; the students and partner should decide scope. |
 
 ---

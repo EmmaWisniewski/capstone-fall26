@@ -22,10 +22,10 @@ def test_validate_catches_registry_role_outside_window(root, tmp_path):
     assert any(p.column == "role" and "reference_only" in p.message for p in problems)
 
 
-def test_validate_catches_bad_ledger_record_id(root, tmp_path):
+def test_validate_catches_bad_funding_actions_record_id(root, tmp_path):
     shutil.copytree(root / "config", tmp_path / "config")
     (tmp_path / "data" / "interim").mkdir(parents=True)
-    header = schemas.columns("ledger")
+    header = schemas.columns("funding_actions")
     row = dict.fromkeys(header, "")
     row.update(
         record_id="EX-001", law_key="2023-28", section="2", line_item="0930-0100",
@@ -34,7 +34,7 @@ def test_validate_catches_bad_ledger_record_id(root, tmp_path):
         funding_action="ORIG", amount_kind="appropriation", amount="6077671", amount_source="cthru",
         additive="true",
     )
-    with open(tmp_path / "data" / "interim" / "ledger.csv", "w", encoding="utf-8") as f:
+    with open(tmp_path / "data" / "interim" / "funding_actions.csv", "w", encoding="utf-8") as f:
         f.write(",".join(header) + "\n" + ",".join(row[c] for c in header) + "\n")
     problems = [p for _, p in validate.check_schemas(Context(root=tmp_path))]
     assert [p.column for p in problems] == ["record_id"]

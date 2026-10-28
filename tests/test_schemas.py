@@ -51,10 +51,10 @@ def test_record_id_rejects_bad_parts():
         schemas.record_id_prefix(2023, 28, "2", "09300100", "ORIG")
 
 
-def test_manual_rows_are_ledger_minus_record_id_plus_provenance():
-    ledger = schemas.columns("ledger")
+def test_manual_rows_are_funding_actions_minus_record_id_plus_provenance():
+    table = schemas.columns("funding_actions")
     assert schemas.columns("manual_rows") == [
-        *ledger[1:],
+        *table[1:],
         "source_quote",
         "entered_by",
         "entered_on",

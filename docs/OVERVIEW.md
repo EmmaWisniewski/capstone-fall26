@@ -72,7 +72,7 @@ that haven't been written yet are skipped with a message.
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |
 | 5 | `read_amendments.py` | Reads sections that change earlier items ("strike out $9,310,231, insert $9,660,231") and lump-sum interim budgets | Emily H. (C) |
-| 6 | `assemble.py` | Combines everything into one master table, the **ledger**, gives each row its ID, and decides whether it counts toward totals | everyone |
+| 6 | `assemble.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | everyone |
 | 7 | `describe.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
 | 8 | `export.py` | Applies human corrections and writes the final CSV in exactly the `exampledata.csv` format | everyone |
 | — | `validate.py` | Runs the checks: our numbers vs. CTHRU, nothing left unread, IDs unique | Mario (E) |
@@ -153,6 +153,6 @@ Open questions waiting on the group or our State Auditor partner are listed in
 - **Your workstream's detail:**
   - A: [§4 Seed law registry](DESIGN.md#4-seed-law-registry), [§6 stage notes](DESIGN.md#6-pipeline-architecture), [§11.2 bonds](DESIGN.md#112-item-extraction-state-machine-read_items-read_bonds)
   - B: [§11.1–§11.2 Paragraphs and item reading](DESIGN.md#11-parsing-details-and-known-patterns)
-  - C: [§11.3 Amendments](DESIGN.md#113-outside-section-grammar-read_amendments), [§5.5 Amount ledger](DESIGN.md#55-amount-ledger)
+  - C: [§11.3 Amendments](DESIGN.md#113-outside-section-grammar-read_amendments), [§5.5 Running amounts](DESIGN.md#55-running-amounts)
   - D: [§8 Column mapping](DESIGN.md#8-mapping-to-the-exampledatacsv-columns), [§12 Labels](DESIGN.md#12-policy-area-classification)
   - E: [§3.4 CTHRU](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else), [§7 File contracts](DESIGN.md#7-file-contracts-schemas), [§13 Validation](DESIGN.md#13-validation-suite), [§16 Spending-scope decision](DESIGN.md#16-workstreams-and-ownership)

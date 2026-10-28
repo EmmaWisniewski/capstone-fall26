@@ -145,7 +145,7 @@ ACTION_TYPES = (
 )
 # §5.7 vetoes are netted into the amount; veto_status records what happened (Q4)
 VETO_STATUSES = ("none", "vetoed", "reduced", "overridden", "unknown")
-# §5.2 where a ledger row's amount came from
+# §5.2 where a funding-action row's amount came from
 AMOUNT_SOURCES = ("cthru", "law_text", "manual")
 FY_RULES = ("stated", "target_act", "enactment_fy")
 PROGRAM_PURPOSE_METHODS = ("rule", "human")
@@ -213,8 +213,8 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         Col("veto_kind_inline", "enum", VETO_KINDS_INLINE),
         *_PARSER,
     ),
-    # §7.4 data/interim/actions_raw.csv
-    "actions_raw": _cols(
+    # §7.4 data/interim/amendments_raw.csv
+    "amendments_raw": _cols(
         Col("law_key", required=True),
         Col("section", required=True),
         Col("action_type", "enum", ACTION_TYPES, required=True),
@@ -250,8 +250,8 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
 # §7.3 data/interim/bond_items_raw.csv: same columns as items_raw (workstream A writes it)
 SCHEMAS["bond_items_raw"] = SCHEMAS["items_raw"]
 
-# §7.7 data/interim/ledger.csv (canonical)
-LEDGER = _cols(
+# §7.7 data/interim/funding_actions.csv (canonical)
+FUNDING_ACTIONS_TABLE = _cols(
     Col("record_id", required=True),
     Col("law_key", required=True),
     Col("section", required=True),
@@ -279,11 +279,11 @@ LEDGER = _cols(
     Col("source_para_start", "int"),
     "parser_version",
 )
-SCHEMAS["ledger"] = LEDGER
+SCHEMAS["funding_actions"] = FUNDING_ACTIONS_TABLE
 
-# §7.6 config/manual_rows.csv: ledger columns minus record_id, plus provenance
+# §7.6 config/manual_rows.csv: funding_actions columns minus record_id, plus provenance
 SCHEMAS["manual_rows"] = (
-    *(c for c in LEDGER if c.name != "record_id"),
+    *(c for c in FUNDING_ACTIONS_TABLE if c.name != "record_id"),
     Col("source_quote", required=True),
     Col("entered_by", required=True),
     Col("entered_on", "date", required=True),
@@ -297,7 +297,7 @@ SCHEMAS["fund_splits"] = _cols(
     Col("share", "float", required=True),
     Col("is_federal", "bool", required=True),
 )
-SCHEMAS["amount_ledger"] = _cols(
+SCHEMAS["running_amounts"] = _cols(
     Col("target_law_key", required=True),
     Col("section", required=True),
     Col("line_item", required=True),
