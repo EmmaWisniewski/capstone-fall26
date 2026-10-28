@@ -20,4 +20,5 @@ This repo builds a line-item dataset of Massachusetts state appropriations from 
 ## Before saying a stage is done
 - Run `pytest`. The golden test (DESIGN §17) and the fixture tests must pass.
 - Run `python -m ma_approps validate`. The `unparsed_*` reports must be empty or explained, and CTHRU mismatches must be explained or flagged.
-- Update the Status Board (§21), and the Open Questions (§19) and Decision Log (§20) if anything was decided.
+- Update the Status Board (§21), and the Open Questions (§19) and Decision Log (§20) if anything was decided. If a milestone or workstream changed state, also update the high-level tracker in `docs/OVERVIEW.md` §6.
+- The group is not made up of confident programmers. Explain unfamiliar terms, prefer the simplest design that works, and see `docs/WORKFLOW.md` for how they work with Claude and git.

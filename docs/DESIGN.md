@@ -7,7 +7,7 @@
 | **Audience** | All 5 group members and any Claude session working in this repo |
 | **Source of truth for** | Scope, architecture, file contracts, vocabularies, ownership, open questions |
 
-> **How to use this document.** Read §1–§5 before touching code. Before changing a file contract (§7) or vocabulary (§9), propose the change, get group agreement, and log it in the Decision Log (§20). When a milestone or open question changes state, update the Status Board (§21) and Open Questions (§19) in the same commit. If code and this doc disagree, the doc wins until someone updates it deliberately.
+> **How to use this document.** Read §1–§5 before touching code. Before changing a file contract (§7) or vocabulary (§9), propose the change, get group agreement, and log it in the Decision Log (§20). When a milestone or open question changes state, update the Status Board (§21) and Open Questions (§19) in the same commit. If code and this doc disagree, the doc wins until someone updates it deliberately. For a plain-language summary and the high-level tracker, see [`OVERVIEW.md`](OVERVIEW.md).
 
 ---
 
@@ -825,6 +825,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-21 | Event-ledger data model with `amount_kind` and `additive`; the export is a view. | Design review: handles amendments, vetoes, cuts, and interim budgets without double counting. |
 | 2026-10-21 | Work split by layer (A–E), not by law type. | Design review: one shared item extractor and one outside-section grammar. |
 | 2026-10-21 | **Proposed, pending group sign-off at M0:** contract clarifications in `schemas.py`: add registry `role = tbd` (§6 stage 1 already appends candidates as TBD); `origin_bill` as `{court}/{bill}`; CSV booleans `true`/`false`; new `config/funds.csv` contract (§7.14). | Claude session (M0 scaffolding). Needed so the files written at M0 validate; reverse any the group rejects. |
+| 2026-10-28 | Workstream owners: A Emma, B Tierney, C Emily H., D Emily R., E Mario. | Group. Recorded in §21 and the `OVERVIEW.md` tracker. |
 | 2026-10-21 | **Proposed, pending group sign-off at M0:** fixtures are the full, untrimmed chapter records (~4.4 MB total), not trimmed sections. | Claude session. Avoids deciding a trimming rule before the normalizer exists; revisit if repo size becomes a problem. |
 
 ---
@@ -835,7 +836,7 @@ Update this table in the same commit as the work it describes.
 
 | Item | Owner | Status | Notes |
 |---|---|---|---|
-| Assign workstream owners A–E | group | ☐ todo | |
+| Assign workstream owners A–E | group | ☑ done | A Emma, B Tierney, C Emily H., D Emily R., E Mario (2026-10-28) |
 | M0: repo skeleton, `pyproject.toml`, CLI, CI | E | ◐ in progress | branch `e/m0-foundations`; stub stages skipped; `pytest` + `ruff` + `validate` green locally (re-run 2026-10-25); CI not yet run on GitHub |
 | M0: contracts frozen | E | ◐ in progress | `schemas.py` written from §7/§9; clarifications in the Decision Log await sign-off |
 | M0: registry seeded and curated | A | ◐ in progress | `config/laws_registry.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the golden laws and 2019-5; API fields re-checked against the cache 2026-10-25 (2019-5 corrected from `gaa` to `supplemental`); all rows need human review |
