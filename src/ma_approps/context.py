@@ -17,7 +17,7 @@ def load_settings(path: Path | None = None) -> dict[str, Any]:
 
 @dataclass
 class Context:
-    """Where a run reads and writes. Tests point ``raw_dir`` at ``tests/fixtures``."""
+    """Where a run reads and writes. Tests point ``raw_dir`` at ``tests/samples``."""
 
     root: Path = REPO_ROOT
     raw_dir: Path | None = None

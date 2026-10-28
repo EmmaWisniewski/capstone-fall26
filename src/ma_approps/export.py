@@ -1,7 +1,9 @@
-"""Stage 12: write data/output/ma_appropriations_cy2021_2025.csv and extended export (DESIGN §7.13,
-§8).
+"""Stage 8 `export`: apply review/corrections.csv and write the dataset (DESIGN §7.11–§7.13, §8,
+§14).
 
-Stub created at M0. Owner: workstream E. Columns: schemas.EXPORT_COLUMNS, sorted by record_id.
+Stub. Owner: everyone (Putting it together), coordinated by E. Writes
+data/output/ma_appropriations_cy2021_2025.csv (schemas.EXPORT_COLUMNS, sorted by record_id), the
+extended export, and review/review_queue.csv.
 """
 
 from ma_approps.context import Context

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ma-approps"
 version = "0.1.0"
-description = "Line-item dataset of Massachusetts state appropriations enacted 2021-2025"
+description = "Line-item dataset of Massachusetts state appropriations, re-runnable each year"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,7 +13,6 @@ dependencies = [
     "lxml==6.1.3",
     "beautifulsoup4==4.15.0",
     "pandas==3.0.6",
-    "anthropic==2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -27,9 +26,6 @@ ma-approps = "ma_approps.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-ma_approps = ["classify/prompts/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
