@@ -21,7 +21,7 @@ def test_policy_areas_match_policyareas_csv(root):
 def test_example_funding_action_labels():
     assert schemas.FUNDING_ACTION_LABELS["ORIG"] == "Original appropriation"
     assert schemas.FUNDING_ACTION_LABELS["INC"] == "Supplemental increase"
-    assert set(schemas.FUNDING_ACTION_ADDITIVE) == set(schemas.FUNDING_ACTIONS)
+    assert set(schemas.FUNDING_ACTION_COUNTS_TOWARD_TOTAL) == set(schemas.FUNDING_ACTIONS)
 
 
 @pytest.mark.parametrize(

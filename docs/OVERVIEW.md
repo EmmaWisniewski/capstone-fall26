@@ -29,7 +29,7 @@ non-programmers to maintain.
 
 ---
 
-## 2. The big picture: two sources, then assembly
+## 2. The big picture: two sources, then combining
 
 The program combines two sources:
 
@@ -72,8 +72,8 @@ that haven't been written yet are skipped with a message.
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |
 | 5 | `read_amendments.py` | Reads sections that change earlier items ("strike out $9,310,231, insert $9,660,231") and lump-sum interim budgets | Emily H. (C) |
-| 6 | `assemble.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | everyone |
-| 7 | `describe.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
+| 6 | `combine.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | everyone |
+| 7 | `label.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
 | 8 | `export.py` | Applies human corrections and writes the final CSV in exactly the `exampledata.csv` format | everyone |
 | — | `validate.py` | Runs the checks: our numbers vs. CTHRU, nothing left unread, IDs unique | Mario (E) |
 | shared | `paragraphs.py` | Turns a law's web-page code into clean, numbered paragraphs; used by all three law readers (stages 3–5) | Tierney (B) |
@@ -90,8 +90,8 @@ exampledata.csv               the target format (4 example rows)
 policyareas.csv               the 18 allowed policy areas
 config/                       files humans edit: the law list, the label spreadsheets, settings
 src/ma_approps/               THE PROGRAM: one .py file per stage
-tests/                        automatic checks, plus saved copies of sample laws (fixtures)
-review/                       one-off human fixes (overrides.csv) and reasoning (research_log.md)
+tests/                        automatic checks, plus saved copies of sample laws (samples)
+review/                       one-off human fixes (corrections.csv) and reasoning (research_log.md)
 data/raw/                     downloaded laws and CTHRU copies (your computer only, never committed)
 data/interim/, data/output/   files the program generates (never edit by hand)
 reports/                      check results the program generates (never edit by hand)
@@ -115,10 +115,10 @@ for their own area.
 
 | WS | Owner | Name: what it covers | Start now with… | Status |
 |---|---|---|---|---|
-| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/laws_registry.csv`; saving one bond law and one Chapter 90 bill as samples | ◐ |
+| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; saving one bond law and one Chapter 90 bill as samples | ◐ |
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ☐ |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ |
-| **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy.csv` and seeding the catalog | ☐ |
+| **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ☐ |
 | **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
 | — | **everyone** | **Putting it together:** combining the pieces into the final dataset | Waits on the above (milestone M1) | ☐ |
 
@@ -151,8 +151,8 @@ Open questions waiting on the group or our State Auditor partner are listed in
 - **Everyone:** [DESIGN §1–§6](DESIGN.md#1-purpose-scope-non-goals) (goals, sources, data model,
   pipeline)
 - **Your workstream's detail:**
-  - A: [§4 Seed law registry](DESIGN.md#4-seed-law-registry), [§6 stage notes](DESIGN.md#6-pipeline-architecture), [§11.2 bonds](DESIGN.md#112-item-extraction-state-machine-read_items-read_bonds)
+  - A: [§4 Seed law list](DESIGN.md#4-seed-law-list), [§6 stage notes](DESIGN.md#6-pipeline-architecture), [§11.2 bonds](DESIGN.md#112-item-extraction-state-machine-read_items-read_bonds)
   - B: [§11.1–§11.2 Paragraphs and item reading](DESIGN.md#11-parsing-details-and-known-patterns)
   - C: [§11.3 Amendments](DESIGN.md#113-outside-section-grammar-read_amendments), [§5.5 Running amounts](DESIGN.md#55-running-amounts)
   - D: [§8 Column mapping](DESIGN.md#8-mapping-to-the-exampledatacsv-columns), [§12 Labels](DESIGN.md#12-policy-area-classification)
-  - E: [§3.4 CTHRU](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else), [§7 File contracts](DESIGN.md#7-file-contracts-schemas), [§13 Validation](DESIGN.md#13-validation-suite), [§16 Spending-scope decision](DESIGN.md#16-workstreams-and-ownership)
+  - E: [§3.4 CTHRU](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else), [§7 File formats](DESIGN.md#7-file-formats), [§13 Validation](DESIGN.md#13-validation-suite), [§16 Spending-scope decision](DESIGN.md#16-workstreams-and-ownership)

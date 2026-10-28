@@ -22,8 +22,8 @@ STAGES = (
     ("read_items", "ma_approps.read_items", "B"),
     ("read_bonds", "ma_approps.read_bonds", "A"),
     ("read_amendments", "ma_approps.read_amendments", "C"),
-    ("assemble", "ma_approps.assemble", "all"),
-    ("describe", "ma_approps.describe", "D"),
+    ("combine", "ma_approps.combine", "all"),
+    ("label", "ma_approps.label", "D"),
     ("export", "ma_approps.export", "all"),
     ("validate", "ma_approps.validate", "E"),
 )
@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--stage", required=True, choices=(*STAGE_NAMES, "all"))
     run.add_argument("--law", help="restrict to one law_key, e.g. 2023-28")
     run.add_argument("--offline", action="store_true", help="read only from the raw cache")
-    run.add_argument("--raw-dir", help="override data/raw (e.g. tests/fixtures)")
+    run.add_argument("--raw-dir", help="override data/raw (e.g. tests/samples)")
 
     sub.add_parser("validate", help="shortcut for run --stage validate")
 

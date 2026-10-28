@@ -20,6 +20,6 @@ api_base = "https://malegislature.gov/api"
 session_law_url = "https://malegislature.gov/Laws/SessionLaws/Acts/{acts_year}/Chapter{chapter}"
 cthru_dataset = "https://cthru.data.socrata.com/resource/kv7m-35wn.json"
 
-[describe]
-# DESIGN §12: policy areas come from config/line_item_catalog.csv, then config/department_policy.csv,
+[label]
+# DESIGN §12: policy areas come from config/line_item_catalog.csv, then config/department_policy_areas.csv,
 # then human review. No LLM is used (Decision Log 2026-10-28); change only through the Decision Log.

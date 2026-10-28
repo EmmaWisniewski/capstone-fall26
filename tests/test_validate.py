@@ -10,10 +10,10 @@ def test_validate_passes_on_repo(root, tmp_path):
     assert (tmp_path / "reports" / "validation" / "schema_problems.csv").exists()
 
 
-def test_validate_catches_registry_role_outside_window(root, tmp_path):
+def test_validate_catches_law_list_role_outside_window(root, tmp_path):
     for d in ("config", "review"):
         shutil.copytree(root / d, tmp_path / d)
-    path = tmp_path / "config" / "laws_registry.csv"
+    path = tmp_path / "config" / "law_list.csv"
     old, new = "2026-55,2026,55,2026-04-06", "2026-55,2026,55,2025-04-06"
     text = path.read_text("utf-8").replace(old, new)
     path.write_text(text, "utf-8")
@@ -32,7 +32,7 @@ def test_validate_catches_bad_funding_actions_record_id(root, tmp_path):
         target_law_key="2023-28", event_date="2023-08-09", calendar_year="2023",
         fiscal_year="2024", fy_rule="stated", section_type="approp_main",
         funding_action="ORIG", amount_kind="appropriation", amount="6077671", amount_source="cthru",
-        additive="true",
+        counts_toward_total="true",
     )
     with open(tmp_path / "data" / "interim" / "funding_actions.csv", "w", encoding="utf-8") as f:
         f.write(",".join(header) + "\n" + ",".join(row[c] for c in header) + "\n")

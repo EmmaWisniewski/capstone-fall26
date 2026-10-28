@@ -1,4 +1,4 @@
-# Test fixtures
+# Test samples
 
 Offline inputs for tests and CI (DESIGN §15). Layout mirrors `data/raw/`.
 
@@ -15,6 +15,6 @@ Each file is the full, untrimmed chapter record from `GET /api/SessionLaws/{year
 (fetched 2026-10-21), written with sorted keys. In that list response the `Year` field is the
 **approval** year (2020 ch. 358 shows `Year: 2021`); the Acts volume is the year requested.
 
-`expected/golden.csv` holds the parser- and assemble-derived fields for EX-001…EX-004
-(DESIGN §17). Expected rows for the other fixture laws are still to be written by
+`expected/example_rows.csv` holds the parser- and combine-derived fields for EX-001…EX-004
+(DESIGN §17). Expected rows for the other sample laws are still to be written by
 workstreams B and C.

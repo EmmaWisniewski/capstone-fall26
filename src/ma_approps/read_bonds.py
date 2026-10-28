@@ -2,7 +2,7 @@
 (DESIGN §7.3, §11.2).
 
 Stub. Owner: workstream A (Law list and bond bills). Uses paragraphs.paragraphs(); same columns
-as items_raw.csv. Start by saving one bond law as a test fixture.
+as items_raw.csv. Start by saving one bond law as a test sample.
 """
 
 from ma_approps.context import Context

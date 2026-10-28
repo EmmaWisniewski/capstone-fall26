@@ -48,7 +48,7 @@ Make sure you're building on everyone's newest work.
 > **Say:** "Switch to main and pull the latest changes. Tell me if I have any uncommitted work first."
 
 ### Step 2: Make a branch for this task
-Name it with your workstream letter and a few words: `a/bond-fixture`, `b/paragraphs`,
+Name it with your workstream letter and a few words: `a/bond-sample`, `b/paragraphs`,
 `c/figure-change`, `d/department-table`, `e/cthru-snapshot`. Use **one branch per task**, kept small:
 roughly a day or two of work.
 > **Say:** "Create a new branch called `b/paragraphs`."
@@ -144,7 +144,7 @@ Reviewing is real work, so spread it around. Try to review roughly as many PRs a
 When you feel lost, first ask yourself *which kind* of confused you are.
 
 **Flavour 1: "I've never heard of this."** Claude talks as if you'll obviously recognize a term,
-tool, or step that is actually new to you, like "just rebase onto main" or "add a fixture". **Slow down and ask for more context.**
+tool, or step that is actually new to you, like "just rebase onto main" or "add a sample". **Slow down and ask for more context.**
 > - "What is a rebase? Explain it as if I'm new to programming."
 > - "Before we continue, why is this step needed?"
 > - "Show me the file you're talking about and point to the line."

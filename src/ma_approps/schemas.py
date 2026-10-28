@@ -1,4 +1,4 @@
-"""File contracts (DESIGN §7) and controlled vocabularies (DESIGN §9).
+"""File formats (DESIGN §7) and allowed values (DESIGN §9).
 
 This module is the only place column lists and enums live in code. It must match
 DESIGN §7 and §9; change both together and add a Decision Log entry (§20).
@@ -18,13 +18,13 @@ from datetime import date
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# §9 Controlled vocabularies
+# §9 Allowed values
 # ---------------------------------------------------------------------------
 
 # §9.1
 LAW_TYPES = ("gaa", "supplemental", "surplus", "bond", "interim", "other")
 
-# §7.1 registry role. `tbd` marks a discovered candidate awaiting a human decision (§6 stage 1).
+# §7.1 law list role. `tbd` marks a discovered candidate awaiting a human decision (§6 stage 1).
 ROLES = ("in_scope", "reference_only", "excluded", "tbd")
 
 PARSE_STRATEGIES = ("auto", "manual", "auto+manual")
@@ -46,8 +46,9 @@ FUNDING_ACTION_LABELS = {
 }
 FUNDING_ACTIONS = tuple(FUNDING_ACTION_LABELS)
 
-# §9.2 "additive?" column. Defaults only; §10 caveats (ISF, federal, §2E) are applied in assemble.
-FUNDING_ACTION_ADDITIVE = {
+# §9.2 "counts toward total?" column. Defaults only; §10 caveats (ISF, federal, §2E) are applied
+# in combine.
+FUNDING_ACTION_COUNTS_TOWARD_TOTAL = {
     "ORIG": True,
     "NEW": True,
     "INC": True,
@@ -155,7 +156,7 @@ ONE_TIME_OR_RECURRING = ("Recurring", "One-time", "Not classified")
 NEW_OR_REAPPROP = ("New", "Re-appropriation", "Transfer of existing authority", "Pending")
 
 # ---------------------------------------------------------------------------
-# §7 File contracts
+# §7 File formats
 # ---------------------------------------------------------------------------
 
 
@@ -173,11 +174,11 @@ def _cols(*specs: Col | str) -> tuple[Col, ...]:
     return tuple(Col(s) if isinstance(s, str) else s for s in specs)
 
 
-_PARSER = (Col("parser_version"), Col("confidence", "enum", CONFIDENCE_LEVELS))
+_READER = (Col("reader_version"), Col("confidence", "enum", CONFIDENCE_LEVELS))
 
 SCHEMAS: dict[str, tuple[Col, ...]] = {
-    # §7.1 config/laws_registry.csv
-    "laws_registry": _cols(
+    # §7.1 config/law_list.csv
+    "law_list": _cols(
         Col("law_key", required=True),
         Col("acts_year", "int", required=True),
         Col("chapter", required=True),
@@ -207,11 +208,11 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "item_text",
         Col("amount", "int"),
         Col("amount_struck", "int"),
-        Col("rr_ceiling", "int"),
+        Col("retained_revenue_ceiling", "int"),
         "fund_splits_raw",
         "veto_annotation_raw",
         Col("veto_kind_inline", "enum", VETO_KINDS_INLINE),
-        *_PARSER,
+        *_READER,
     ),
     # §7.4 data/interim/amendments_raw.csv
     "amendments_raw": _cols(
@@ -230,10 +231,10 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "to_item",
         "fund_raw",
         "source_text",
-        *_PARSER,
+        *_READER,
     ),
-    # §7.5 data/interim/cthru_accounts.csv (one row per fiscal year x account, aggregated)
-    "cthru_accounts": _cols(
+    # §7.5 data/interim/cthru_line_items.csv (one row per fiscal year x account, aggregated)
+    "cthru_line_items": _cols(
         Col("fiscal_year", "int", required=True),
         Col("line_item", required=True),
         "account_name",
@@ -243,7 +244,7 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "fund_numbers",
         Col("original_enacted", "int"),
         Col("supplemental", "int"),
-        Col("rr_ceiling", "int"),
+        Col("retained_revenue_ceiling", "int"),
         Col("total_enacted", "int"),
     ),
 }
@@ -269,7 +270,7 @@ FUNDING_ACTIONS_TABLE = _cols(
     Col("amount_source", "enum", AMOUNT_SOURCES, required=True),
     Col("amount_printed", "int"),
     Col("veto_status", "enum", VETO_STATUSES),
-    Col("additive", "bool", required=True),
+    Col("counts_toward_total", "bool", required=True),
     "fund_primary",
     Col("federal_share", "float"),
     Col("flags", "list", FLAGS),
@@ -277,7 +278,7 @@ FUNDING_ACTIONS_TABLE = _cols(
     "item_text",
     "source_url",
     Col("source_para_start", "int"),
-    "parser_version",
+    "reader_version",
 )
 SCHEMAS["funding_actions"] = FUNDING_ACTIONS_TABLE
 
@@ -305,8 +306,8 @@ SCHEMAS["running_amounts"] = _cols(
     Col("amount_after", "int"),
 )
 
-# §7.9 data/interim/descriptions.csv
-SCHEMAS["descriptions"] = _cols(
+# §7.9 data/interim/labels.csv
+SCHEMAS["labels"] = _cols(
     Col("record_id", required=True),
     "agency_office",
     "program_purpose",
@@ -328,8 +329,8 @@ SCHEMAS["line_item_catalog"] = _cols(
     "note",
 )
 
-# §7.10 config/department_policy.csv (human-curated; rule for items not yet in the catalog)
-SCHEMAS["department_policy"] = _cols(
+# §7.10 config/department_policy_areas.csv (human-curated; rule for items not yet in the catalog)
+SCHEMAS["department_policy_areas"] = _cols(
     Col("department_code", required=True),
     "department_name",
     Col("policy_area", "enum", POLICY_AREAS),
@@ -339,8 +340,8 @@ SCHEMAS["department_policy"] = _cols(
     "note",
 )
 
-# §7.11 review/overrides.csv (human-edited)
-SCHEMAS["overrides"] = _cols(
+# §7.11 review/corrections.csv (human-edited)
+SCHEMAS["corrections"] = _cols(
     Col("record_id", required=True),
     Col("field", required=True),
     "new_value",
@@ -469,11 +470,11 @@ def _check_value(col: Col, value: str) -> str | None:
             return f"bool must be true/false: {value!r}"
     elif col.kind == "enum":
         if value not in (col.enum or ()):
-            return f"{value!r} not in vocabulary"
+            return f"{value!r} not an allowed value"
     elif col.kind == "list":
         bad = [v for v in value.split(";") if v not in (col.enum or ())]
         if bad:
-            return f"{bad!r} not in vocabulary"
+            return f"{bad!r} not an allowed value"
     return None
 
 

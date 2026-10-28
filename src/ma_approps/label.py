@@ -1,8 +1,9 @@
-"""Stage 7 `describe`: agency, purpose, policy area and yes/no columns to descriptions.csv
+"""Stage 7 `label`: agency, purpose, policy area and yes/no columns to labels.csv
 (DESIGN §7.9, §8, §12).
 
 Stub. Owner: workstream D (Labels). Policy area: config/line_item_catalog.csv, then
-config/department_policy.csv, else the review queue. Agency from CTHRU; purpose by rule. No LLM.
+config/department_policy_areas.csv, else the review queue. Agency from CTHRU; purpose by rule.
+No LLM.
 """
 
 from ma_approps.context import Context

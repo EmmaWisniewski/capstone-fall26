@@ -1,4 +1,4 @@
-"""Stage 2 `cthru`: Comptroller CTHRU budget data to data/interim/cthru_accounts.csv (DESIGN §3.4,
+"""Stage 2 `cthru`: Comptroller CTHRU budget data to data/interim/cthru_line_items.csv (DESIGN §3.4,
 §7.5).
 
 Stub. Owner: workstream E (Annual budgets and checks). One aggregated query per fiscal year
