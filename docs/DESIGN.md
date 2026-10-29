@@ -863,6 +863,8 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: file formats frozen | E | ◐ in progress | `schemas.py` matches §7/§9 v0.2; clarifications in the Decision Log await sign-off |
 | M0: law list seeded and curated | A | ◐ in progress | `config/law_list.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the example-row laws and 2019-5; all rows need human review |
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
+| B: `paragraphs.py` (shared paragraph format, §7.2) | B | ◐ in review | branch `b/paragraphs`; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
+| B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
 | D: seed department table and catalog | D | ☐ todo | §12 step 5 |
