@@ -443,6 +443,13 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 ### 7.14 `config/funds.csv` (human-curated)
 `fund_name`, `fund_number`, `is_federal` (bool), `notes`. Drives the federal flag (§9.5).
 
+### 7.15 `data/raw/manifest.csv` (written by `laws`)
+One row per cached file, sorted by `path`: `path` (relative to `data/raw/`, `/`-separated), `source_url`, `sha256`, `bytes` (int), `fetched_at` (UTC, `YYYY-MM-DDTHH:MM:SSZ`). A row changes only when its file's content changes. Cached law files:
+- `sessionlaws/_lists/{acts_year}.json`: the whole `/SessionLaws/{year}` response (also what discovery will scan)
+- `sessionlaws/{acts_year}/{chapter}.json`: one Acts chapter split out of it (Resolves are numbered separately and skipped)
+
+JSON is written with sorted keys and a one-space indent, the same as `tests/samples/`. The cache comes first: an existing file is never re-downloaded; delete it to refresh.
+
 ## 8. Mapping to the `exampledata.csv` columns
 
 | # | Column | Derivation | Stage |
@@ -848,6 +855,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-28 | **Renamed** `ledger.csv` → `funding_actions.csv`, `amount_ledger.csv` → `running_amounts.csv`, `actions_raw.csv` → `amendments_raw.csv`. | Instructor: "ledger" is jargon; the new names say what the tables hold. |
 | 2026-10-28 | **Plain-language renames:** `laws_registry.csv` → `law_list.csv`, `overrides.csv` → `corrections.csv`, `department_policy.csv` → `department_policy_areas.csv`, `cthru_accounts.csv` → `cthru_line_items.csv`, `descriptions.csv` → `labels.csv`, `unparsed_*` → `unread_*`; columns `additive` → `counts_toward_total`, `rr_ceiling` → `retained_revenue_ceiling`, `parser_version` → `reader_version`; stages `assemble` → `combine`, `describe` → `label`; `tests/fixtures/` → `tests/samples/`; "golden test" → "example-rows test"; §7 "File formats", §9 "Allowed values". | Instructor: names should be clear to non-programmers. Done before any stage code exists. |
 | 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. | The instructor is not the subject expert; the students and partner should decide scope. |
+| 2026-10-28 | **Proposed, pending group sign-off:** `data/raw/manifest.csv` format and cache layout (§7.15, `schemas.raw_manifest`), checked by `validate`. `laws` downloads every law-list row except `excluded` (`tbd` candidates too, so reviewers can read them) and sends nothing until `[http] contact_email` is set. | Claude session (workstream A, branch `a/laws-download`). §6 asks for a manifest without defining its columns. |
 
 ---
 
@@ -865,6 +873,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
+| A: `laws` stage, downloading | A | ◐ in progress | branch `a/laws-download`: downloads listed laws into `data/raw/` with `manifest.csv`; offline tests pass. Run live 2026-10-28 with a one-off contact email: all 52 non-excluded laws in 8 requests, 0 problems; the 6 samples are byte-identical and every law-list API field matches. `contact_email` in settings still needs the group's shared address. Discovery of new candidates not started |
 | D: seed department table and catalog | D | ☐ todo | §12 step 5 |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☐ open | before M2 |
