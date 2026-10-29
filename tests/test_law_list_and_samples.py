@@ -6,7 +6,16 @@ import pytest
 from ma_approps import schemas
 
 # DESIGN §15 sample laws
-SAMPLE_LAWS = ("2023-28", "2023-77", "2024-140", "2025-3", "2021-35", "2023-15")
+SAMPLE_LAWS = (
+    "2023-28",
+    "2023-77",
+    "2024-140",
+    "2025-3",
+    "2021-35",
+    "2023-15",
+    "2024-139",
+    "2025-17",
+)
 
 
 @pytest.fixture
