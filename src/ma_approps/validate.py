@@ -31,6 +31,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("line_item_catalog", ctx.config_dir / "line_item_catalog.csv"),
         ("department_policy_areas", ctx.config_dir / "department_policy_areas.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
+        ("raw_manifest", ctx.raw_dir / "manifest.csv"),
         *(
             (name, interim / f"{name}.csv")
             for name in (

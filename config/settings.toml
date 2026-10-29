@@ -7,7 +7,8 @@ approved_to = "2025-12-31"
 discover_years = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 
 [http]
-# Identify the scraper (§3.6). Set contact_email to the group's shared contact before running fetch.
+# Identify the scraper (§3.6). Set contact_email to the group's shared contact before running the
+# `laws` stage; it sends nothing without one.
 user_agent = "ma-approps-capstone/0.1 (Northeastern University capstone research)"
 contact_email = ""
 min_interval_seconds = 1.0

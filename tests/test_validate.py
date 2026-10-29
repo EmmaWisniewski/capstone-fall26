@@ -41,6 +41,7 @@ def test_validate_catches_bad_funding_actions_record_id(root, tmp_path):
 
 
 def test_empty_pipeline_runs(root, tmp_path):
-    # M0: every stub stage is skipped and validate passes
+    # M0: every stub stage is skipped and validate passes. `laws` is left out because it
+    # downloads; tests/test_laws.py covers it with a fake connection.
     ctx = Context(root=root, reports_dir=tmp_path / "reports", interim_dir=tmp_path / "interim")
-    assert cli.run_stages(ctx, list(cli.STAGE_NAMES)) == 0
+    assert cli.run_stages(ctx, [s for s in cli.STAGE_NAMES if s != "laws"]) == 0
