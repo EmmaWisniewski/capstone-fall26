@@ -805,7 +805,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 
 ## 19. Open questions
 
-Keep this list current. When one is resolved, move it to the Decision Log.
+Keep this list current. When one is resolved, move it to the Decision Log, and update the plain-language version for the partner, [`plain-language/partner-decisions.md`](plain-language/partner-decisions.md).
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|

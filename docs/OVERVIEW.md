@@ -140,7 +140,8 @@ options to discuss.
 | **M6** Re-run test | Someone follows the runbook on 2026 laws without changing code, and we list what broke | ☐ |
 
 Open questions waiting on the group or our State Auditor partner are listed in
-[DESIGN §19](DESIGN.md#19-open-questions).
+[DESIGN §19](DESIGN.md#19-open-questions). The ones for the partner are explained in plain
+language in [Decisions we need from our partner](plain-language/partner-decisions.md).
 
 ---
 
