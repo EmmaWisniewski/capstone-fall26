@@ -725,7 +725,9 @@ capstone-fall26/
   - `2025-3` (short title, trailing period)
   - `2021-35` (whole-item replacement)
   - `2023-15` (interim)
-  - **to add:** a small CTHRU snapshot for FY2023–FY2024 covering the example-row and veto items (E); one bond law and one Chapter 90 bill (A).
+  - `2024-139` (IT bond; capital sections start at §2A; one borrowing section covers two item sections)
+  - `2025-17` (Chapter 90; §2 municipal roads and §2A MassDOT programs, each with its own borrowing section)
+  - **to add:** a small CTHRU snapshot for FY2023–FY2024 covering the example-row and veto items (E).
 - **CLI:** `python -m ma_approps run --stage {laws…validate|all} [--law 2023-28] [--offline]`.
 - **Git:** branch per task (`a/bond-sample`, `b/paragraphs`, …), PRs reviewed by one other person where possible, CI runs `ruff` and `pytest` (example rows plus samples). Never commit `data/raw/` or API keys. See [`WORKFLOW.md`](WORKFLOW.md).
 - **Politeness:** about 1 request per second, a descriptive User-Agent, exponential backoff on 429/5xx, and the cache first.
@@ -864,7 +866,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: law list seeded and curated | A | ◐ in progress | `config/law_list.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the example-row laws and 2019-5; all rows need human review |
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
-| M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
+| M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` rows still to write |
 | D: seed department table and catalog | D | ☐ todo | §12 step 5 |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☐ open | before M2 |
