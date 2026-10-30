@@ -85,8 +85,25 @@ useful, and much bigger.
 **For now:** we cover only what laws allowed. Mario (workstream E) is leading this discussion
 (DESIGN §16), and it should be decided before milestone M2.
 
+### 8. When a borrowing law's projects add up to more than it lets the state borrow, which number counts? (§19 Q11)
+**The question:** A bond (borrowing) law lists projects, each with a dollar amount. Separately,
+it sets a limit on how much the state may borrow to pay for them. Usually the two match. But in
+the 2024 information technology bond law (2024 Acts, ch. 139), the projects in two of its
+sections add up to **$1.455 billion**, while the law only lets the state borrow **$1.055
+billion** for them: **$400 million less**. Nothing in the law explains the difference. Which
+number should the dataset report as the money this law authorized: the projects' total, or the
+borrowing limit?
+
+**Why it matters:** It changes this one law's total by $400 million, and the same thing may
+happen in other bond laws we haven't checked yet.
+
+**For now:** each project is listed with its amount as printed, so this law's total is the
+projects' total ($1.455 billion). The $400 million difference is flagged for review, and we also
+record the borrowing limits so the two can always be compared.
+
 ---
 
 **Not for the partner (the group decides these itself):** whether two borderline laws belong in
-the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), and how to date veto overrides that happen in
-2026 for laws passed in 2025 (§19 Q6).
+the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), how to date veto overrides that happen in
+2026 for laws passed in 2025 (§19 Q6), and where the program stores each bond law's borrowing
+limits (the technical half of §19 Q11).
