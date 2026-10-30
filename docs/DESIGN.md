@@ -574,7 +574,7 @@ The **operating total** for a law (or fiscal year) is the sum of `amount` over e
 - Don't rely on CSS classes. `HWMLineItem`, `HWMAgency`, and `HWMSecretariat` exist in the FY2021 HTML but not reliably in later years.
 
 ### 11.2 Item extraction state machine (`read_items`, `read_bonds`)
-One state machine, used in three modes: **supplementals** (full items), **GAAs** (description, printed amount and veto markup only; amounts come from CTHRU) and **bonds** (capital sections §2–§2I and Chapter 90 bills; `amount_kind = bond_authorization`). Bond formatting hasn't been checked yet. Workstream A's first task is to save one bond law as a sample and see what needs to change.
+One state machine, used in three modes: **supplementals** (full items), **GAAs** (description, printed amount and veto markup only; amounts come from CTHRU) and **bonds** (capital sections §2–§2I and Chapter 90 bills; `amount_kind = bond_authorization`). Bond formatting was checked on the two bond samples on 2026-10-29 (see **Bond laws** below).
 
 States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | ITEM | FUND_SPLIT | VETO_NOTE)* → next SECTION`.
 
@@ -586,6 +586,13 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
 - **Retained revenue:** if the text contains `may expend … not more than $X` and there is no trailing amount, set `retained_revenue_ceiling` and leave `amount` null. `amount_kind` = `retained_revenue_ceiling`.
 - **Fund splits:** paragraphs like `General Fund…… 52.63%`, possibly several per paragraph separated by `<br>`. Attach them to the preceding item.
 - **Unread:** any paragraph in an appropriation section that isn't consumed goes to `reports/unread_paragraphs.csv` (or `…_bonds.csv`). This file must be empty, or explained, before a law can be marked done.
+
+**Bond laws** (checked 2026-10-29 on samples 2024-139 and 2025-17, using `paragraphs.py` from PR #6). Expected output is in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv`.
+- **The state machine works unchanged for the items.** Every item is one paragraph that starts with its ID and ends with a dotted leader and amount. Headers follow the ALL-CAPS secretariat / Title-case agency pattern. Earmarks inside the text ("not less than $300,000 …") are skipped by the trailing-amount rule. Spacing before the `$` varies, which the end pattern already allows. The samples have no fund splits, veto markup or retained revenue. All 16 items in the two samples are found, and no capital-section paragraph is left unread.
+- **Capital sections may start at §2A.** 2024-139 has no §2. They end at the first `SECTION 3.` or higher.
+- **No preamble per section.** `SECTION 1` introduces all the capital sections at once. It names no fund and no fiscal year, so `section_fund_default` and `fy_stated` stay empty and the fiscal year comes from the enactment date (§5.4, `fy_rule = enactment_fy`). It may give an availability date ("made available through December 31, 2030", 2024-139), which becomes `available_through`.
+- **Borrowing limits come after the items**, one section each: "the state treasurer shall … issue and sell bonds … not exceeding, in the aggregate, $X". Each names the capital sections it covers, which may be more than one (2024-139 §4 covers §2A and §2B). It also gives the bond's name, its maximum term and its final payment date. No §7 file holds these yet, but check 7 needs them (Q11).
+- **Items don't always add up to the borrowing limit.** In 2024-139, the §2A and §2B items total $1,455,000,000, but §4 allows borrowing of only $1,055,000,000. Nothing in the item text explains the $400,000,000 gap. Check 7 must therefore report differences for review rather than treat them as reader errors.
 
 ### 11.3 Outside-section grammar (`read_amendments`)
 Resolve "said item … of said section 2 of said chapter 28" by carrying the last explicitly named law, section, and item forward through consecutive sections. Patterns to support, each with a sample:
@@ -820,6 +827,8 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
 | Q8 | Funding-action labels beyond the two in the examples | partner | §9.2 labels |
 | Q10 | Should the project cover actual **spending** as well as appropriations? If so, which layers (§16)? | E leads, with the group, partner and researchers | appropriations only, until decided (before M2) |
+| Q11 | Where does `read_bonds` record each bond law's **borrowing limits** (§11.2, check 7)? And when a law's items add up to more than it lets the state borrow (2024-139: $400M more), which figure is the capital total? | group (E owns §7); the second part possibly the partner | proposed: a new `data/interim/bond_authorizations_raw.csv` with the columns of `tests/samples/expected/bond_authorizations.csv`; the capital total stays the sum of items, with the gap reported |
+| Q12 | Which details of each borrowing limit should be kept? Besides the amount and the sections it covers, the law prints the bond's name, its maximum term (years) and its final repayment date. | group (E owns §7) | proposed: keep all five (`authorized`, `covers_sections`, `bond_name`, `max_term_years`, `payable_by`), as in `tests/samples/expected/bond_authorizations.csv`; drop any the group doesn't need |
 
 ---
 
@@ -866,7 +875,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: law list seeded and curated | A | ◐ in progress | `config/law_list.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the example-row laws and 2019-5; all rows need human review |
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
-| M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` rows still to write |
+| M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` output in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv` (2026-10-29; branch `a/bond-expected-rows`); all 16 line items hand-checked against the official text by Emma (2026-10-29); borrowing-limit format open (Q11, Q12) |
 | D: seed department table and catalog | D | ☐ todo | §12 step 5 |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☐ open | before M2 |
