@@ -98,4 +98,7 @@ the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), how to date veto overrides t
 limits (the technical half of §19 Q11), and two follow-ups to the veto decision: whether an item
 the Legislature only partly restored counts as "reduced" or "restored" (§19 Q13), and whether the
 veto note should also appear in the main spreadsheet (§19 Q14; the partner may have a view, since
-the main spreadsheet's columns come from their example).
+the main spreadsheet's columns come from their example). And a follow-up to question 2: some trust
+funds can spend money without another law approving it, so under the "count it when a law spends
+it" rule, money moved into those funds would never count toward the totals. Should the move count
+for those funds instead? (§19 Q15; the partner may have a view.)
