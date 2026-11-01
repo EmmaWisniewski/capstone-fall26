@@ -21,15 +21,12 @@ as federal money?
 **For now:** we keep federal money in the dataset but mark it, and leave it out of the main
 totals.
 
-### 2. What counts as "new money"? (§19 Q2)
-**The question:** Sometimes money is moved into a special fund in one law and spent from that
-fund in another. Some agencies are allowed to spend fees they collect themselves. Should these
-count as new spending, and how do we avoid counting the same dollars twice?
-
-**Why it matters:** Counting money twice would make totals look bigger than they really are.
-
-**For now:** we follow the counting rules in the design (§10), which count the money when it's
-spent rather than when it's moved, and mark the fee-based items.
+### 2. What counts as "new money"? (Q2) **Decided**
+**The answer:** When money is moved into a special fund and spent from it later, it counts once,
+when a law spends it, not when it's moved. The move is still listed, but it isn't added to the
+totals. Items paid for by fees an agency collects count, and are marked as fee-based. The group
+decided this, keeping the design's counting rules (DESIGN §10). Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
 
 ### 3. What do three of the columns mean exactly? (§19 Q3)
 **The question:** The example spreadsheet has three yes/no-style columns we need precise
