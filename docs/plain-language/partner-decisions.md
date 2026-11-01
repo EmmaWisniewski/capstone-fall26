@@ -45,16 +45,12 @@ was funded the year before. We'd like to know what was meant.
 
 **For now:** we use temporary rules and mark them as provisional.
 
-### 4. Should vetoes appear as their own rows? (§19 Q4)
-**The question:** When the governor cuts or rejects part of a budget, and the Legislature sometimes
-restores it, should each of those steps be its own row? Or should a row just show the final
-amount, with a note saying a veto happened?
-
-**Why it matters:** Separate rows show the back-and-forth but make the dataset bigger and harder
-to collect.
-
-**For now:** one row per item showing the final amount, with a note saying whether it was
-vetoed, reduced or restored.
+### 4. Should vetoes appear as their own rows? (Q4) **Decided**
+**The answer:** No. Each item has one row showing its final amount, after any veto or
+restoration, with a note saying whether it was vetoed, reduced or restored. The group decided
+this, keeping the default. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
+2026-11-01. The note and the amount before the veto are in the extended file, not the main
+spreadsheet. How to show changes to an item's *wording* is still being discussed by the group.
 
 ### 5. Where should borrowing (bond) laws go? (§19 Q5)
 **The question:** Bond laws authorize the state to borrow money and spend it over several years,
