@@ -70,21 +70,14 @@ on 2026-11-01. What columns that separate spreadsheet should have is still open 
 stage. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01; nothing more
 is needed from the partner on this.
 
-### 8. When a borrowing law's projects add up to more than it lets the state borrow, which number counts? (§19 Q11)
-**The question:** A bond (borrowing) law lists projects, each with a dollar amount. Separately,
-it sets a limit on how much the state may borrow to pay for them. Usually the two match. But in
-the 2024 information technology bond law (2024 Acts, ch. 139), the projects in two of its
-sections add up to **$1.455 billion**, while the law only lets the state borrow **$1.055
-billion** for them: **$400 million less**. Nothing in the law explains the difference. Which
-number should the dataset report as the money this law authorized: the projects' total, or the
-borrowing limit?
-
-**Why it matters:** It changes this one law's total by $400 million, and the same thing may
-happen in other bond laws we haven't checked yet.
-
-**For now:** each project is listed with its amount as printed, so this law's total is the
-projects' total ($1.455 billion). The $400 million difference is flagged for review, and we also
-record the borrowing limits so the two can always be compared.
+### 8. When a borrowing law's projects add up to more than it lets the state borrow, which number counts? (Q11) **Decided**
+**The answer:** The projects' total. A bond (borrowing) law lists projects with dollar amounts,
+and separately limits how much the state may borrow for them. In the 2024 information technology
+bond law (2024 Acts, ch. 139), the projects in two sections add up to $1.455 billion, but the law
+only lets the state borrow $1.055 billion for them. The dataset reports $1.455 billion, flags the
+$400 million difference, and also records the borrowing limits so the two can be compared. Our
+partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
+2026-11-01.
 
 ### 9. What should the separate bond spreadsheet look like? (§19 Q16)
 **The question:** Now that bond laws get their own spreadsheet (question 5), which columns should
@@ -101,7 +94,7 @@ bond rows in it.
 **Not for the partner (the group decides these itself):** whether two borderline laws belong in
 the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), how to date veto overrides that happen in
 2026 for laws passed in 2025 (§19 Q6), where the program stores each bond law's borrowing
-limits (the technical half of §19 Q11), and two follow-ups to the veto decision: whether an item
+limits and flags their differences (the technical half of §19 Q11), and two follow-ups to the veto decision: whether an item
 the Legislature only partly restored counts as "reduced" or "restored" (§19 Q13), and whether the
 veto note should also appear in the main spreadsheet (§19 Q14; the partner may have a view, since
 the main spreadsheet's columns come from their example). And a follow-up to question 2: some trust
