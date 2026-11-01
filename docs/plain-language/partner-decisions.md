@@ -28,19 +28,24 @@ totals. Items paid for by fees an agency collects count, and are marked as fee-b
 and our partner decided this, keeping the design's counting rules (DESIGN §10). Recorded in the
 [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
 
-### 3. What do three of the columns mean exactly? (§19 Q3)
-**The question:** The example spreadsheet has three yes/no-style columns we need precise
-definitions for:
-- **"Previously funded?":** funded in the year before? Ever?
+### 3. What do three of the columns mean exactly? (§19 Q3) **Partly decided**
+**Decided:** **"Previously funded?"** means funded **in the year before only**. An item counts as
+previously funded if it had money in the immediately preceding budget year, and not otherwise,
+even if it was funded in some earlier year. Our partner decided this. Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
+
+**Still open:**
 - **"One-time or recurring?":** how do we tell which is which?
 - **"New money or re-using existing money?"**
-
-One example row also looks inconsistent: it says "Unknown" for a program that state records show
-was funded the year before. We'd like to know what was meant.
+- **When to answer "Unknown"** for "previously funded?", for example when a program seems to have
+  been given a new item number.
+- **One example row looks inconsistent:** it says "Unknown" for a program that state records
+  show was funded the year before, so under the new rule it would be "Yes". We'd like to know what
+  was meant.
 
 **Why it matters:** these columns appear on every row.
 
-**For now:** we use temporary rules and mark them as provisional.
+**For now:** we use temporary rules for the open parts and mark them as provisional.
 
 ### 4. Should vetoes appear as their own rows? (Q4) **Decided**
 **The answer:** No. Each item has one row showing its final amount, after any veto or
