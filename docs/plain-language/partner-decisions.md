@@ -49,15 +49,11 @@ this, keeping the default. Recorded in the [Decision Log](../DESIGN.md#20-decisi
 2026-11-01. The note and the amount before the veto are in the extended file, not the main
 spreadsheet. How to show changes to an item's *wording* is still being discussed by the group.
 
-### 5. Where should borrowing (bond) laws go? (§19 Q5)
-**The question:** Bond laws authorize the state to borrow money and spend it over several years,
-which is different from a yearly budget. Should they be in the same spreadsheet as everything
-else, or in a separate one?
-
-**Why it matters:** Mixing them in could confuse readers about yearly totals.
-
-**For now:** same spreadsheet, clearly labeled "Capital authorization", never added into the
-yearly budget totals, with a separate total of their own.
+### 5. Where should borrowing (bond) laws go? (Q5) **Decided**
+**The answer:** In a separate spreadsheet, not the main one. Bond laws authorize borrowing and
+spending over several years, so keeping them apart avoids confusing readers about yearly
+totals. Our partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log)
+on 2026-11-01. What columns that separate spreadsheet should have is still open (question 9).
 
 ### 6. What names should we use for each kind of action? (§19 Q8)
 **The question:** The example rows only show two types: "Original appropriation" and
@@ -89,6 +85,16 @@ happen in other bond laws we haven't checked yet.
 **For now:** each project is listed with its amount as printed, so this law's total is the
 projects' total ($1.455 billion). The $400 million difference is flagged for review, and we also
 record the borrowing limits so the two can always be compared.
+
+### 9. What should the separate bond spreadsheet look like? (§19 Q16)
+**The question:** Now that bond laws get their own spreadsheet (question 5), which columns should
+it have?
+
+**Why it matters:** It decides how easily readers can compare bond money with the yearly budget
+spreadsheet.
+
+**For now:** we plan to use exactly the same 19 columns as the main spreadsheet, with only the
+bond rows in it.
 
 ---
 
