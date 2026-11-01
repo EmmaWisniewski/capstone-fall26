@@ -4,7 +4,7 @@
 open questions in [DESIGN §19](../DESIGN.md#19-open-questions); if the two disagree, §19 is
 correct. When the partner answers a question, record the answer in the
 [Decision Log (§20)](../DESIGN.md#20-decision-log) and update this page. Last updated
-2026-10-28.*
+2026-11-01.*
 
 For each question: the question, why it matters, and what the program does until we hear back.
 None of these block our work, because the program uses a sensible default for now. But each
@@ -75,15 +75,11 @@ yearly budget totals, with a separate total of their own.
 
 **For now:** we use our proposed names (full list in DESIGN §9.2).
 
-### 7. Should we track spending too, not just what laws allowed? (§19 Q10)
-**The question:** Right now we record what laws *allowed* the state to spend. The state's records
-also show what was *actually spent*. Should the project cover that too, and how far?
-
-**Why it matters:** this is the biggest scope question. It could make the project much more
-useful, and much bigger.
-
-**For now:** we cover only what laws allowed. Mario (workstream E) is leading this discussion
-(DESIGN §16), and it should be decided before milestone M2.
+### 7. Should we track spending too, not just what laws allowed? (Q10) **Decided**
+**The answer:** No. The project covers only what laws *allowed* the state to spend
+(appropriations), not what was *actually spent*. Our partner set this scope at the proposal
+stage. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01; nothing more
+is needed from the partner on this.
 
 ### 8. When a borrowing law's projects add up to more than it lets the state borrow, which number counts? (§19 Q11)
 **The question:** A bond (borrowing) law lists projects, each with a dollar amount. Separately,
