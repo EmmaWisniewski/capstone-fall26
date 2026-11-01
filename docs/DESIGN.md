@@ -556,7 +556,7 @@ The **operating total** for a law (or fiscal year) is the sum of `amount` over e
 | Retained-revenue ceilings (fee-based items) | yes, flagged `retained_revenue` (Q2, decided) | CTHRU tracks these separately; reconcile against `authorized_retained_revenue_ceiling` |
 | §2B ISF chargebacks | **no** | duplicates §2 spending |
 | §2D federal grants and federal fund shares | **no by default**, kept and flagged | pending the State Auditor decision |
-| §2E transfers to trust funds | **no** for the transfer in, flagged `trust_transfer`; count the **appropriation out** of the trust instead (Q2, decided) | the same money would otherwise be counted twice |
+| §2E transfers to trust funds | **no** for the transfer in, flagged `trust_transfer`; count the **appropriation out** of the trust instead (Q2, decided) | the same money would otherwise be counted twice. For trusts that spend without a further appropriation, see Q15 |
 | Transfers into reserve or escrow funds (e.g., Transitional Escrow Fund) that later acts appropriate from | count the **appropriation out**, not the transfer in, flagged `fund_transfer_chain` (Q2, decided) | avoids double counting surplus money |
 | Interim budgets | **no** | by statute they apply against the GAA |
 | PAC, reauthorizations, alteration of purpose, item-to-item transfers, ARPA reallocations | **no** | not new money |
@@ -809,6 +809,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q8 | Funding-action labels beyond the two in the examples | partner | §9.2 labels |
 | Q13 | **Partial overrides** (follows Q4): when the governor reduces an item and the Legislature restores only part of the cut, is the item's `veto_status` `reduced` or `overridden`? | group | not yet decided; `veto_status` values are in §9.9 |
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
+| Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 
 ---
 
