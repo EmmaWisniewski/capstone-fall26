@@ -97,5 +97,8 @@ record the borrowing limits so the two can always be compared.
 
 **Not for the partner (the group decides these itself):** whether two borderline laws belong in
 the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), how to date veto overrides that happen in
-2026 for laws passed in 2025 (§19 Q6), and where the program stores each bond law's borrowing
-limits (the technical half of §19 Q11).
+2026 for laws passed in 2025 (§19 Q6), where the program stores each bond law's borrowing
+limits (the technical half of §19 Q11), and two follow-ups to the veto decision: whether an item
+the Legislature only partly restored counts as "reduced" or "restored" (§19 Q13), and whether the
+veto note should also appear in the main spreadsheet (§19 Q14; the partner may have a view, since
+the main spreadsheet's columns come from their example).
