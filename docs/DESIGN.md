@@ -553,11 +553,11 @@ The **operating total** for a law (or fiscal year) is the sum of `amount` over e
 |---|---|---|
 | GAA §2, §2F items; supplemental §2/§2A new items and increases | yes | new authority |
 | Reductions, veto reductions (negative), override restorations | yes | net effect |
-| Retained-revenue ceilings | yes, flagged | CTHRU tracks these separately; reconcile against `authorized_retained_revenue_ceiling` |
+| Retained-revenue ceilings (fee-based items) | yes, flagged `retained_revenue` (Q2, decided) | CTHRU tracks these separately; reconcile against `authorized_retained_revenue_ceiling` |
 | §2B ISF chargebacks | **no** | duplicates §2 spending |
 | §2D federal grants and federal fund shares | **no by default**, kept and flagged | pending the State Auditor decision |
-| §2E transfers to trust funds | **open** | if the trust's later spending is also appropriated, count only one leg (§19) |
-| Transfers into reserve or escrow funds (e.g., Transitional Escrow Fund) that later acts appropriate from | count the **appropriation out**, not the transfer in (proposal) | avoids double counting surplus money |
+| §2E transfers to trust funds | **no** for the transfer in, flagged `trust_transfer`; count the **appropriation out** of the trust instead (Q2, decided) | the same money would otherwise be counted twice |
+| Transfers into reserve or escrow funds (e.g., Transitional Escrow Fund) that later acts appropriate from | count the **appropriation out**, not the transfer in, flagged `fund_transfer_chain` (Q2, decided) | avoids double counting surplus money |
 | Interim budgets | **no** | by statute they apply against the GAA |
 | PAC, reauthorizations, alteration of purpose, item-to-item transfers, ARPA reallocations | **no** | not new money |
 | Bond authorizations | **separate capital total**, never summed with operating | multi-year borrowing authority |
@@ -802,7 +802,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | # | Question | Who decides | Current default |
 |---|---|---|---|
 | Q1 | How to treat federal funds (exclude, separate total, or include)? Is federally reimbursed General Fund spending (MassHealth) ever "federal"? | partner at the Office of the State Auditor | keep, flag by source fund, exclude from main totals |
-| Q2 | Exact definition of "net new appropriation authority": §2E trust transfers, retained revenue, and transfer-then-spend chains | group + partner | §10 table |
 | Q3 | Definitions of *Previously funded?*, *One-time or recurring*, and *New vs. re-appropriation*. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023? | partner | interim rules in §8 |
 | Q5 | Should bond authorizations be in the main export or a separate capital file? | group + partner | same export, `Funding action = Capital authorization`, separate total |
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
@@ -842,6 +841,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. *(Resolved 2026-11-01: appropriations only.)* | The instructor is not the subject expert; the students and partner should decide scope. |
 | 2026-11-01 | **Q10 resolved: appropriations only.** The project records what laws authorized, not what the state actually spent. CTHRU's spending-side fields and the spending datasets (§3.4) are not used. | Partner (Office of the State Auditor), set at the project proposal stage; reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q4 resolved: vetoes are netted.** Each line item has one row with its final amount, after any veto or override. What happened is recorded in `veto_status` (`none`, `vetoed`, `reduced`, `overridden`, `unknown`), with the printed amount in `amount_printed`; both are in the extended file, not the 19-column main export. `VETO` and `OVR` stay reserved and are not emitted. Still open with the group: partial overrides (Q13), where `veto_status` appears (Q14), and recording wording-only vetoes and wording changes. | Group decision, keeping the default (§19 had listed the partner as decider); reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q2 resolved: the §10 counting rules stand.** Money moved into a trust, reserve or escrow fund counts when a law appropriates it out of that fund (when it's spent), not when it's moved in. The transfer in is kept as a row but doesn't count toward totals (flagged `trust_transfer` or `fund_transfer_chain`). Retained-revenue (fee-based) items count toward totals and are flagged `retained_revenue`. | Group decision, keeping the default (§19 had listed the group and the partner); reported by Emma, 2026-11-01. |
 
 ---
 
