@@ -25,7 +25,7 @@ totals.
 **The answer:** When money is moved into a special fund and spent from it later, it counts once,
 when a law spends it, not when it's moved. The move is still listed, but it isn't added to the
 totals. Items paid for by fees an agency collects count, and are marked as fee-based. The group
-decided this, keeping the design's counting rules (DESIGN §10). Recorded in the
+and our partner decided this, keeping the design's counting rules (DESIGN §10). Recorded in the
 [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
 
 ### 3. What do three of the columns mean exactly? (§19 Q3)
