@@ -116,16 +116,15 @@ for their own area.
 | WS | Owner | Name: what it covers | Start now with… | Status |
 |---|---|---|---|---|
 | **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; saving one bond law and one Chapter 90 bill as samples | ◐ |
-| **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ☐ |
+| **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` ready for review; `read_items` next) |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ☐ |
 | **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
 | — | **everyone** | **Putting it together:** combining the pieces into the final dataset | Waits on the above (milestone M1) | ☐ |
 
-**Open scope decision (Mario leads, with the group and our State Auditor partner, before M2):**
-should the project also cover what the state actually *spent*, not just what laws authorized?
-CTHRU has spending data too. See [DESIGN §16](DESIGN.md#16-workstreams-and-ownership) for the
-options to discuss.
+**Scope decided:** the project covers appropriations (what laws authorized), not what the
+state actually *spent*. Our partner set this at the proposal stage
+(see the [Decision Log](DESIGN.md#20-decision-log), 2026-11-01).
 
 ### Milestones
 
@@ -133,7 +132,7 @@ options to discuss.
 |---|---|---|
 | **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ◐ (skeleton updated to v0.2; sign-off pending) |
 | **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
-| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained; spending scope decided | ☐ |
+| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ☐ |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
 | **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ☐ |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |
@@ -155,4 +154,4 @@ Open questions waiting on the group or our State Auditor partner are listed in
   - B: [§11.1–§11.2 Paragraphs and item reading](DESIGN.md#11-parsing-details-and-known-patterns)
   - C: [§11.3 Amendments](DESIGN.md#113-outside-section-grammar-read_amendments), [§5.5 Running amounts](DESIGN.md#55-running-amounts)
   - D: [§8 Column mapping](DESIGN.md#8-mapping-to-the-exampledatacsv-columns), [§12 Labels](DESIGN.md#12-policy-area-classification)
-  - E: [§3.4 CTHRU](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else), [§7 File formats](DESIGN.md#7-file-formats), [§13 Validation](DESIGN.md#13-validation-suite), [§16 Spending-scope decision](DESIGN.md#16-workstreams-and-ownership)
+  - E: [§3.4 CTHRU](DESIGN.md#34-comptroller-cthru-primary-source-for-annual-budgets-check-for-everything-else), [§7 File formats](DESIGN.md#7-file-formats), [§13 Validation](DESIGN.md#13-validation-suite)
