@@ -122,7 +122,7 @@ Use these terms consistently in code, comments, commit messages, and conversatio
 ### 3.3 Governor veto messages and override history
 **Not used in v0.2.** Vetoes are found by comparing the law's printed amount with CTHRU (§11.4).
 - Veto annotations in the act text reference the governor's message (e.g. "for message see House, No. 4055"). The pipeline reads the inline markup as a hint and doesn't fetch the messages.
-- Override votes appear in the bill's `DocumentHistoryActions`. They're needed only if the partner asks for separate veto and override rows with dates (Q4).
+- Override votes appear in the bill's `DocumentHistoryActions`. They aren't needed: vetoes and overrides are netted into each item's final amount (Q4, decided).
 
 ### 3.4 Comptroller CTHRU (primary source for annual budgets; check for everything else)
 - Socrata dataset **`kv7m-35wn`** ("Budget_Actual_With_Other_Spending_Authorizationv3_Gen2", the production data behind CTHRU Budgets): `https://cthru.data.socrata.com/resource/kv7m-35wn.json`
@@ -239,7 +239,7 @@ A law doesn't just create items. It also raises, cuts, re-purposes, extends, tra
 - Totals are sums over events flagged `counts_toward_total = true`.
 
 ### 5.2 Event types (`funding_action`)
-The values (full list in §9.2) are: original appropriation, new supplemental item, supplemental increase, supplemental reduction, veto reduction, override restoration, reauthorization, alteration of purpose, transfer, interim appropriation, capital authorization, and prior appropriation continued. Under the v0.2 default (Q4), vetoes and overrides are netted into the item's amount (§5.7), so `VETO` and `OVR` are reserved and not emitted.
+The values (full list in §9.2) are: original appropriation, new supplemental item, supplemental increase, supplemental reduction, veto reduction, override restoration, reauthorization, alteration of purpose, transfer, interim appropriation, capital authorization, and prior appropriation continued. Under the Q4 decision, vetoes and overrides are netted into the item's amount (§5.7), so `VETO` and `OVR` are reserved and not emitted.
 
 ### 5.3 `amount_kind` and `counts_toward_total`
 Each event carries:
@@ -262,7 +262,7 @@ Each event has zero or more fund splits (`fund_splits.csv`). The default fund is
 ### 5.7 Where amounts come from, and vetoes
 - **GAA original appropriations** (`ORIG` in a GAA): the amount is CTHRU `original_enacted_budget` for that FY × item, which already reflects vetoes and overrides. These rows have `amount_source = cthru`. The law's printed amount goes in `amount_printed` (from `read_items`).
 - **Everything else** (supplementals, amendments, bonds, interim) has `amount_source = law_text`. Escape-hatch rows have `manual`.
-- **Vetoes are netted** (Q4 default). There's one row per item with its final amount. `veto_status` (§9.9) records `none`, `vetoed`, `reduced`, `overridden` or `unknown`. It's set by comparing `amount_printed` with CTHRU, with the inline veto markup as a hint. Unexplained differences are flagged `cthru_mismatch` and go to the review queue.
+- **Vetoes are netted** (Q4, decided 2026-11-01). There's one row per item with its final amount. `veto_status` (§9.9) records `none`, `vetoed`, `reduced`, `overridden` or `unknown`. It's set by comparing `amount_printed` with CTHRU, with the inline veto markup as a hint. Unexplained differences are flagged `cthru_mismatch` and go to the review queue.
 - Vetoes in bond laws (not in CTHRU) rely on inline markup only and are flagged `veto_unverified` when markup is present.
 
 ## 6. Pipeline architecture
@@ -481,7 +481,7 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 | `NEW` | Supplemental appropriation | appropriation | yes |
 | `INC` | Supplemental increase | delta (+) | yes |
 | `RED` | Supplemental reduction | delta (−) | yes (negative) |
-| `VETO` | Veto reduction | delta (−) | yes (negative). *Reserved: not emitted under the netted default (Q4, §5.7).* |
+| `VETO` | Veto reduction | delta (−) | yes (negative). *Reserved: not emitted, because vetoes are netted (Q4, §5.7).* |
 | `OVR` | Veto override restoration | delta (+) | yes. *Reserved, as above.* |
 | `INT` | Interim appropriation | interim | **no** |
 | `CAP` | Capital authorization | bond_authorization | **no** (separate capital total) |
@@ -804,7 +804,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q1 | How to treat federal funds (exclude, separate total, or include)? Is federally reimbursed General Fund spending (MassHealth) ever "federal"? | partner at the Office of the State Auditor | keep, flag by source fund, exclude from main totals |
 | Q2 | Exact definition of "net new appropriation authority": §2E trust transfers, retained revenue, and transfer-then-spend chains | group + partner | §10 table |
 | Q3 | Definitions of *Previously funded?*, *One-time or recurring*, and *New vs. re-appropriation*. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023? | partner | interim rules in §8 |
-| Q4 | Should vetoes and overrides appear as separate export rows, or only net into the item amount? | partner | **netted** into the amount, with `veto_status` and `amount_printed` (v0.2, §5.7). Separate rows would need bill history for override dates. |
 | Q5 | Should bond authorizations be in the main export or a separate capital file? | group + partner | same export, `Funding action = Capital authorization`, separate total |
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
@@ -831,7 +830,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-28 | Workstream owners: A Emma, B Tierney, C Emily H., D Emily R., E Mario. | Group. Recorded in §21 and the `OVERVIEW.md` tracker. |
 | 2026-10-28 | **v0.2 goal:** the program must be re-runnable each year by future cohorts; add `docs/RUNBOOK.md` and a 2026 held-out test (M6). The dataset scope stays 2021–2025. | Instructor review with Claude. The project is meant to give future researchers continually updated data. |
 | 2026-10-28 | **CTHRU-first:** GAA original appropriations come from CTHRU `original_enacted_budget`; law text is read only for supplementals, amendments, bonds and GAA descriptions. | CTHRU probe (§3.4): structured, includes vetoes and overrides, history from FY2005, already has FY2027. Scrapers are fragile across format changes. |
-| 2026-10-28 | **Vetoes netted** into the amount, with `veto_status` and `amount_printed` (working default for Q4); veto detection by CTHRU comparison; bill history and veto-message parsing dropped. `veto_events.csv` removed. | Follows from CTHRU-first; removes a stage. |
+| 2026-10-28 | **Vetoes netted** into the amount, with `veto_status` and `amount_printed` (working default for Q4; *confirmed 2026-11-01*); veto detection by CTHRU comparison; bill history and veto-message parsing dropped. `veto_events.csv` removed. | Follows from CTHRU-first; removes a stage. |
 | 2026-10-28 | **Labels per line item:** `config/line_item_catalog.csv` + `config/department_policy_areas.csv` replace the planned crosswalk, item rules and per-row classification; agency from CTHRU; Program/purpose by rule. **No LLM in the pipeline** (resolves Q9). | Labels carry over between years; rules are cheaper and more deterministic than an LLM; future cohorts need no API key. |
 | 2026-10-28 | **Read everything by code:** bonds and Chapter 90 via `read_bonds`, interim budgets via `read_amendments`. `manual_rows.csv` becomes an escape hatch, with its row count reported. | Hand-typed rows don't scale to yearly re-runs. |
 | 2026-10-28 | **Stages: 12 → 8** (`laws`, `cthru`, `read_items`, `read_bonds`, `read_amendments`, `combine`, `label`, `export`) plus `validate`. Review-staleness hashes (`source_text_sha1`, `Review stale`) dropped; `line_item_master`, `enrichment` and `classifications` replaced by `cthru_line_items` and `labels`. | Fewer file formats for a small team and future cohorts. Enacted law text doesn't change, so staleness detection isn't needed. |
@@ -840,6 +839,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-10-28 | **Plain-language renames:** `laws_registry.csv` → `law_list.csv`, `overrides.csv` → `corrections.csv`, `department_policy.csv` → `department_policy_areas.csv`, `cthru_accounts.csv` → `cthru_line_items.csv`, `descriptions.csv` → `labels.csv`, `unparsed_*` → `unread_*`; columns `additive` → `counts_toward_total`, `rr_ceiling` → `retained_revenue_ceiling`, `parser_version` → `reader_version`; stages `assemble` → `combine`, `describe` → `label`; `tests/fixtures/` → `tests/samples/`; "golden test" → "example-rows test"; §7 "File formats", §9 "Allowed values". | Instructor: names should be clear to non-programmers. Done before any stage code exists. |
 | 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. *(Resolved 2026-11-01: appropriations only.)* | The instructor is not the subject expert; the students and partner should decide scope. |
 | 2026-11-01 | **Q10 resolved: appropriations only.** The project records what laws authorized, not what the state actually spent. CTHRU's spending-side fields and the spending datasets (§3.4) are not used. | Partner (Office of the State Auditor), set at the project proposal stage; reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q4 resolved: vetoes are netted.** Each line item has one row with its final amount, after any veto or override. What happened is recorded in `veto_status` (`none`, `vetoed`, `reduced`, `overridden`, `unknown`), with the printed amount in `amount_printed`; both are in the extended file, not the 19-column main export. `VETO` and `OVR` stay reserved and are not emitted. Still open with the group: partial overrides, and recording wording-only vetoes and wording changes. | Group decision, keeping the default (§19 had listed the partner as decider); reported by Emma, 2026-11-01. |
 
 ---
 
