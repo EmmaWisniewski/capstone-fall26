@@ -866,7 +866,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
-| D: seed department table and catalog | D | ☐ todo | §12 step 5 |
+| D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
