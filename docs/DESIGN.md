@@ -54,7 +54,7 @@ Just as important, build **a program that future cohorts can re-run each year** 
 - **Enactment window:** laws whose governor approval date (API field `ApprovedDate`) is **2021-01-01 through 2025-12-31**. Filter on approval date, **not** the Acts volume year. Two 2020-volume chapters (2020 ch. 358 and ch. 383) were approved in January 2021 and are in scope.
 - **Law types:** General Appropriations Acts (GAAs), supplemental budgets, state-surplus spending acts, capital bond authorization acts, and interim ("1/12th") budgets. Appropriations in outside sections of other acts are included where found (e.g., an item rewritten inside a policy act).
 - **Granularity:** one row per line item per legal action. Earmarks ("not less than $X shall be expended for…") stay inside the parent item's text and are not separate rows.
-- **Federal money:** captured, but **flagged** at the source-fund level and excluded from the main totals (group decision 2026-11-01). Whether state spending the federal government later reimburses, such as MassHealth, counts as federal is still with the group's partner at the Office of the State Auditor (Q1, §19).
+- **Federal money:** captured, but **flagged** at the source-fund level and excluded from the main totals by default. This is pending a consultation with the group's partner at the Office of the State Auditor (see §19).
 - **Appropriations only, not spending (decided, Q10).** The dataset records legal authority (appropriations), not what the state actually spent. Our partner set this scope at the proposal stage (Decision Log, 2026-11-01).
 
 ### Reference-only data (ingested, not exported)
@@ -804,7 +804,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
-| Q1 | State spending that the federal government later reimburses (e.g. MassHealth): flag it as federal, and include it in the main totals? *(Federal funds themselves: decided 2026-11-01, keep, flag, exclude from totals.)* | partner at the Office of the State Auditor | not flagged federal; counted in the main totals as state spending (§9.5) |
+| Q1 | How to treat federal funds (exclude, separate total, or include)? Is federally reimbursed General Fund spending (MassHealth) ever "federal"? | partner at the Office of the State Auditor | keep, flag by source fund, exclude from main totals |
 | Q3 | Definitions of *One-time or recurring* and *New vs. re-appropriation*; for *Previously funded?*, when `Unknown` applies. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023, the year before? *(Partly answered 2026-11-01: "previously funded" means the prior fiscal year only; see the Decision Log.)* | partner | interim rules in §8 |
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
@@ -850,8 +850,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Struck wording (follows Q4):** when the governor strikes an item's wording and substitutes new wording, `item_text` keeps only the final wording, and `veto_kind_inline = reduced_and_wording` notes that it changed (§7.3, §11.2). This settles the "wording changes" part left open in the Q4 entry; how `veto_status` records a wording-only veto is still open. | Group; reported by Tierney. Follow-up: Tierney to ask George whether vetoed wording has research uses. |
-| 2026-11-01 | **Q1 partly resolved: federal funds** stay in the dataset, flagged by source fund, and excluded from the main totals. Still open with the partner: state spending that the federal government later reimburses (e.g. MassHealth). | Group, confirming the default; reported by Tierney. |
-
 ---
 
 ## 21. Status board
@@ -879,4 +877,4 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M4: bond bills | A | ☐ todo | |
 | M5: labels, review, release | D, all | ☐ todo | |
 | M6: runbook and 2026 re-run test | A | ☐ todo | |
-| Q1: federal treatment (OSA partner) | group | ◐ partly decided | federal funds kept, flagged, excluded from totals (2026-11-01); reimbursed state spending (MassHealth) still with the partner |
+| Q1: federal treatment (OSA partner) | group | ☐ open | |
