@@ -55,7 +55,7 @@ Just as important, build **a program that future cohorts can re-run each year** 
 - **Law types:** General Appropriations Acts (GAAs), supplemental budgets, state-surplus spending acts, capital bond authorization acts, and interim ("1/12th") budgets. Appropriations in outside sections of other acts are included where found (e.g., an item rewritten inside a policy act).
 - **Granularity:** one row per line item per legal action. Earmarks ("not less than $X shall be expended for…") stay inside the parent item's text and are not separate rows.
 - **Federal money:** captured, but **flagged** at the source-fund level and excluded from the main totals by default. This is pending a consultation with the group's partner at the Office of the State Auditor (see §19).
-- **Spending vs. appropriations: to be decided (Q10).** The dataset currently records legal authority (appropriations). Whether it should also cover actual spending, and how far, is a scope decision that workstream E leads with the group and the partner (§16). Until then, nothing in the design depends on the answer.
+- **Appropriations only, not spending (decided, Q10).** The dataset records legal authority (appropriations), not what the state actually spent. Our partner set this scope at the proposal stage (Decision Log, 2026-11-01).
 
 ### Reference-only data (ingested, not exported)
 Laws outside the window that are needed for computation:
@@ -65,7 +65,7 @@ Laws outside the window that are needed for computation:
 
 ### Non-goals
 - Earmark-level extraction.
-- Actual spending or expenditures, **pending Q10** (see In scope).
+- Actual spending or expenditures (appropriations only; Q10, decided).
 - Governor's mid-year "9C" cuts and other executive actions that aren't laws.
 - Budgets of municipalities, authorities (MBTA, Massport), or quasi-public agencies, except where a state appropriation funds them.
 - Laws enacted outside 2021–2025, except as reference data.
@@ -122,12 +122,12 @@ Use these terms consistently in code, comments, commit messages, and conversatio
 ### 3.3 Governor veto messages and override history
 **Not used in v0.2.** Vetoes are found by comparing the law's printed amount with CTHRU (§11.4).
 - Veto annotations in the act text reference the governor's message (e.g. "for message see House, No. 4055"). The pipeline reads the inline markup as a hint and doesn't fetch the messages.
-- Override votes appear in the bill's `DocumentHistoryActions`. They're needed only if the partner asks for separate veto and override rows with dates (Q4).
+- Override votes appear in the bill's `DocumentHistoryActions`. They aren't needed: vetoes and overrides are netted into each item's final amount (Q4, decided).
 
 ### 3.4 Comptroller CTHRU (primary source for annual budgets; check for everything else)
 - Socrata dataset **`kv7m-35wn`** ("Budget_Actual_With_Other_Spending_Authorizationv3_Gen2", the production data behind CTHRU Budgets): `https://cthru.data.socrata.com/resource/kv7m-35wn.json`
 - Useful fields: `fiscal_year` (e.g., `"2024.0"`), `appropriation_account_number` (8 digits, no dash), `appropriation_account_name`, `department_name`, `department_code`, `cabinet_secretariat_name`, `fund_number`, `fund_name`, `original_enacted_budget`, `supplemental_budget_appropriations`, `authorized_retained_revenue_ceiling`, `total_enacted_budget_appropriation`, `planned_saving_9c_cuts`.
-- Spending-side fields, relevant only if Q10 brings spending into scope: `total_expenses`, `unexpended_reverted`, `balance_forward_prior_appropriation_continued`, `transfer_in`, `transfer_out`, `retained_revenue_collected`. Related datasets: `uaqe-2tpk` (Non-Budgeted Special Revenue and Trusts) and `pegc-naaa` (Comptroller spending).
+- Spending-side fields, **not used** because the project covers appropriations only (Q10, decided): `total_expenses`, `unexpended_reverted`, `balance_forward_prior_appropriation_continued`, `transfer_in`, `transfer_out`, `retained_revenue_collected`. Related datasets: `uaqe-2tpk` (Non-Budgeted Special Revenue and Trusts) and `pegc-naaa` (Comptroller spending).
 - **Quirks:**
   - There are **many rows per account per FY**, mostly zero rows under other departments. **Always aggregate** by FY × account and take the department with non-zero amounts.
   - Totals are **per fiscal year, not per law**.
@@ -239,7 +239,7 @@ A law doesn't just create items. It also raises, cuts, re-purposes, extends, tra
 - Totals are sums over events flagged `counts_toward_total = true`.
 
 ### 5.2 Event types (`funding_action`)
-The values (full list in §9.2) are: original appropriation, new supplemental item, supplemental increase, supplemental reduction, veto reduction, override restoration, reauthorization, alteration of purpose, transfer, interim appropriation, capital authorization, and prior appropriation continued. Under the v0.2 default (Q4), vetoes and overrides are netted into the item's amount (§5.7), so `VETO` and `OVR` are reserved and not emitted.
+The values (full list in §9.2) are: original appropriation, new supplemental item, supplemental increase, supplemental reduction, veto reduction, override restoration, reauthorization, alteration of purpose, transfer, interim appropriation, capital authorization, and prior appropriation continued. Under the Q4 decision, vetoes and overrides are netted into the item's amount (§5.7), so `VETO` and `OVR` are reserved and not emitted.
 
 ### 5.3 `amount_kind` and `counts_toward_total`
 Each event carries:
@@ -262,7 +262,7 @@ Each event has zero or more fund splits (`fund_splits.csv`). The default fund is
 ### 5.7 Where amounts come from, and vetoes
 - **GAA original appropriations** (`ORIG` in a GAA): the amount is CTHRU `original_enacted_budget` for that FY × item, which already reflects vetoes and overrides. These rows have `amount_source = cthru`. The law's printed amount goes in `amount_printed` (from `read_items`).
 - **Everything else** (supplementals, amendments, bonds, interim) has `amount_source = law_text`. Escape-hatch rows have `manual`.
-- **Vetoes are netted** (Q4 default). There's one row per item with its final amount. `veto_status` (§9.9) records `none`, `vetoed`, `reduced`, `overridden` or `unknown`. It's set by comparing `amount_printed` with CTHRU, with the inline veto markup as a hint. Unexplained differences are flagged `cthru_mismatch` and go to the review queue.
+- **Vetoes are netted** (Q4, decided 2026-11-01). There's one row per item with its final amount. `veto_status` (§9.9) records `none`, `vetoed`, `reduced`, `overridden` or `unknown`. It's set by comparing `amount_printed` with CTHRU, with the inline veto markup as a hint. Unexplained differences are flagged `cthru_mismatch` and go to the review queue.
 - Vetoes in bond laws (not in CTHRU) rely on inline markup only and are flagged `veto_unverified` when markup is present.
 
 ## 6. Pipeline architecture
@@ -305,7 +305,7 @@ flowchart LR
 | 5 | `read_amendments` | raw laws | `data/interim/amendments_raw.csv`, `reports/unread_sections.csv` | C |
 | 6 | `combine` | everything above, law list, `manual_rows.csv` | `data/interim/funding_actions.csv`, `fund_splits.csv`, `running_amounts.csv` | everyone (E coordinates; C owns the running amounts table; E owns the CTHRU comparison) |
 | 7 | `label` | funding actions, `cthru_line_items.csv`, catalog, department table | `data/interim/labels.csv` | D |
-| 8 | `export` | funding actions, labels, `review/corrections.csv` | `data/output/ma_appropriations_cy2021_2025.csv`, `…_extended.csv`, `data_dictionary.md`, `review/review_queue.csv` | everyone (E coordinates) |
+| 8 | `export` | funding actions, labels, `review/corrections.csv` | `data/output/ma_appropriations_cy2021_2025.csv`, `…_extended.csv`, `data/output/ma_capital_authorizations_cy2021_2025.csv` (bond laws, Q5), `data_dictionary.md`, `review/review_queue.csv` | everyone (E coordinates) |
 | — | `validate` | everything | `reports/validation/*.csv`, `reports/law_status.csv` | E |
 
 ### Stage notes
@@ -388,7 +388,7 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 | `reader_version`, `confidence` | |
 
 ### 7.5 `data/interim/cthru_line_items.csv`
-One row per fiscal year × account, aggregated across CTHRU's per-department rows: `fiscal_year`, `line_item` (`NNNN-NNNN`), `account_name`, `department_code`, `department_name`, `secretariat`, `fund_numbers` (`;`-separated), `original_enacted`, `supplemental`, `retained_revenue_ceiling`, `total_enacted` (ints). Owned by E. If Q10 brings spending into scope, spending columns are added here through the Decision Log.
+One row per fiscal year × account, aggregated across CTHRU's per-department rows: `fiscal_year`, `line_item` (`NNNN-NNNN`), `account_name`, `department_code`, `department_name`, `secretariat`, `fund_numbers` (`;`-separated), `original_enacted`, `supplemental`, `retained_revenue_ceiling`, `total_enacted` (ints). Owned by E.
 
 ### 7.6 `config/manual_rows.csv` (escape hatch)
 The same columns as `funding_actions.csv` (§7.7), except `record_id`, which combine generates. Adds `source_quote` (verbatim text), `entered_by`, `entered_on`. **Use only for a true one-off law no reader handles.** Validation reports the count (target zero), and the runbook asks whether a reader should be extended instead.
@@ -440,6 +440,8 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 ### 7.13 Export
 `data/output/ma_appropriations_cy2021_2025.csv` uses **exactly** the 19 columns of `exampledata.csv`, in the same order (§8). `…_extended.csv` adds every funding-actions column.
 
+**Bond laws go in a separate capital file, not the main export (Q5, decided).** Rows with `funding_action = CAP` are written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name). Its columns are open (Q16); the proposed default is the same 19 columns as the main export.
+
 ### 7.14 `config/funds.csv` (human-curated)
 `fund_name`, `fund_number`, `is_federal` (bool), `notes`. Drives the federal flag (§9.5).
 
@@ -460,7 +462,7 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 | 11 | Policy area | one value from `policyareas.csv`, from the catalog or department table (§12) | label |
 | 12 | Funding action | display label of `funding_action` (§9.2) | combine |
 | 13 | Appropriation/change ($) | `amount`, formatted with thousands separators (e.g. `6,077,671`). Negative for reductions. | export |
-| 14 | Previously funded? | **Interim rule:** `Yes` if the same line item has non-zero enacted authority in any earlier fiscal year in CTHRU (history from FY2005) or the funding actions table; `No` if never seen; `Unknown` if the item number is new but the text suggests a renumbered program. **Note the example conflict:** EX-001's item 0930-0100 was funded in FY2023 (CTHRU shows $4,400,000) yet the example says `Unknown`. Confirm the definition with the partner (§19). | label |
+| 14 | Previously funded? | **Prior fiscal year only** (Q3, partner, 2026-11-01): `Yes` if the same line item has non-zero enacted authority in the **immediately preceding fiscal year** (FY−1) in CTHRU or the funding actions table; `No` if it had none in FY−1, even if it was funded in some earlier year. **Still interim** (Q3 open): `Unknown` if the item number is new but the text suggests a renumbered program. **Example conflict, still open:** EX-001's item 0930-0100 was funded in FY2023, the year before (CTHRU shows $4,400,000), so this rule gives `Yes`, yet the example says `Unknown`. | label |
 | 15 | One-time or recurring funding | **Interim rule:** default `Not classified`. GAA §2 items present in 2 or more consecutive GAAs → `Recurring`; supplemental, surplus, and bond events → `One-time`. Pending a partner definition. | label |
 | 16 | New funding appropriation or re-appropriation of existing funding? | From `amount_kind`/`funding_action`: appropriation, delta, or bond → `New`; PAC or reauthorization → `Re-appropriation`; transfer or alteration of purpose → `Transfer of existing authority`. Default `Pending` until validated. | label |
 | 17 | Human review status | `Human reviewed` if a correction exists for the record or its policy area came from a human decision (catalog row or `human` method); otherwise `Not human reviewed` (§9.7) | export |
@@ -481,10 +483,10 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 | `NEW` | Supplemental appropriation | appropriation | yes |
 | `INC` | Supplemental increase | delta (+) | yes |
 | `RED` | Supplemental reduction | delta (−) | yes (negative) |
-| `VETO` | Veto reduction | delta (−) | yes (negative). *Reserved: not emitted under the netted default (Q4, §5.7).* |
+| `VETO` | Veto reduction | delta (−) | yes (negative). *Reserved: not emitted, because vetoes are netted (Q4, §5.7).* |
 | `OVR` | Veto override restoration | delta (+) | yes. *Reserved, as above.* |
 | `INT` | Interim appropriation | interim | **no** |
-| `CAP` | Capital authorization | bond_authorization | **no** (separate capital total) |
+| `CAP` | Capital authorization | bond_authorization | **no** (separate capital total and separate capital file, Q5) |
 | `REAUTH` | Reauthorization | none / prior_appropriation_continued | **no** |
 | `PAC` | Prior appropriation continued | prior_appropriation_continued | **no** |
 | `PURP` | Alteration of purpose | none | **no** |
@@ -553,14 +555,14 @@ The **operating total** for a law (or fiscal year) is the sum of `amount` over e
 |---|---|---|
 | GAA §2, §2F items; supplemental §2/§2A new items and increases | yes | new authority |
 | Reductions, veto reductions (negative), override restorations | yes | net effect |
-| Retained-revenue ceilings | yes, flagged | CTHRU tracks these separately; reconcile against `authorized_retained_revenue_ceiling` |
+| Retained-revenue ceilings (fee-based items) | yes, flagged `retained_revenue` (Q2, decided) | CTHRU tracks these separately; reconcile against `authorized_retained_revenue_ceiling` |
 | §2B ISF chargebacks | **no** | duplicates §2 spending |
 | §2D federal grants and federal fund shares | **no by default**, kept and flagged | pending the State Auditor decision |
-| §2E transfers to trust funds | **open** | if the trust's later spending is also appropriated, count only one leg (§19) |
-| Transfers into reserve or escrow funds (e.g., Transitional Escrow Fund) that later acts appropriate from | count the **appropriation out**, not the transfer in (proposal) | avoids double counting surplus money |
+| §2E transfers to trust funds | **no** for the transfer in, flagged `trust_transfer`; count the **appropriation out** of the trust instead (Q2, decided) | the same money would otherwise be counted twice. For trusts that spend without a further appropriation, see Q15 |
+| Transfers into reserve or escrow funds (e.g., Transitional Escrow Fund) that later acts appropriate from | count the **appropriation out**, not the transfer in, flagged `fund_transfer_chain` (Q2, decided) | avoids double counting surplus money |
 | Interim budgets | **no** | by statute they apply against the GAA |
 | PAC, reauthorizations, alteration of purpose, item-to-item transfers, ARPA reallocations | **no** | not new money |
-| Bond authorizations | **separate capital total**, never summed with operating | multi-year borrowing authority |
+| Bond authorizations | **separate capital total**, never summed with operating; exported in the separate capital file (§7.13, Q5) | multi-year borrowing authority |
 
 ---
 
@@ -740,18 +742,10 @@ The work is split so that **every workstream has something to start on immediate
 | **B** | **Supplemental budgets** | Tierney | `paragraphs.py` (publish the paragraph format first), `read_items` (supplemental items; GAA descriptions and printed amounts) | `paragraphs.py` on the committed samples | — |
 | **C** | **Amendments** | Emily H. | `read_amendments` (§11.3, incl. interim budgets), "said …" resolution, the running amounts table, the struck-figure check | Write expected rows by hand for the 2023-77, 2021-35 and 2023-15 samples | B's paragraph format, to start coding |
 | **D** | **Labels** | Emily R. | `label`: agency, Program/purpose rule, policy area, Previously funded and the other yes/no columns; `line_item_catalog.csv`, `department_policy_areas.csv`, `funds.csv` | Pull CTHRU's account and department list; seed `department_policy_areas.csv` and the catalog (§12 step 5) | The funding actions table, for final runs |
-| **E** | **Annual budgets and checks** | Mario | `cthru` (snapshots, `cthru_line_items.csv`), the CTHRU comparison and `veto_status`, `validate`, `schemas.py` and CI; coordinates "Putting it together"; **leads the spending-scope decision (Q10)** | Build the CTHRU download; commit a small CTHRU sample; explain the 1231-1000 mismatch; prepare the Q10 discussion | — |
+| **E** | **Annual budgets and checks** | Mario | `cthru` (snapshots, `cthru_line_items.csv`), the CTHRU comparison and `veto_status`, `validate`, `schemas.py` and CI; coordinates "Putting it together" | Build the CTHRU download; commit a small CTHRU sample; explain the 1231-1000 mismatch | — |
 | — | **Putting it together** | everyone (E coordinates) | `combine` and `export`: combining the pieces, Record IDs, `counts_toward_total`, the final CSV | — | All of the above (M1) |
 
-**Spending-scope decision (E, with the group and the partner, before M2).** Decide whether the project should cover actual spending as well as appropriations (Q10). Bring to the discussion:
-- the two-table idea: the current per-law action table, plus an **item × fiscal year summary** joining total authorized, CTHRU enacted, spent, reverted and carried forward;
-- the four layers, from cheap to hard:
-  1. budgeted-fund spending per item (same CTHRU dataset);
-  2. non-budgeted trust and special-revenue spending (`uaqe-2tpk`);
-  3. capital spending matched to bond authorizations (unverified whether account numbers match);
-  4. payment-level spending (probably out of scope).
-
-Record the outcome in the Decision Log and update §1, §7 and the workstream table.
+**Spending scope (Q10): decided.** Appropriations only; actual spending is out of scope. Our partner set this at the proposal stage (Decision Log, 2026-11-01). The options prepared for a spending discussion (an item × fiscal year summary table; four layers of spending data) remain in the git history of this file if a future cohort revisits the question.
 
 **Freeze at M0, before parallel work starts:**
 1. `law_key` and Record ID formats (§9.6)
@@ -767,9 +761,9 @@ Record the outcome in the Decision Log and update §1, §7 and the workstream ta
 |---|---|---|
 | **M0: Foundations** | repo skeleton, `schemas.py`, frozen §7/§9 (v0.2), law list curated, samples plus expected rows (incl. CTHRU and bond samples), CI running | the group signs off in the Decision Log; CI is green on an empty pipeline |
 | **M1: Vertical slice** | 2023-28 (from CTHRU plus descriptions) and 2023-77 end to end through export | the **example-rows test** below passes; `unread_*` reports are explained |
-| **M2: All GAAs** | FY2022–FY2026 GAA rows from CTHRU, with descriptions and `veto_status`; FY2021 as reference | every GAA item has a row; at least 99% of items have a description; every CTHRU mismatch is explained or flagged; Q10 decided |
+| **M2: All GAAs** | FY2022–FY2026 GAA rows from CTHRU, with descriptions and `veto_status`; FY2021 as reference | every GAA item has a row; at least 99% of items have a description; every CTHRU mismatch is explained or flagged |
 | **M3: Supplementals, surplus, interim** | all `supplemental`, `surplus`, `interim`, and `other` law-list laws, read by code | the struck-figure check passes; CTHRU `supplemental` reconciles per FY with reference laws loaded; `manual_rows.csv` is empty or justified |
-| **M4: Bond bills** | all `bond` laws (incl. Chapter 90) as `CAP` events, read by code | bond item sums match each act's authorization; capital totals are reported separately |
+| **M4: Bond bills** | all `bond` laws (incl. Chapter 90) as `CAP` events, read by code | bond item sums match each act's authorization; bond rows are written to the separate capital file (§7.13) with their own totals |
 | **M5: Labels and release** | policy areas, description columns, review queue worked down, final export, data dictionary | every row has a policy area; high-priority review items are cleared; release tagged |
 | **M6: Re-run test and runbook** | `docs/RUNBOOK.md`; run the finished program on 2026 laws (e.g. 2026-55, 2026-101, the FY2027 GAA) **without code changes** | the runbook is followed end to end by someone who didn't write it; what broke on 2026 laws is listed with fixes or issues |
 
@@ -800,7 +794,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 | Record ID collisions or instability | lost human review work | deterministic IDs with action and ordinal; orphaned-correction report; most labels live in the catalog, keyed by line item |
 | Agency reorganizations (e.g., DHCD → EOHLC in 2023) and renumbered items | wrong agency or policy area | agency comes from CTHRU per FY; catalog-drift check (§12) |
 | Future cohorts can't run it | the project ends with this cohort | runbook, M6 re-run test, no LLM or API key required, scope window in settings |
-| Scope uncertainty (spending vs. appropriations) | rework late in the term | Q10 decided before M2, led by E |
+| Scope uncertainty (spending vs. appropriations) | rework late in the term | resolved: appropriations only (Q10, 2026-11-01) |
 | Definitions not yet agreed (federal, totals, previously funded) | rework | keep raw facts in the extended export; derive labels by config-driven rules that are easy to change |
 
 ## 19. Open questions
@@ -810,14 +804,14 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | # | Question | Who decides | Current default |
 |---|---|---|---|
 | Q1 | How to treat federal funds (exclude, separate total, or include)? Is federally reimbursed General Fund spending (MassHealth) ever "federal"? | partner at the Office of the State Auditor | keep, flag by source fund, exclude from main totals |
-| Q2 | Exact definition of "net new appropriation authority": §2E trust transfers, retained revenue, and transfer-then-spend chains | group + partner | §10 table |
-| Q3 | Definitions of *Previously funded?*, *One-time or recurring*, and *New vs. re-appropriation*. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023? | partner | interim rules in §8 |
-| Q4 | Should vetoes and overrides appear as separate export rows, or only net into the item amount? | partner | **netted** into the amount, with `veto_status` and `amount_printed` (v0.2, §5.7). Separate rows would need bill history for override dates. |
-| Q5 | Should bond authorizations be in the main export or a separate capital file? | group + partner | same export, `Funding action = Capital authorization`, separate total |
+| Q3 | Definitions of *One-time or recurring* and *New vs. re-appropriation*; for *Previously funded?*, when `Unknown` applies. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023, the year before? *(Partly answered 2026-11-01: "previously funded" means the prior fiscal year only; see the Decision Log.)* | partner | interim rules in §8 |
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
 | Q8 | Funding-action labels beyond the two in the examples | partner | §9.2 labels |
-| Q10 | Should the project cover actual **spending** as well as appropriations? If so, which layers (§16)? | E leads, with the group, partner and researchers | appropriations only, until decided (before M2) |
+| Q13 | **Partial overrides** (follows Q4): when the governor reduces an item and the Legislature restores only part of the cut, is the item's `veto_status` `reduced` or `overridden`? | group | not yet decided; `veto_status` values are in §9.9 |
+| Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
+| Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
+| Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
 
 ---
 
@@ -840,14 +834,19 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | 2026-10-28 | Workstream owners: A Emma, B Tierney, C Emily H., D Emily R., E Mario. | Group. Recorded in §21 and the `OVERVIEW.md` tracker. |
 | 2026-10-28 | **v0.2 goal:** the program must be re-runnable each year by future cohorts; add `docs/RUNBOOK.md` and a 2026 held-out test (M6). The dataset scope stays 2021–2025. | Instructor review with Claude. The project is meant to give future researchers continually updated data. |
 | 2026-10-28 | **CTHRU-first:** GAA original appropriations come from CTHRU `original_enacted_budget`; law text is read only for supplementals, amendments, bonds and GAA descriptions. | CTHRU probe (§3.4): structured, includes vetoes and overrides, history from FY2005, already has FY2027. Scrapers are fragile across format changes. |
-| 2026-10-28 | **Vetoes netted** into the amount, with `veto_status` and `amount_printed` (working default for Q4); veto detection by CTHRU comparison; bill history and veto-message parsing dropped. `veto_events.csv` removed. | Follows from CTHRU-first; removes a stage. |
+| 2026-10-28 | **Vetoes netted** into the amount, with `veto_status` and `amount_printed` (working default for Q4; *confirmed 2026-11-01*); veto detection by CTHRU comparison; bill history and veto-message parsing dropped. `veto_events.csv` removed. | Follows from CTHRU-first; removes a stage. |
 | 2026-10-28 | **Labels per line item:** `config/line_item_catalog.csv` + `config/department_policy_areas.csv` replace the planned crosswalk, item rules and per-row classification; agency from CTHRU; Program/purpose by rule. **No LLM in the pipeline** (resolves Q9). | Labels carry over between years; rules are cheaper and more deterministic than an LLM; future cohorts need no API key. |
 | 2026-10-28 | **Read everything by code:** bonds and Chapter 90 via `read_bonds`, interim budgets via `read_amendments`. `manual_rows.csv` becomes an escape hatch, with its row count reported. | Hand-typed rows don't scale to yearly re-runs. |
 | 2026-10-28 | **Stages: 12 → 8** (`laws`, `cthru`, `read_items`, `read_bonds`, `read_amendments`, `combine`, `label`, `export`) plus `validate`. Review-staleness hashes (`source_text_sha1`, `Review stale`) dropped; `line_item_master`, `enrichment` and `classifications` replaced by `cthru_line_items` and `labels`. | Fewer file formats for a small team and future cohorts. Enacted law text doesn't change, so staleness detection isn't needed. |
 | 2026-10-28 | **Workstreams renamed and rebalanced:** A Law list and bond bills, B Supplemental budgets, C Amendments, D Labels, E Annual budgets and checks. `combine` and `export` are a shared "Putting it together" step. Owners review their own areas. | Every workstream can start immediately; E is no longer bottlenecked on everyone else. |
 | 2026-10-28 | **Renamed** `ledger.csv` → `funding_actions.csv`, `amount_ledger.csv` → `running_amounts.csv`, `actions_raw.csv` → `amendments_raw.csv`. | Instructor: "ledger" is jargon; the new names say what the tables hold. |
 | 2026-10-28 | **Plain-language renames:** `laws_registry.csv` → `law_list.csv`, `overrides.csv` → `corrections.csv`, `department_policy.csv` → `department_policy_areas.csv`, `cthru_accounts.csv` → `cthru_line_items.csv`, `descriptions.csv` → `labels.csv`, `unparsed_*` → `unread_*`; columns `additive` → `counts_toward_total`, `rr_ceiling` → `retained_revenue_ceiling`, `parser_version` → `reader_version`; stages `assemble` → `combine`, `describe` → `label`; `tests/fixtures/` → `tests/samples/`; "golden test" → "example-rows test"; §7 "File formats", §9 "Allowed values". | Instructor: names should be clear to non-programmers. Done before any stage code exists. |
-| 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. | The instructor is not the subject expert; the students and partner should decide scope. |
+| 2026-10-28 | **Spending scope (Q10) is to be decided** by the group, led by E, before M2. *(Resolved 2026-11-01: appropriations only.)* | The instructor is not the subject expert; the students and partner should decide scope. |
+| 2026-11-01 | **Q10 resolved: appropriations only.** The project records what laws authorized, not what the state actually spent. CTHRU's spending-side fields and the spending datasets (§3.4) are not used. | Partner (Office of the State Auditor), set at the project proposal stage; reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q4 resolved: vetoes are netted.** Each line item has one row with its final amount, after any veto or override. What happened is recorded in `veto_status` (`none`, `vetoed`, `reduced`, `overridden`, `unknown`), with the printed amount in `amount_printed`; both are in the extended file, not the 19-column main export. `VETO` and `OVR` stay reserved and are not emitted. Still open with the group: partial overrides (Q13), where `veto_status` appears (Q14), and recording wording-only vetoes and wording changes. | Group decision, keeping the default (§19 had listed the partner as decider); reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q2 resolved: the §10 counting rules stand.** Money moved into a trust, reserve or escrow fund counts when a law appropriates it out of that fund (when it's spent), not when it's moved in. The transfer in is kept as a row but doesn't count toward totals (flagged `trust_transfer` or `fund_transfer_chain`). Retained-revenue (fee-based) items count toward totals and are flagged `retained_revenue`. | The group and the partner (Office of the State Auditor), keeping the default; reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 
 ---
 
@@ -863,11 +862,13 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: file formats frozen | E | ◐ in progress | `schemas.py` matches §7/§9 v0.2; clarifications in the Decision Log await sign-off |
 | M0: law list seeded and curated | A | ◐ in progress | `config/law_list.csv`: 48 §4 laws + 4 reference-only, API fields filled; 2020-316 and 2021-9 are `tbd` (Q7); `law_name` blank except GAAs, the example-row laws and 2019-5; all rows need human review |
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
+| B: `paragraphs.py` (shared paragraph format, §7.2) | B | ◐ in review | branch `b/paragraphs`; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
+| B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
-| D: seed department table and catalog | D | ☐ todo | §12 step 5 |
+| D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
-| Q10: spending-scope decision | E + group | ☐ open | before M2 |
+| Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
