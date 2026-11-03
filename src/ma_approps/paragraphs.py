@@ -40,6 +40,13 @@ _ID_DASH_RE = re.compile(rf"(?<!\d)(\d{{4}})[{_DASHES}](\d{{4}})(?!\d)")
 _SPACE_RE = re.compile(r"\s+")
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 
+# Shared item patterns (§11.2), so read_items and read_amendments recognize items the same way.
+# An item ID starts the paragraph; no space is required after it (2024-140 prints "4125-0122vFor").
+ITEM_START_RE = re.compile(r"^(\d{4}-\d{4})(?!\d)")
+# The item's final amount after a dotted leader, optionally preceded by a struck amount
+# ("... $4,025,451 $2,888,473") and optionally followed by a period ("$240,000,000.", 2025-3).
+TRAILING_AMOUNT_RE = re.compile(r"\.{2,}\s*(?:\$([\d,]+)\s+)?\$([\d,]+)\.?\s*$")
+
 
 def normalize(text: str) -> str:
     """§11.1 text normalization: NFKC, non-breaking spaces, dashes in item IDs, whitespace."""
