@@ -54,7 +54,7 @@ Just as important, build **a program that future cohorts can re-run each year** 
 - **Enactment window:** laws whose governor approval date (API field `ApprovedDate`) is **2021-01-01 through 2025-12-31**. Filter on approval date, **not** the Acts volume year. Two 2020-volume chapters (2020 ch. 358 and ch. 383) were approved in January 2021 and are in scope.
 - **Law types:** General Appropriations Acts (GAAs), supplemental budgets, state-surplus spending acts, capital bond authorization acts, and interim ("1/12th") budgets. Appropriations in outside sections of other acts are included where found (e.g., an item rewritten inside a policy act).
 - **Granularity:** one row per line item per legal action. Earmarks ("not less than $X shall be expended for…") stay inside the parent item's text and are not separate rows.
-- **Federal money:** captured, but **flagged** at the source-fund level and excluded from the main totals by default. This is pending a consultation with the group's partner at the Office of the State Auditor (see §19).
+- **Federal money:** captured, but **flagged** at the source-fund level and excluded from the main totals (decided by the partner, Q1; Decision Log 2026-11-02). Only money from federal sources is flagged; state surplus counts as state money.
 - **Appropriations only, not spending (decided, Q10).** The dataset records legal authority (appropriations), not what the state actually spent. Our partner set this scope at the proposal stage (Decision Log, 2026-11-01).
 
 ### Reference-only data (ingested, not exported)
@@ -503,7 +503,7 @@ The labels `Original appropriation` and `Supplemental increase` match the exampl
 ### 9.5 `flags` (`;`-separated)
 `federal` (federal_share > 0), `federal_mixed` (0 < share < 1), `isf_chargeback`, `trust_transfer`, `fund_transfer_chain` (money moved into a fund that another event spends from), `arpa_reallocation`, `multi_year`, `retained_revenue`, `veto_unverified`, `cthru_mismatch`, `manual_row`, `low_confidence_parse`.
 
-**Federal funds** (`is_federal = true` in `config/funds.csv`, curated): General Federal Grants Fund, Federal COVID-19 Response Fund (ARPA), Coronavirus Relief Fund, and other funds the group confirms. General Fund items that are later federally reimbursed (e.g., MassHealth) are **not** federal under this rule. Revisit after the State Auditor consultation.
+**Federal funds** (`is_federal = true` in `config/funds.csv`, curated): General Federal Grants Fund, Federal COVID-19 Response Fund (ARPA), Coronavirus Relief Fund, and trust funds filled with ARPA money (Broadband Innovation Fund, Behavioral Health Trust Fund). State surplus funds such as the Transitional Escrow Fund are **not** federal. General Fund items that are later federally reimbursed (e.g., MassHealth) are **not** federal under this rule (Q1, decided 2026-11-02).
 
 ### 9.6 Record ID
 Format: `{acts_year}-{chapter:03d}-S{section}-{line_item|NOITEM}-{funding_action}-{ordinal}`
@@ -803,7 +803,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
-| Q1 | How to treat federal funds (exclude, separate total, or include)? Is federally reimbursed General Fund spending (MassHealth) ever "federal"? | partner at the Office of the State Auditor | keep, flag by source fund, exclude from main totals |
 | Q3 | Definitions of *One-time or recurring* and *New vs. re-appropriation*; for *Previously funded?*, when `Unknown` applies. Why is EX-001 `Unknown` when 0930-0100 was funded in FY2023, the year before? *(Partly answered 2026-11-01: "previously funded" means the prior fiscal year only; see the Decision Log.)* | partner | interim rules in §8 |
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
@@ -821,7 +820,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 |---|---|---|
 | 2026-10-21 | Scope is laws **approved** 2021-01-01 → 2025-12-31, filtered on `ApprovedDate`, not volume year. | Group. Matches "laws enacted 2021–2025." |
 | 2026-10-21 | Include GAAs, supplementals, state-surplus acts, capital bond bills, and interim budgets. | Group. "Everything the state spends money on." |
-| 2026-10-21 | Federal money: keep, flag by source fund, exclude from default totals pending the OSA partner. | Group, pending Q1. |
+| 2026-10-21 | Federal money: keep, flag by source fund, exclude from default totals pending the OSA partner. *(Resolved 2026-11-02, Q1.)* | Group, pending Q1. |
 | 2026-10-21 | Granularity: line items only; earmarks stay in the text. | Group. Matches the examples; keeps parsing tractable. |
 | 2026-10-21 | Classification: crosswalk → rules → Claude for ambiguous items → human review. *(Superseded 2026-10-28: catalog → department table → human; no LLM.)* | Group. |
 | 2026-10-21 | Review lives in repo CSVs (`review/corrections.csv` keyed by Record ID). | Group. Versioned and re-applied each run. |
@@ -848,6 +847,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-02 | **Proposed, pending group sign-off (affects the `export` rule, E):** catalog rows generated from the department table are marked `decided_by = department list (automatic)` and **don't count as human reviewed** (§7.10, §8 column 17). A person who checks a row replaces that with their name. | Emily R. (D): otherwise every generated row would claim a human check that only the ~5% spot-check actually gets. |
+| 2026-11-02 | **Q1 resolved: federal money stays in the data, flagged as federal, and is excluded from total spending.** Only money from federal sources is flagged: the General Federal Grants Fund (§2D), the Federal COVID-19 Response Fund (ARPA), the Coronavirus Relief Fund (CARES), and trust funds filled with ARPA money (Broadband Innovation Fund and Behavioral Health Trust Fund, whose 2021-102 source items CTHRU books to the Federal COVID-19 Response Fund). State surplus, e.g. the Transitional Escrow Fund, counts as state money. Encoded in `config/funds.csv`. | Partner (Office of the State Auditor); reported by Emily R., 2026-11-02. |
 
 ---
 
@@ -868,6 +868,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
 | D: seed department table and catalog | D | ☑ done | `config/department_policy_areas.csv`: 153 CTHRU departments (FY2021–FY2027), 7 mixed; merged in PR #9. `config/line_item_catalog.csv`: 1,173 line items. 259 lines from mixed departments and flagged exceptions decided by Emily R.; 914 generated from the department table, marked `department list (automatic)`, of which a random 46 (5%) were spot-checked (2 changed: 7008-0250 → Arts; 2511-0103 → Government administration). 124 1599-xxxx reserves are `label_every_year`. 2026-11-02 |
+| D: `config/funds.csv` | D | ☑ done | 24 funds with CTHRU fund numbers; 5 federal (General Federal Grants, Federal COVID-19 Response, Coronavirus Relief, and the ARPA-filled Broadband Innovation and Behavioral Health trust funds), per the partner's Q1 rule. 2026-11-02 |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
@@ -876,4 +877,4 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M4: bond bills | A | ☐ todo | |
 | M5: labels, review, release | D, all | ☐ todo | |
 | M6: runbook and 2026 re-run test | A | ☐ todo | |
-| Q1: federal treatment (OSA partner) | group | ☐ open | |
+| Q1: federal treatment (OSA partner) | group | ☑ resolved | keep federal money in the data, flagged, out of totals; only federal-source money is flagged (recorded 2026-11-02) |
