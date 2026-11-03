@@ -4,7 +4,7 @@
 open questions in [DESIGN §19](../DESIGN.md#19-open-questions); if the two disagree, §19 is
 correct. When the partner answers a question, record the answer in the
 [Decision Log (§20)](../DESIGN.md#20-decision-log) and update this page. Last updated
-2026-11-01.*
+2026-11-03.*
 
 For each question: the question, why it matters, and what the program does until we hear back.
 None of these block our work, because the program uses a sensible default for now. But each
@@ -93,6 +93,30 @@ spreadsheet.
 
 **For now:** we plan to use exactly the same 19 columns as the main spreadsheet, with only the
 bond rows in it.
+
+### 10. What extra bond details do you want, and from where? (§19 Q17)
+**What you asked for:** the separate bond spreadsheet should also show each bond's **maturity
+date**, its **interest rate**, and **when the money was spent**.
+
+**What the laws contain:** only part of this. Each bond law sets **limits**: the longest the
+bonds can run (for example "not more than 30 years") and a final repayment deadline (for example
+"June 30, 2065"). We can include those directly.
+
+**What the laws don't contain:**
+- **Actual maturity dates and interest rates** are set later, when the Treasurer sells bonds.
+  Those are in the bond sale documents and the state's debt records. One sale often combines
+  borrowing from several laws, and one law's borrowing is often spread over several sales, so a
+  single bond-law item may not have one interest rate.
+- **When the money was spent** is actual spending, which comes from the Comptroller's spending
+  records. Our project scope is appropriations only (question 7), so including bond spending
+  would be an exception to that decision.
+
+**Our questions for you:** Which of these do you need? At what level: for each line item in a
+law, for each borrowing limit, or for each bond sale? And should bond spending be an exception to
+"appropriations only"?
+
+**For now:** the bond spreadsheet will include each law's maximum term and final repayment
+deadline. We haven't collected sale or spending data.
 
 ---
 
