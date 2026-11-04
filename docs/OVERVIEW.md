@@ -119,7 +119,7 @@ for their own area.
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` merged; `read_items` next) |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list done; catalog next) |
-| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
+| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
 | — | **everyone** | **Putting it together:** combining the pieces into the final dataset | Waits on the above (milestone M1) | ☐ |
 
 **Scope decided:** the project covers appropriations (what laws authorized), not what the
