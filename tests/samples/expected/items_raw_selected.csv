@@ -1,0 +1,18 @@
+law_key,section,line_item,section_fund_default,fy_stated,secretariat_header_raw,agency_header_raw,amount,amount_struck,retained_revenue_ceiling,fund_splits_raw,veto_kind_inline,confidence
+2025-3,2,1108-5200,General Fund,2025,EXECUTIVE OFFICE FOR ADMINISTRATION AND FINANCE,Group Insurance Commission,240000000,,,,none,high
+2023-77,2,0340-0400,General Fund,2023,DISTRICT ATTORNEYS,Worcester District Attorney,280000,,,,none,high
+2023-77,2A,1595-4514,General Fund,2023,OFFICE OF THE COMPTROLLER,Office of the Comptroller,100000000,,,,none,high
+2023-77,2CI,0321-1500,,2024,JUDICIARY,Committee for Public Counsel Services,1345240,,,,none,high
+2023-77,2CII,0940-0103,,2024,MASSACHUSETTS COMMISSION AGAINST DISCRIMINATION,,1200000,,,,none,high
+2023-28,2,0930-0100,General Fund,2024,OFFICE OF THE CHILD ADVOCATE.,,6077671,,,,none,high
+2023-28,2,0930-0101,General Fund,2024,OFFICE OF THE CHILD ADVOCATE.,,3750000,,,,none,high
+2023-28,2,2330-0100,General Fund,2024,EXECUTIVE OFFICE OF ENERGY AND ENVIRONMENTAL AFFAIRS.,Department of Fish and Game.,9310231,,,,none,high
+2023-28,2,0910-0210,General Fund,2024,OFFICE OF THE INSPECTOR GENERAL.,,1175000,,1175000,,none,high
+2023-28,2,2210-0106,General Fund,2024,EXECUTIVE OFFICE OF ENERGY AND ENVIRONMENTAL AFFAIRS.,Department of Environmental Protection.,2888473,4025451,2888473,,reduced_and_wording,high
+2023-28,2,1231-1000,General Fund,2024,DISABLED PERSONS PROTECTION COMMISSION.,Department of Revenue.,1500000,,,,overridden,high
+2023-28,2,0699-0015,General Fund,2024,TREASURER AND RECEIVER GENERAL.,Debt Service.,2108969650,,,General Fund:52.12;Commonwealth Transportation Fund:47.88,none,high
+2023-28,2,1232-0100,General Fund,2024,DISABLED PERSONS PROTECTION COMMISSION.,Department of Revenue.,10000000,,,Underground Storage Tank Petroleum Product Cleanup Fund:100,none,high
+2023-28,2,4408-1000,General Fund,2024,OFFICE OF DISABILITIES AND COMMUNITY SERVICES.,Department of Transitional Assistance.,186409929,209700528,,,reduced_and_wording,medium
+2024-140,2,1108-5200,General Fund,2025,DISABLED PERSONS PROTECTION COMMISSION.,Group Insurance Commission.,2163893912,2169893912,,,reduced,high
+2024-140,2,1233-2350,General Fund,2025,DISABLED PERSONS PROTECTION COMMISSION.,Department of Revenue.,1308713668,,,General Fund:80.32;Gaming Local Aid Fund:19.68,none,high
+2024-140,2,2310-0200,General Fund,2025,EXECUTIVE OFFICE OF ENERGY AND ENVIRONMENTAL AFFAIRS.,Department of Fish and Game.,17465233,,,George L. Darey Inland Fisheries and Game Fund:100,none,high
