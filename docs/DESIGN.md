@@ -363,7 +363,7 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 | `para_start`, `para_end` | paragraph span |
 | `line_item` | `NNNN-NNNN` |
 | `secretariat_header_raw`, `agency_header_raw` | nearest headers as printed |
-| `item_text` | full description, including provisos |
+| `item_text` | full description, including provisos; final wording only, struck words left out (§11.2) |
 | `amount` | final printed amount (int). Null for RR items with no trailing amount. For GAAs this becomes the funding action's `amount_printed`. |
 | `amount_struck` | struck-through original amount, if any |
 | `retained_revenue_ceiling` | retained-revenue ceiling parsed from the text, if any |
@@ -585,6 +585,7 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
 - **Item start:** an item ID **at the start of a paragraph**, optionally preceded by a veto note in the same paragraph. IDs inside provisos ("from item 1599-0026") are **not** item starts.
 - **Item end:** the paragraph whose text ends with the **trailing amount after a dotted leader**: `\.{2,}\s*(?:\$[\d,]+\s*)?\$([\d,]+)\.?\s*$`. The amount may be several paragraphs after the start. Earmark amounts earlier in the text must be ignored, so always take the trailing one. A trailing period (`$240,000,000.`, 2025 ch. 3) is allowed.
 - **Struck amounts:** if the trailing region contains a struck amount followed by a plain amount (`<s>$49,279,108</s> $48,420,108`), set `amount_struck` = the first and `amount` = the second.
+- **Struck wording:** where the governor struck wording and substituted new wording (2210-0106 in FY2024), `item_text` keeps **only the final wording**. `veto_kind_inline = reduced_and_wording` records that the wording changed (group decision 2026-11-01).
 - **Retained revenue:** if the text contains `may expend … not more than $X` and there is no trailing amount, set `retained_revenue_ceiling` and leave `amount` null. `amount_kind` = `retained_revenue_ceiling`.
 - **Fund splits:** paragraphs like `General Fund…… 52.63%`, possibly several per paragraph separated by `<br>`. Attach them to the preceding item.
 - **Unread:** any paragraph in an appropriation section that isn't consumed goes to `reports/unread_paragraphs.csv` (or `…_bonds.csv`). This file must be empty, or explained, before a law can be marked done.
@@ -812,6 +813,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
 | Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
+| Q18 | **Contact email** for the `laws` stage (`contact_email` in `config/settings.toml`): malegislature.gov asks for one, and it may become public record. One member's address, or a new project address? (Numbers in use on open branches: Q11–Q12 `a/bond-expected-rows`, Q17 `docs/partner-decisions`, Q19–Q23 `c/read-amendments`.) | group | blank; `laws` shouldn't download until it's set |
 
 ---
 
@@ -847,6 +849,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-01 | **Q2 resolved: the §10 counting rules stand.** Money moved into a trust, reserve or escrow fund counts when a law appropriates it out of that fund (when it's spent), not when it's moved in. The transfer in is kept as a row but doesn't count toward totals (flagged `trust_transfer` or `fund_transfer_chain`). Retained-revenue (fee-based) items count toward totals and are flagged `retained_revenue`. | The group and the partner (Office of the State Auditor), keeping the default; reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
+| 2026-11-01 | **Struck wording (follows Q4):** when the governor strikes an item's wording and substitutes new wording, `item_text` keeps only the final wording, and `veto_kind_inline = reduced_and_wording` notes that it changed (§7.3, §11.2). This settles the "wording changes" part left open in the Q4 entry; how `veto_status` records a wording-only veto is still open. | Group; reported by Tierney. Follow-up: Tierney to ask George whether vetoed wording has research uses. |
 
 ---
 
@@ -862,8 +865,8 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: file formats frozen | E | ◐ in progress | `schemas.py` matches §7/§9 v0.2; clarifications in the Decision Log await sign-off |
 | M0: law list seeded and curated | A | ☑ done (Q7 pending) | all 52 rows reviewed by Emma, 2026-11-03 (branch `a/law-list-review`): short names for every law; 5 Chapter 90 bills and 6 interim budgets changed from `manual` to `auto` (v0.2 reads them by code); 2020-316 `in_scope` as a supplemental (group to confirm, Q7); 2021-9 still `tbd` (Q7). Review sheet: `review/law_list_review.xlsx` |
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
-| B: `paragraphs.py` (shared paragraph format, §7.2) | B | ◐ in review | branch `b/paragraphs`; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
-| B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
+| B: `paragraphs.py` (shared paragraph format, §7.2) | B | ☑ done | merged in PR #6; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
+| B: `read_items` | B | ☐ todo | next. Section headings: accept "SECTION 2X." and heading-only "Section 2"/"SECTION 2" (2021-24, 2024-140; Emma's issue #12), stop at the first outside section. Proposed, to agree with C and E: B reads §2CI/§2CII prior-appropriation lists (needs a new `section_type`); C reads items inserted by outside sections, sharing B's item-number and trailing-amount patterns. Open: are surplus laws (2021-102, 2022-268) read by `read_items`? Tierney to ask George about uses for vetoed wording |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
