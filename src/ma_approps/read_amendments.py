@@ -11,6 +11,11 @@ resolved by carrying the last named law, section and item forward.
 An outside section that mentions dollars and an item or appropriation but matches no pattern goes
 to reports/unread_sections.csv for a human to explain (§13.6).
 
+An outside section that looks vetoed (struck-through text, or a "Governor disapproved of the
+following section" note) is still read, but its rows get `low` confidence and it is listed in
+reports/unread_sections.csv so a human checks whether the Legislature overrode the veto. Inline
+veto markup is a hint, not truth (§11.4).
+
 This stage only records what each law says. The running amounts table and the struck-figure check
 (§5.5) need dates and CTHRU amounts, so they belong in `combine` and `validate`.
 """
@@ -20,18 +25,15 @@ from __future__ import annotations
 import csv
 import json
 import re
-import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-from bs4 import BeautifulSoup
 
 from ma_approps import paragraphs, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.1.0"
+READER_VERSION = "0.2.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -90,62 +92,33 @@ TRANSFER_RE = re.compile(
 FUND_RE = re.compile(r"\bfrom the ((?:[A-Z][\w’'&.-]*\s+)+?Fund)\b")
 MONEY_RE = re.compile(r"\$\s*\d")
 ITEM_OR_APPROP_RE = re.compile(rf"\bitems?\s+{ITEM}|appropriat", re.I)
+# Printed just before what it is about: "The Governor disapproved of the following section, …",
+# "Governor returned the following section with recommendation of amendment, …"
+GOVERNOR_NOTE_RE = re.compile(r"^(?:The )?Governor (?:disapproved|returned)\b")
 
 
-def _normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", text)).strip()
+def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group paragraphs into sections, in source order: ``section``, ``texts`` and ``vetoed``.
 
-
-def _key(text: str) -> str:
-    """Matching form of a paragraph (§11.1): plain quotes and plain hyphens in item IDs."""
-    text = text.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"}))
-    return re.sub(r"(\d{4})[‐‑–—](\d{4})", r"\1-\2", text)
-
-
-def _simple_paragraphs(law_key: str, html: str) -> list[dict[str, Any]]:
-    """Stand-in for paragraphs.paragraphs() (workstream B) until it exists, in the §7.2 format.
-
-    Only ``text`` and ``para_idx`` are used here, so struck, bold and links are left empty.
+    A Governor's note comes just before what it is about, so it is held back: before a new
+    section it only marks that section, and anywhere else it stays in place in the text. A section
+    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved.
     """
-    soup = BeautifulSoup(html, "lxml")
-    for br in soup.find_all("br"):
-        br.replace_with("\n")
     out: list[dict[str, Any]] = []
-    for p in soup.find_all("p"):
-        for line in p.get_text().split("\n"):
-            text = _normalize(line)
-            if text:
-                out.append(
-                    {
-                        "law_key": law_key,
-                        "para_idx": len(out),
-                        "text": text,
-                        "raw_html": str(p),
-                        "classes": p.get("class") or [],
-                        "struck": [],
-                        "bold": [],
-                        "links": [],
-                    }
-                )
-    return out
-
-
-def _paragraphs(law_key: str, html: str) -> list[dict[str, Any]]:
-    try:
-        return paragraphs.paragraphs(law_key, html)
-    except NotImplementedError:
-        return _simple_paragraphs(law_key, html)
-
-
-def _sections(paras: list[dict[str, Any]]) -> list[tuple[str, list[str]]]:
-    """Group paragraphs into (section number, paragraph texts), in source order."""
-    out: list[tuple[str, list[str]]] = []
+    notes: list[str] = []
     for p in paras:
-        m = SECTION_START_RE.match(p["text"])
-        if m:
-            out.append((m[1], [p["text"]]))
+        if GOVERNOR_NOTE_RE.match(p["text"]):
+            notes.append(p["text"])
+            continue
+        if m := SECTION_START_RE.match(p["text"]):
+            out.append({"section": m[1], "texts": [], "vetoed": False})
         elif out:
-            out[-1][1].append(p["text"])
+            out[-1]["texts"] += notes
+        if out:
+            out[-1]["texts"].append(p["text"])
+            disapproved = any("disapproved" in n for n in notes)
+            out[-1]["vetoed"] |= bool(p["struck"]) or disapproved
+        notes = []
     return out
 
 
@@ -318,8 +291,9 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
     unread: list[dict] = []
     chapters: dict[str, str] = {}
     last: dict[str, Any] = {"law": None, "section": None}
-    for section, texts in _sections(_paragraphs(law_key, html)):
-        keyed = [_key(t) for t in texts]
+    for s in _sections(paragraphs.paragraphs(law_key, html)):
+        section, texts = s["section"], s["texts"]
+        keyed = [paragraphs.key(t) for t in texts]
         full = "\n".join(keyed)
         if law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section):
             _remember_chapters(full, chapters)
@@ -352,6 +326,8 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
         if not actions and not reason and not general_laws:
             if MONEY_RE.search(full) and ITEM_OR_APPROP_RE.search(full):
                 reason = "mentions dollars and an item or appropriation but matched no pattern"
+        if actions and s["vetoed"]:
+            reason = "looks vetoed (struck text or a veto note); check whether it was overridden"
         if reason:
             unread.append(
                 {"law_key": law_key, "section": section, "reason": reason, "text": texts[0][:500]}
@@ -365,6 +341,7 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                     "reader_version": READER_VERSION,
                     "confidence": "high",
                     **a,
+                    **({"confidence": "low"} if s["vetoed"] else {}),
                 }
             )
         _remember_chapters(full, chapters)

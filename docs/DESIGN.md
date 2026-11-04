@@ -609,6 +609,8 @@ Resolve "said item … of said section 2 of said chapter 28" by carrying the las
 
 Anything in an outside section mentioning `$` and an item or appropriation that isn't matched goes to `reports/unread_sections.csv`.
 
+An outside section that looks vetoed is still read, but its rows get `low` confidence and the section is also listed in `reports/unread_sections.csv`, so a human checks whether the veto was overridden (§11.4: markup is a hint, not truth; Q21). "Looks vetoed" means some of its text is struck through, or a "The Governor disapproved of the following section" note is printed just before it. Example: 2023-28 §100, a $205,000,000 transfer.
+
 ### 11.4 Veto markup variants (inline)
 | Year (GAA) | Markup |
 |---|---|
@@ -812,6 +814,11 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
 | Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
+| Q17 | **Inserted "available until" wording** (C): an amendment that inserts words like "funds made available until June 30, 2024" into an item is recorded as a `date_extend` (→ `REAUTH`). Is that right, or is it a text-only change? | group | `date_extend` |
+| Q18 | **Fund-to-fund transfers** (C): money moved between funds, with no line item on either side, is recorded as a `transfer` (→ `XFER`) with `medium` confidence. Is that right? | group | `transfer`, `medium` confidence |
+| Q19 | **Earmark figure changes** (C): a figure changed inside an item's text ("both times it appears", "in line 7"), as in 2023-77 §81, may be an earmark rather than the item's total. It is recorded as a `figure_change` with `low` confidence, and the struck-figure check (§13.3) decides. Is that right? | group | `figure_change`, `low` confidence |
+| Q20 | **Where unread-report explanations go:** `validate` (§13.6) requires every row of `reports/unread_*.csv` to be explained, but reports are generated and must not be hand-edited. Where does a person write the explanation? | group (E owns `validate`) | not decided; on real data, `validate` will flag every unread row until this is settled |
+| Q21 | **Vetoed outside sections** (C): a section with struck text or a "Governor disapproved" note, such as 2023-28 §100 (a $205,000,000 transfer), is still read, with `low` confidence, and listed in `unread_sections.csv` (§11.3). Is flagging enough, should vetoed sections be dropped, or should `amendments_raw` get a veto column (a §7.4 change)? | group (C + E) | keep the rows, `low` confidence, listed for review |
 
 ---
 
@@ -864,6 +871,8 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
 | B: `paragraphs.py` (shared paragraph format, §7.2) | B | ◐ in review | branch `b/paragraphs`; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
 | B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
+| C: `read_amendments` (§11.3) | C | ◐ in review | branch `c/read-amendments`; uses B's `paragraphs.py`; 14 tests on the samples. On the six samples: 169 rows and 13 unread sections (12 unmatched, plus 2023-28 §100, which looks vetoed). Open: Q17–Q21 |
+| C: running amounts table and struck-figure check | C | ☐ todo | needs `combine` and the CTHRU sample (§13.3) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |

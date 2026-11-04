@@ -1,10 +1,12 @@
-"""read_amendments (DESIGN §11.3) on the offline sample laws: 2023-77, 2021-35 and 2023-15."""
+"""read_amendments (DESIGN §11.3) on the offline sample laws: 2023-77, 2021-35, 2023-15 and
+2023-28."""
 
+import json
 from pathlib import Path
 
 import pytest
 
-from ma_approps import read_amendments, schemas
+from ma_approps import paragraphs, read_amendments, schemas
 from ma_approps.context import Context
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -134,6 +136,29 @@ def test_interim_lump_sum(rows):
 def test_appropriation_sections_are_left_to_read_items(rows):
     # 2023-77 §2 supplements 0340-0400; that is read_items' job, not an amendment
     assert not any(law == "2023-77" and section == "2" for law, section, _ in rows)
+
+
+def test_vetoed_section_is_low_confidence_and_listed(rows, output):
+    # 2023-28 §100 is struck through under "The Governor disapproved of the following section".
+    # It is still read, but flagged so a human checks whether the veto was overridden (§11.4).
+    row = rows[("2023-28", "100", "")]
+    assert _pick(row, "action_type", "amount", "confidence") == {
+        "action_type": "transfer",
+        "amount": "205000000",
+        "confidence": "low",
+    }
+    _, unread = schemas.read_csv(output.reports_dir / "unread_sections.csv")
+    reasons = {(r["law_key"], r["section"]): r["reason"] for r in unread}
+    assert reasons[("2023-28", "100")].startswith("looks vetoed")
+
+
+def test_veto_note_belongs_to_the_following_section(samples_dir):
+    # The note is printed at the end of §99 but is about §100
+    record = json.loads((samples_dir / "sessionlaws" / "2023" / "28.json").read_text("utf-8"))
+    paras = paragraphs.paragraphs("2023-28", record["ChapterText"])
+    sections = {s["section"]: s for s in read_amendments._sections(paras)}
+    assert not any("Governor disapproved" in t for t in sections["99"]["texts"])
+    assert (sections["99"]["vetoed"], sections["100"]["vetoed"]) == (False, True)
 
 
 def test_unread_sections_have_explanation_column(output):
