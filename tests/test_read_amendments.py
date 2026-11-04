@@ -206,6 +206,20 @@ def test_inserted_item_needs_no_space_after_its_number():
     assert items == {"4125-0122": 100000}
 
 
+def test_item_replaced_by_a_renumbered_item():
+    # 2022-268 §228 strikes item 4003-0100 and inserts 4003-0122 ($10,000,000) in its place:
+    # the old item is struck and the new one inserted, so the $10,000,000 isn't lost
+    html = (
+        "<p>SECTION 228. Section 2 of chapter 42 of the acts of 2022 is hereby amended by striking"
+        " out item 4003-0100 and inserting in place thereof the following item:-</p>"
+        "<p>4003-0122 ............................................. $10,000,000</p>"
+    )
+    rows, _ = read_amendments.read_law("2022-268", "supplemental", html)
+    found = [(r["action_type"], r["target_item"], r.get("new_figure")) for r in rows]
+    assert found == [("item_strike", "4003-0100", None), ("item_insert", "4003-0122", 10000000)]
+    assert {r["target_law_key"] for r in rows} == {"2022-42"}
+
+
 def test_whole_item_replacement(rows):
     # 2021-35 §1 replaces item 8100-1014 of 2019 ch. 5 §2A; the new item is $8,000,000
     row = rows[("2021-35", "1", "8100-1014")]

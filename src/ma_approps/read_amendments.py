@@ -33,7 +33,7 @@ from ma_approps import paragraphs, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.4.0"
+READER_VERSION = "0.5.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -225,14 +225,33 @@ def _amendment_actions(
         struck = re.findall(ITEM, m[1])
         if "inserting in place thereof the following item" in predicate:
             new = _inserted_items(rest)
-            return [
+            if not new:  # the new item couldn't be found
+                return [
+                    {"action_type": "item_replace", "target_item": i, "confidence": "low"}
+                    for i in struck
+                ]
+            # The same number is a replacement. A different number (2022-268 §228 replaces
+            # 4003-0100 with 4003-0122) strikes the old item and inserts the new one.
+            actions = [
                 {
                     "action_type": "item_replace",
                     "target_item": i,
-                    "new_figure": new.get(i),
-                    "confidence": "high" if new.get(i) is not None else "low",
+                    "new_figure": new[i],
+                    "confidence": "high" if new[i] is not None else "low",
                 }
+                if i in new
+                else {"action_type": "item_strike", "target_item": i}
                 for i in struck
+            ]
+            return actions + [
+                {
+                    "action_type": "item_insert",
+                    "target_item": i,
+                    "new_figure": amount,
+                    "confidence": "high" if amount is not None else "low",
+                }
+                for i, amount in new.items()
+                if i not in struck
             ]
         return [{"action_type": "item_strike", "target_item": i} for i in struck]
     if re.search(
