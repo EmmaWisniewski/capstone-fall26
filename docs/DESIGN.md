@@ -594,6 +594,30 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
 - **Borrowing limits come after the items**, one section each: "the state treasurer shall … issue and sell bonds … not exceeding, in the aggregate, $X". Each names the capital sections it covers, which may be more than one (2024-139 §4 covers §2A and §2B). It also gives the bond's name, its maximum term and its final payment date. No §7 file holds these yet, but check 7 needs them (Q11).
 - **Items don't always add up to the borrowing limit.** In 2024-139, the §2A and §2B items total $1,455,000,000, but §4 allows borrowing of only $1,055,000,000. Nothing in the item text explains the $400,000,000 gap. Check 7 must therefore report differences for review rather than treat them as reader errors. **Decided (Q11, partner, 2026-11-01):** a law's capital total is the sum of its items, any difference from its borrowing limits is flagged, and the borrowing limits are recorded too.
 
+**Survey of every law with capital sections** (2026-11-04: the 15 bond laws plus supplemental 2023-2; 191 capital items). Findings marked ✓ were hand-checked by Emma against the official text.
+- **Every item is one paragraph** that starts with its line item number and ends with its amount, so the item rules above still apply, with two adjustments:
+  - **The amount may have no dotted leader** ("…applies $4,400,000,000"; 2020-383, 2022-176, 2023-2, 2024-150). ✓ (2024-150 item 7004-0074.)
+  - **The line item number may be followed by dots or a space** ("6121-2114.. For" or "6121-2617 For"), sometimes both in one law.
+- **Capital sections can sit inside a supplemental budget,** numbered §3 and up: 2023-2 §3–§3B (10 items, $740,300,000), with borrowing limits in §§77–79 that match exactly. ✓ (found by Emma.)
+- **Read capital sections only from the first capital heading to the first section after them.** A later amendment can contain its own "Section 2." heading as part of the new text it inserts. For example, 2024-238 §183 replaces section 2 of General Laws chapter 61A ("Section 2. Land shall be considered to be in horticultural use…"). That's part of §183, not a capital section. ✓
+- **Borrowing limits:**
+  - may cover **several sections** (2022-140 §7 covers §2, §2A and §2B);
+  - may cover **a single line item** rather than a section: 2021-15 §6 is for item 4000-2026 ($400,000,000) and §7 for item 4000-2027 ($200,000,000), both in §2 ✓;
+  - use varying wording ("in the aggregate" or "in an aggregate principal amount", 2021-9 §23 ✓);
+  - may be **special obligation bonds** paid from a named fund (2020-383 §36, 2021-9, 2022-176 §44).
+- **Vetoes appear in bond laws** and are read from the inline markup (CTHRU has no capital data, so these rows are flagged `veto_unverified`, §5.7):
+  - **A reduction** shows the old amount crossed out before the new one. 2020-383 item 6621-2117: $400,000,000 → $370,000,000. The capital total uses **$370,000,000**. ✓
+  - **A pocket-vetoed item** is entirely crossed out under "Governor pocket vetoed the following item". 2020-383 items 6720-2127 ($250,000,000) and 6921-2110 ($25,000,000) **never became law and are left out of the capital total.** ✓
+  - Wording vetoes and section vetoes (2020-383, 2022-176) don't change amounts.
+- **Federal-aid items exceed their borrowing limits because the limit is the state's share.** These items may only be committed "based upon a prior or anticipated future commitment of federal funds and the availability of corresponding state funding", so the borrowing limit covers only the state's part. ✓ Cases:
+  - 2020-383 item 6121-2114: $4,400,000,000 of items against a §32 limit of $880,000,000;
+  - 2022-176 §2 against §41's $611,800,000;
+  - 2022-176 item 6720-2215 ($3,500,000,000) against §47's $1,750,000,000;
+  - 2022-176 item 6622-2214 ($25,501,000) against §48's $8,300,000. This item lacks that sentence, but allows spending on projects in the federal Infrastructure Investment and Jobs Act of 2021.
+
+  Under the Q11 decision, these laws' capital totals therefore **include federally funded amounts**, which bears on Q1. After vetoes and federal shares, the only unexplained gap is 2024-139 §4 ($400,000,000).
+- **Amendments to earlier bond laws** go to `read_amendments` (§11.3, "bond-on-bond amendment"). 2024-150 §60 replaces item 4000-8200 of 1993 ch. 52, so that law is added to the law list as reference-only. ✓
+
 ### 11.3 Outside-section grammar (`read_amendments`)
 Resolve "said item … of said section 2 of said chapter 28" by carrying the last explicitly named law, section, and item forward through consecutive sections. Patterns to support, each with a sample:
 
@@ -827,7 +851,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Exclude 2020 ch. 316? | group | decide at M0 law-list review |
 | Q8 | Funding-action labels beyond the two in the examples | partner | §9.2 labels |
 | Q10 | Should the project cover actual **spending** as well as appropriations? If so, which layers (§16)? | E leads, with the group, partner and researchers | appropriations only, until decided (before M2) |
-| Q11 | **How** are bond laws' borrowing limits recorded and their differences flagged (§11.2, check 7)? Which file holds the limits, and is a difference flagged only in check 7's report and the review queue, or also on the rows? *(What to do was decided 2026-11-01: items' total, differences flagged, limits recorded; see the Decision Log.)* | group (E owns §7) | proposed: a new `data/interim/bond_authorizations_raw.csv` with the columns of `tests/samples/expected/bond_authorizations.csv`; differences reported by check 7 and sent to the review queue |
+| Q11 | **How** are bond laws' borrowing limits recorded and their differences flagged (§11.2, check 7)? Which file holds the limits, and is a difference flagged only in check 7's report and the review queue, or also on the rows? A limit may cover a single line item, not only whole sections (2021-15 §6–§7), so the format needs to allow both. *(What to do was decided 2026-11-01: items' total, differences flagged, limits recorded; see the Decision Log.)* | group (E owns §7) | proposed: a new `data/interim/bond_authorizations_raw.csv` with the columns of `tests/samples/expected/bond_authorizations.csv`; differences reported by check 7 and sent to the review queue |
 | Q12 | Which details of each borrowing limit should be kept? Besides the amount and the sections it covers, the law prints the bond's name, its maximum term (years) and its final repayment date. | group (E owns §7) | proposed: keep all five (`authorized`, `covers_sections`, `bond_name`, `max_term_years`, `payable_by`), as in `tests/samples/expected/bond_authorizations.csv`; drop any the group doesn't need |
 
 ---
