@@ -6,7 +6,8 @@ Owner: workstream D (Labels). No LLM.
 - Agency / office (§8 column 9): the office the law text says the line pays for ("For the
   operation of the division of marine fisheries" gives "Division of Marine Fisheries"), else an
   office named at the start of the CTHRU account name, else the line's CTHRU department that
-  fiscal year, else the law's printed agency header.
+  fiscal year, else the law's printed agency header (or, when that header is just "Office of
+  the Secretary", the secretariat header above it, read from items_raw / bond_items_raw).
 - Program / purpose (§8 column 10): the first clause of the law text with boilerplate like "For
   the operation of" removed, else the CTHRU account name.
 - Policy area (§12): config/line_item_catalog.csv, then config/department_policy_areas.csv
@@ -73,6 +74,9 @@ _ACCOUNT_SUFFIX = re.compile(
     r"\s*(?:-.*|\b(?:administration|admin|operations|rr|it|isf)\b.*)$", re.I
 )
 CTHRU_NAME_LIMIT = 60  # CTHRU cuts account names at 60 characters
+_VAGUE_HEADER = re.compile(r"^Office of the (?:Secretary|Commissioner|Director)$", re.I)
+# A division named without its parent, e.g. "Highway Division" under MassDOT
+_BARE_DIVISION = re.compile(r"^(?!.*\bof\b)[\w&' ]+ Division$", re.I)
 
 # Fixes for CTHRU department names that title case alone doesn't repair
 DEPARTMENT_NAME_FIXES = (
@@ -148,13 +152,27 @@ def department_display_name(name: str) -> str:
     return name
 
 
-def agency_office(row: Row, account: Row | None) -> str:
+def header_agency(agency_header: str, secretariat_header: str = "") -> str:
+    """The law's printed agency header. A bare "Office of the Secretary" (common in bond laws)
+    says nothing on its own, so the secretariat header above it is used instead; a bare
+    "Highway Division" gets its parent's name in front."""
+    header = department_display_name(agency_header)
+    if not secretariat_header:
+        return header
+    if _VAGUE_HEADER.match(header):
+        return department_display_name(secretariat_header)
+    if _BARE_DIVISION.match(header):
+        return f"{department_display_name(secretariat_header)} {header}"
+    return header
+
+
+def agency_office(row: Row, account: Row | None, secretariat_header: str = "") -> str:
     """§8 column 9: the most specific administering office."""
     return (
         agency_from_text(row["item_text"])
         or (account and agency_from_account(account["account_name"]))
         or (account and department_display_name(account["department_name"]))
-        or department_display_name(row["agency_header_raw"])
+        or header_agency(row["agency_header_raw"], secretariat_header)
     )
 
 
@@ -265,22 +283,31 @@ def label_rows(
     cthru_rows: list[Row],
     catalog_rows: Iterable[Row],
     department_rows: Iterable[Row],
+    item_rows: Iterable[Row] = (),
 ) -> list[dict[str, str]]:
-    """One labels.csv row per funding-action row, sorted by record_id."""
+    """One labels.csv row per funding-action row, sorted by record_id.
+
+    ``item_rows`` (items_raw and bond_items_raw) supply the secretariat header, which the
+    funding actions table doesn't carry.
+    """
     catalog = {r["line_item"]: r for r in catalog_rows}
     departments = {r["department_code"]: r for r in department_rows}
     cthru = {(r["line_item"], int(r["fiscal_year"])): r for r in cthru_rows}
+    secretariats = {
+        (r["law_key"], r["section"], r["line_item"]): r["secretariat_header_raw"] for r in item_rows
+    }
     funded, gaa_funded = funded_years(cthru_rows, funding_rows)
     out = []
     for r in funding_rows:
         fy = int(r["fiscal_year"])
         account = cthru.get((r["line_item"], fy))
+        secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
         purpose, purpose_method = program_purpose(r, account)
         area, method = policy_area(r["line_item"], fy, catalog, departments, cthru)
         label = dict.fromkeys(schemas.columns("labels"), "")
         label.update(
             record_id=r["record_id"],
-            agency_office=agency_office(r, account),
+            agency_office=agency_office(r, account, secretariat),
             program_purpose=purpose,
             program_purpose_method=purpose_method,
             policy_area=area,
@@ -313,11 +340,16 @@ def run(ctx: Context) -> int:
         print(f"  missing input: {', '.join(missing)}")
         return 1
     rows = {name: schemas.read_csv(path)[1] for name, path in inputs.items()}
+    item_rows = []  # optional: only for secretariat headers
+    for name in ("items_raw.csv", "bond_items_raw.csv"):
+        if (ctx.interim_dir / name).exists():
+            item_rows += schemas.read_csv(ctx.interim_dir / name)[1]
     labels = label_rows(
         rows["funding_actions"],
         rows["cthru_line_items"],
         rows["line_item_catalog"],
         rows["department_policy_areas"],
+        item_rows,
     )
     write_labels(ctx.interim_dir / "labels.csv", labels)
     waiting = sum(1 for r in labels if not r["policy_area"])

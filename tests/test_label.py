@@ -71,6 +71,29 @@ def test_agency_falls_back_to_account_then_department_then_header():
     assert label.agency_office(row, None) == "Department of Fish and Game"
 
 
+EOTSS = "EXECUTIVE OFFICE OF TECHNOLOGY SERVICES AND SECURITY"
+
+
+def test_vague_bond_heading_uses_the_secretariat():
+    assert label.header_agency("Office of the Secretary", EOTSS) == (
+        "Executive Office of Technology Services and Security"
+    )
+    assert label.header_agency("Department of Revenue", EOTSS) == "Department of Revenue"
+    assert label.header_agency("Office of the Secretary") == "Office of the Secretary"
+    assert label.header_agency(
+        "Highway Division", "MASSACHUSETTS DEPARTMENT OF TRANSPORTATION"
+    ) == "Massachusetts Department of Transportation Highway Division"
+    assert label.header_agency("Division of Banks", EOTSS) == "Division of Banks"
+    # Through label_rows: the secretariat comes from bond_items_raw (2024-139 §2A)
+    row = dict(action("2024-139-S2A-1790-3014-CAP-1", "1790-3014", 2025, "CAP", 750_000_000,
+                      header="Office of the Secretary"), law_key="2024-139", section="2A")
+    item = dict.fromkeys(schemas.columns("bond_items_raw"), "")
+    item.update(law_key="2024-139", section="2A", line_item="1790-3014",
+                secretariat_header_raw=EOTSS)
+    [out] = label.label_rows([row], [], [], [], [item])
+    assert out["agency_office"] == "Executive Office of Technology Services and Security"
+
+
 def test_department_names_are_cleaned_up():
     names = {
         "DEPARTMENT of AGRICULTURAL RESOURCES": "Department of Agricultural Resources",
