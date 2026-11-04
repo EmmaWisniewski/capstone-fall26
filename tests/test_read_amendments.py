@@ -106,7 +106,7 @@ def test_item_insert(rows):
 
 def test_both_times_figure_is_high_confidence(rows):
     # §81 changes "$320,000" "both times it appears" in 3000-7040, a retained-revenue item whose
-    # ceiling and amount are both $320,000 in the FY2023 GAA: the item's total, not an earmark (Q19)
+    # ceiling and amount are both $320,000 in the FY2023 GAA: the item's total, not an earmark (Q21)
     row = rows[("2023-77", "81", "3000-7040")]
     assert (row["old_figure"], row["new_figure"], row["confidence"]) == ("320000", "520000", "high")
 
@@ -181,6 +181,29 @@ def test_transfer_source_item_and_funds(rows):
     assert rows[("2023-28", "100", "")]["fund_raw"] == (
         "federal COVID-19 response fund; Transitional Escrow Fund"
     )
+
+
+def test_section_2_heading_in_any_case():
+    # The FY2022 GAA (2021-24) prints its Section 2 heading as "Section 2", with no period (issue
+    # #12). Its items belong to read_items, so their text must not be read as part of §1B.
+    html = (
+        "<p>SECTION 1B. The comptroller shall transfer $5,000 from the General Fund to the Arts"
+        " Fund.</p>"
+        "<p>Section 2</p>"
+        "<p>1599-0001 For a reserve; provided, that the comptroller shall transfer $79,000,000 from"
+        " the General Fund to the Example Trust Fund.................... $1,000</p>"
+        "<p>SECTION 3. Notwithstanding any general or special law to the contrary, this section"
+        " takes effect upon passage.</p>"
+    )
+    rows, unread = read_amendments.read_law("2021-24", "gaa", html)
+    assert [(r["section"], r["amount"]) for r in rows] == [("1B", 5000)]
+    assert unread == []
+
+
+def test_inserted_item_needs_no_space_after_its_number():
+    # Tierney's heads-up: 2024-140 prints "4125-0122vFor", with no space after the item number
+    items = read_amendments._inserted_items(["4125-0122vFor the operation ........... $100,000"])
+    assert items == {"4125-0122": 100000}
 
 
 def test_whole_item_replacement(rows):

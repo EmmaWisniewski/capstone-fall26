@@ -33,7 +33,7 @@ from ma_approps import paragraphs, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.3.0"
+READER_VERSION = "0.4.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -46,6 +46,10 @@ MONTH = r"(?:January|February|March|April|May|June|July|August|September|October
 DATE = rf"{MONTH} \d{{1,2}}, \d{{4}}"
 
 SECTION_START_RE = re.compile(r"^SECTION\s+(\d+[A-Z]*)\b\.?\s*")
+# A Section 2 heading printed alone, in any case and without a period: "Section 2" in the FY2022
+# GAA (2021-24), "SECTION 2" in FY2025 (issue #12). Only when it is the whole paragraph, so a
+# quoted "Section 67. Item …" inside an amendment is not taken for a new section.
+SECTION2_HEADING_RE = re.compile(r"^section\s+(2[A-Z]{0,3})\.?$", re.I)
 AMENDED_RE = re.compile(
     r"^(?P<subject>.{0,400}?)\s+(?:is|are)\s+hereby\s+(?:further\s+)?amended\b(?P<predicate>.*)$",
     re.S,
@@ -132,8 +136,8 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if GOVERNOR_NOTE_RE.match(p["text"]):
             notes.append(p["text"])
             continue
-        if m := SECTION_START_RE.match(p["text"]):
-            out.append({"section": m[1], "texts": [], "vetoed": False})
+        if m := SECTION_START_RE.match(p["text"]) or SECTION2_HEADING_RE.match(p["text"]):
+            out.append({"section": m[1].upper(), "texts": [], "vetoed": False})
         elif out:
             out[-1]["texts"] += notes
         if out:
@@ -198,7 +202,9 @@ def _inserted_items(paras: list[str]) -> dict[str, int | None]:
     items: dict[str, int | None] = {}
     current = None
     for text in paras:
-        m = re.match(rf"({ITEM})\b", text)
+        # No space is required after the ID ("4125-0122vFor" in 2024-140); the same rule as
+        # paragraphs.ITEM_START_RE on Tierney's read_items branch (PR #15)
+        m = re.match(rf"({ITEM})(?!\d)", text)
         if m:
             current = m[1]
             items[current] = None
@@ -244,7 +250,7 @@ def _amendment_actions(
     action: dict[str, Any]
     if m := FIGURE_RE.search(predicate):
         # "Both times it appears … in each instance" is usually a retained-revenue item, whose
-        # spending ceiling and amount are the same figure (2023-77 §81, Q19). "In line 7" or
+        # spending ceiling and amount are the same figure (2023-77 §81, Q21). "In line 7" or
         # "the second time it appears" may be an earmark in the text, so it stays low;
         # combine's struck-figure check confirms either way.
         where = m["where"].strip(" ,")
