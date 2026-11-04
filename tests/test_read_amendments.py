@@ -104,9 +104,83 @@ def test_item_insert(rows):
     }
 
 
-def test_earmark_figure_is_low_confidence(rows):
-    # §81 changes "$320,000" "both times it appears" inside 3000-7040's text: maybe an earmark
-    assert rows[("2023-77", "81", "3000-7040")]["confidence"] == "low"
+def test_both_times_figure_is_high_confidence(rows):
+    # §81 changes "$320,000" "both times it appears" in 3000-7040, a retained-revenue item whose
+    # ceiling and amount are both $320,000 in the FY2023 GAA: the item's total, not an earmark (Q19)
+    row = rows[("2023-77", "81", "3000-7040")]
+    assert (row["old_figure"], row["new_figure"], row["confidence"]) == ("320000", "520000", "high")
+
+
+def test_figure_in_one_line_stays_low_confidence():
+    # "in line 7" may be an earmark in the item's text rather than its total
+    found = read_amendments._amendment_actions(
+        ' by striking out, in line 7, the figure "$100,000" and inserting in place thereof the'
+        " following figure:- $200,000.",
+        ["1234-5678"],
+        [],
+    )
+    assert [a["confidence"] for a in found] == ["low"]
+
+
+def test_month_and_day_date_change(rows):
+    # §49: "July 1" → "November 30" in 4000-0300 of 2021 ch. 24. The year (2023) is in the item's
+    # own text, so the dates are recorded as written.
+    row = rows[("2023-77", "49", "4000-0300")]
+    assert _pick(row, "action_type", "target_law_key", "old_date", "new_date") == {
+        "action_type": "date_extend",
+        "target_law_key": "2021-24",
+        "old_date": "July 1",
+        "new_date": "November 30",
+    }
+
+
+def test_unexpended_balances_not_reverting(rows, output):
+    # 2023-77 §214: balances in 4000-0700 and 4000-1426 of 2022 ch. 126 "shall not revert … until
+    # September 1, 2023" works as a date extension for each item
+    for item in ("4000-0700", "4000-1426"):
+        row = rows[("2023-77", "214", item)]
+        assert _pick(row, "action_type", "target_law_key", "target_section", "new_date") == {
+            "action_type": "date_extend",
+            "target_law_key": "2022-126",
+            "target_section": "2",
+            "new_date": "2023-09-01",
+        }
+    _, unread = schemas.read_csv(output.reports_dir / "unread_sections.csv")
+    assert ("2023-77", "214") not in {(r["law_key"], r["section"]) for r in unread}
+
+
+def test_transfer_from_fund_to_fund_with_a_bound(rows):
+    # 2023-28 §95: "transfer from the General Fund to the Health Safety Net Trust Fund … the
+    # greater of $45,000,000 or 1/12 of …": $45,000,000 is only a lower bound, so low confidence
+    row = rows[("2023-28", "95", "")]
+    assert _pick(row, "action_type", "amount", "fund_raw", "confidence") == {
+        "action_type": "transfer",
+        "amount": "45000000",
+        "fund_raw": "General Fund",
+        "confidence": "low",
+    }
+
+
+def test_amendment_of_an_amendment(rows):
+    # 2023-77 §56 replaces section 67 of 2021 ch. 102, which amends item 8200-0200 of 2021 ch. 24
+    # ("… available until June 30, 2024"); read as low confidence for a human to confirm
+    row = rows[("2023-77", "56", "8200-0200")]
+    assert _pick(row, "action_type", "target_law_key", "new_date", "confidence") == {
+        "action_type": "date_extend",
+        "target_law_key": "2021-24",
+        "new_date": "2024-06-30",
+        "confidence": "low",
+    }
+
+
+def test_transfer_source_item_and_funds(rows):
+    # 2023-28 §93: "from the prescription advantage program in line-item 9110-1455 … and the
+    # Health Safety Net Trust Fund"; §100 names a federal fund in lowercase
+    row = rows[("2023-28", "93", "")]
+    assert (row["from_item"], row["fund_raw"]) == ("9110-1455", "Health Safety Net Trust Fund")
+    assert rows[("2023-28", "100", "")]["fund_raw"] == (
+        "federal COVID-19 response fund; Transitional Escrow Fund"
+    )
 
 
 def test_whole_item_replacement(rows):
@@ -164,7 +238,7 @@ def test_veto_note_belongs_to_the_following_section(samples_dir):
 def test_unread_sections_have_explanation_column(output):
     header, unread = schemas.read_csv(output.reports_dir / "unread_sections.csv")
     assert header == list(read_amendments.UNREAD_COLUMNS)
-    assert ("2023-77", "214") in {(r["law_key"], r["section"]) for r in unread}
+    assert ("2023-28", "99") in {(r["law_key"], r["section"]) for r in unread}
 
 
 def test_law_filter(root, samples_dir, tmp_path):

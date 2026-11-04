@@ -33,7 +33,7 @@ from ma_approps import paragraphs, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.2.0"
+READER_VERSION = "0.3.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -42,10 +42,8 @@ APPROP_LAW_TYPES = ("gaa", "supplemental", "surplus", "bond")
 APPROP_SECTION_RE = re.compile(r"^2[A-Z]*$")
 
 ITEM = r"\d{4}-\d{4}"
-DATE = (
-    r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-    r" \d{1,2}, \d{4}"
-)
+MONTH = r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+DATE = rf"{MONTH} \d{{1,2}}, \d{{4}}"
 
 SECTION_START_RE = re.compile(r"^SECTION\s+(\d+[A-Z]*)\b\.?\s*")
 AMENDED_RE = re.compile(
@@ -76,6 +74,18 @@ DATE_WORDS_RE = re.compile(
     rf'striking out the words "[^"]*?(?P<old>{DATE})"[^"]*?and inserting in place thereof'
     rf" the following words:-[^.]*?(?P<new>{DATE})"
 )
+# 'striking out the words "July 1" … the following words:- November 30.' (2023-77 §49). The year
+# is in the target item's own text, so both dates are recorded as written.
+MONTH_DAY_RE = re.compile(
+    rf'striking out the words "(?P<old>{MONTH} \d{{1,2}})"[^"]*?and inserting in place thereof'
+    rf" the following words:-\s*(?P<new>{MONTH} \d{{1,2}})\s*\.?\s*$"
+)
+# "any unexpended balances, not exceeding a total of $40,000,000, in items 4000-0700 and 4000-1426
+# of section 2 of chapter 126 of the acts of 2022 shall not revert … until September 1, 2023"
+NOT_REVERT_RE = re.compile(
+    rf"\bunexpended balances?\b[^.]*?\bin {ITEMS_RE.pattern}(?P<where>[^.]*?)"
+    rf"\bshall not revert\b[^.]*?\buntil (?P<new>{DATE})"
+)
 AVAILABLE_UNTIL_RE = re.compile(
     rf"(?:inserting|adding)\b.*?the following words?:-.*?available\s+(?:until|through)\s+"
     rf"(?P<new>{DATE})"
@@ -89,7 +99,19 @@ TRANSFER_RE = re.compile(
     r"\$\s*(?P<amount>[\d,]+)\s+from\s+"
     r"(?P<tail>.*)"
 )
+# "the comptroller shall transfer from the General Fund to the Health Safety Net Trust Fund
+# established in … the greater of $45,000,000 or 1/12 of …" (2023-28 §95)
+TRANSFER_FROM_RE = re.compile(
+    r"\btransfer\s+from\s+(?P<source>[^$]+?)\s+to\s+(?P<dest>[^$]{0,300}?),?\s+"
+    r"(?P<qual>the greater of |the lesser of |up to |not more than |not less than )?"
+    r"\$\s*(?P<amount>[\d,]+)"
+)
 FUND_RE = re.compile(r"\bfrom the ((?:[A-Z][\w’'&.-]*\s+)+?Fund)\b")
+# A fund named as a transfer's source, even in lowercase: "the federal COVID-19 response fund"
+FUND_NAME_RE = re.compile(
+    r"\bthe ((?:(?!(?:the|of|in|or|and|to|from|by|for|established|section|chapter|item)\b)"
+    r"[\w’'&.-]+ ){0,6}?[Ff]und)\b"
+)
 MONEY_RE = re.compile(r"\$\s*\d")
 ITEM_OR_APPROP_RE = re.compile(rf"\bitems?\s+{ITEM}|appropriat", re.I)
 # Printed just before what it is about: "The Governor disapproved of the following section, …",
@@ -221,14 +243,18 @@ def _amendment_actions(
 
     action: dict[str, Any]
     if m := FIGURE_RE.search(predicate):
-        # "both times it appears", "in line 7", "in each instance": an earmark inside the text,
-        # not necessarily the item's appropriation; combine's struck-figure check confirms it.
-        qualified = m["line"] or m["each"] or m["where"].strip(" ,")
+        # "Both times it appears … in each instance" is usually a retained-revenue item, whose
+        # spending ceiling and amount are the same figure (2023-77 §81, Q19). "In line 7" or
+        # "the second time it appears" may be an earmark in the text, so it stays low;
+        # combine's struck-figure check confirms either way.
+        where = m["where"].strip(" ,")
+        everywhere = re.fullmatch(r"(?:both times|each time) it appears", where)
+        partial = m["line"] or (where and not everywhere)
         action = {
             "action_type": "figure_change",
             "old_figure": _int(m["old"]),
             "new_figure": _int(m["new"]),
-            "confidence": "low" if qualified else "high",
+            "confidence": "low" if partial else "high",
         }
     elif m := YEAR_FIGURE_RE.search(predicate):
         action = {"action_type": "date_extend", "old_date": m["old"], "new_date": m["new"]}
@@ -237,6 +263,14 @@ def _amendment_actions(
             "action_type": "date_extend",
             "old_date": _iso(m["old"]),
             "new_date": _iso(m["new"]),
+        }
+    elif m := MONTH_DAY_RE.search(predicate):
+        # no year in the law's words; it is in the target item's text
+        action = {
+            "action_type": "date_extend",
+            "old_date": m["old"],
+            "new_date": m["new"],
+            "confidence": "medium",
         }
     elif m := AVAILABLE_UNTIL_RE.search(predicate):
         action = {"action_type": "date_extend", "new_date": _iso(m["new"])}
@@ -251,10 +285,31 @@ def _amendment_actions(
     return [{**action, "target_item": i} for i in items]
 
 
-def _sentence_actions(law_key: str, section: str, full: str) -> list[dict[str, Any]]:
-    """Direct appropriations and transfers in a section that does not amend another law."""
+def _sentence_actions(
+    law_key: str, section: str, full: str, chapters: dict[str, str]
+) -> list[dict[str, Any]]:
+    """Direct appropriations, transfers and non-reversions in a section that does not amend
+    another law."""
     actions = []
     for sentence in re.split(r"(?<=\.)\s+(?=[A-Z])", full):
+        for m in NOT_REVERT_RE.finditer(sentence):
+            ch = CHAPTER_RE.search(m["where"])
+            law = _chapter_law(ch, chapters) if ch else law_key
+            sec = re.search(r"\bsection\s+(\d+[A-Z]*)\b", m["where"])
+            if law is None or law == "GL":
+                continue
+            actions += [
+                {
+                    "action_type": "date_extend",
+                    "target_law_key": law,
+                    "target_section": sec[1] if sec else None,
+                    "target_item": i,
+                    "new_date": _iso(m["new"]),
+                    # often only part of the balance ("not exceeding a total of $40,000,000")
+                    "confidence": "medium",
+                }
+                for i in re.findall(ITEM, m[1])
+            ]
         item = re.search(rf"\bitem\s+({ITEM})", sentence)
         fund = FUND_RE.search(sentence)
         for m in DIRECT_RE.finditer(sentence):
@@ -269,17 +324,39 @@ def _sentence_actions(law_key: str, section: str, full: str) -> list[dict[str, A
                 }
             )
         for m in TRANSFER_RE.finditer(sentence):
-            from_item = re.match(rf"items?\s+({ITEM})", m["tail"])
-            to_item = re.search(rf"\bto\s+items?\s+({ITEM})", m["tail"])
+            # the source is everything before the first "to": "the prescription advantage
+            # program in line-item 9110-1455 … and the Health Safety Net Trust Fund … to support"
+            source = re.split(r"\bto\b", m["tail"], maxsplit=1)[0]
+            from_item = re.search(rf"\bitems?\s+({ITEM})", source)
+            to_item = re.search(rf"\bto\s+(?:line-)?items?\s+({ITEM})", m["tail"])
+            funds = list(dict.fromkeys(FUND_NAME_RE.findall(source)))
             actions.append(
                 {
                     "action_type": "transfer",
                     "amount": _int(m["amount"]),
                     "from_item": from_item[1] if from_item else None,
                     "to_item": to_item[1] if to_item else None,
-                    "fund_raw": fund[1] if fund else None,
+                    "fund_raw": "; ".join(funds) or None,
                     # fund-to-fund transfers carry no items; a human should confirm them
                     "confidence": "high" if from_item and to_item else "medium",
+                }
+            )
+        for m in TRANSFER_FROM_RE.finditer(sentence):
+            from_item = re.search(rf"\bitems?\s+({ITEM})", m["source"])
+            to_item = re.search(rf"\bitems?\s+({ITEM})", m["dest"])
+            funds = list(dict.fromkeys(FUND_NAME_RE.findall(m["source"])))
+            # "the greater of $45,000,000 or 1/12 of …": the stated figure is only a bound
+            bound = m["qual"] in ("the greater of ", "the lesser of ")
+            actions.append(
+                {
+                    "action_type": "transfer",
+                    "amount": _int(m["amount"]),
+                    "from_item": from_item[1] if from_item else None,
+                    "to_item": to_item[1] if to_item else None,
+                    "fund_raw": "; ".join(funds) or None,
+                    "confidence": "low"
+                    if bound
+                    else ("high" if from_item and to_item else "medium"),
                 }
             )
     return actions
@@ -304,23 +381,39 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
         target = None
         body = SECTION_START_RE.sub("", keyed[0], count=1)
         m = None if body.startswith("Notwithstanding") else AMENDED_RE.match(body)
+        rest, nested = keyed[1:], False
+        # An amendment of an amendment (2023-77 §56): "Said chapter 102 is hereby further amended
+        # by striking out section 67 … and inserting in place thereof the following section:-
+        # Section 67. Item 8200-0200 of said section 2 of said chapter 24 is hereby amended …".
+        # Read the inner amendment; its "said" references belong to the earlier law, so a human
+        # confirms the result.
+        if m and rest and re.search(r"the following section:-\s*$", m["predicate"]):
+            inner = re.match(r"Section\s+\d+[A-Z]*\.\s*(.*)$", rest[0], re.S)
+            if inner and (inner_m := AMENDED_RE.match(inner[1])):
+                m, rest, nested = inner_m, rest[1:], True
         if m:
             target = _resolve(AS_AMENDED_RE.sub("", m["subject"]), law_key, chapters, last)
             if target is None:
                 reason = "could not tell which law this section amends"
             elif target[0] != "GL":
                 predicate = AS_AMENDED_RE.sub("", m["predicate"])
-                found = _amendment_actions(predicate, target[2], keyed[1:])
+                found = _amendment_actions(predicate, target[2], rest)
                 if found is None:
                     reason = "changes a line item in a way no pattern recognises"
                 else:
                     actions = [
-                        {"target_law_key": target[0], "target_section": target[1], **a}
+                        {
+                            "target_law_key": target[0],
+                            "target_section": target[1],
+                            **a,
+                            **({"confidence": "low"} if nested else {}),
+                        }
                         for a in found
                     ]
-                last = {"law": target[0], "section": target[1]}
+                if not nested:
+                    last = {"law": target[0], "section": target[1]}
         else:
-            actions = _sentence_actions(law_key, section, full)
+            actions = _sentence_actions(law_key, section, full, chapters)
 
         general_laws = target is not None and target[0] == "GL"
         if not actions and not reason and not general_laws:

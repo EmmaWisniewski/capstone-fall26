@@ -380,10 +380,10 @@ The same columns for both. `read_items` (B) writes `items_raw.csv` for supplemen
 | `action_type` | `figure_change`, `item_insert`, `item_strike`, `item_replace`, `text_insert`, `text_strike`, `date_extend`, `purpose_change`, `transfer`, `direct_appropriation` |
 | `target_law_key`, `target_section`, `target_item` | e.g. `2023-28`, `2`, `2330-0100`. "Said …" references resolved. |
 | `old_figure`, `new_figure` | ints, where applicable |
-| `old_date`, `new_date` | for `date_extend` |
+| `old_date`, `new_date` | for `date_extend`: an ISO date (`2024-06-30`), a year (`2024`) when the law changes only a year, or month and day as written (`November 30`) when the law gives no year |
 | `amount` | for `direct_appropriation` (including interim budgets) or `transfer` |
 | `from_item`, `to_item` | for `transfer` |
-| `fund_raw` | fund named, if any |
+| `fund_raw` | fund named, if any, as written in the law; for a `transfer`, the source funds, separated by `; ` |
 | `source_text` | verbatim section text |
 | `reader_version`, `confidence` | |
 
@@ -598,11 +598,15 @@ Resolve "said item … of said section 2 of said chapter 28" by carrying the las
 | Figure decrease | the same with a smaller new figure | `RED` (negative) |
 | Several items in one section | "items 1234-5678 and 2345-6789 … are hereby amended" | one action per item |
 | Date extension | 2023-77 §41: *Item 7008-1117 of section 2A of chapter 142 of the acts of 2019 is hereby amended by striking out the figure "2023" … inserting … 2024* | `date_extend` → `REAUTH` |
+| Date with no year | 2023-77 §49: *…striking out the words "July 1" and inserting in place thereof the following words:- November 30.* The year is in the target item's text | `date_extend` → `REAUTH`, dates as written, `medium` confidence |
+| Non-reversion | 2023-77 §214: *any unexpended balances, not exceeding a total of $40,000,000, in items 4000-0700 and 4000-1426 of section 2 of chapter 126 of the acts of 2022 shall not revert … until September 1, 2023* | `date_extend` per item → `REAUTH`, `medium` confidence (often only part of the balance) |
 | Whole-item replacement | 2021-35 §1: *Section 2A of chapter 5 of the acts of 2019 is hereby amended by striking out item 8100-1014 … and inserting in place thereof the following item:-* | `item_replace`; delta = new − running amount of the target |
 | Item insertion | "…is hereby amended by inserting after item X the following item:-" | `item_insert` → `NEW` |
 | Item strike | "…by striking out item X" | `item_strike` → `RED` by the running amount |
 | Text-only change | 2023-77 §179: inserting proviso words | `text_insert` → `PURP` with no amount, or ignore if trivial |
 | Transfer | "the comptroller shall transfer $X from item A to item B" | `transfer` → `XFER` |
+| Transfer, other word order | 2023-28 §95: *the comptroller shall transfer from the General Fund to the Health Safety Net Trust Fund … the greater of $45,000,000 or 1/12 of …* | `transfer` → `XFER`; `low` confidence when the figure is only a bound ("the greater of", "the lesser of") |
+| Amendment of an amendment | 2023-77 §56: *Said chapter 102 is hereby further amended by striking out section 67 … and inserting in place thereof the following section:- Section 67. Item 8200-0200 of said section 2 of said chapter 24 is hereby amended …* | read the inner amendment, `low` confidence (its "said" references belong to the earlier law) |
 | Direct appropriation | "the sum of $X is hereby appropriated…" in an outside section or policy act | `direct_appropriation` → `NEW` |
 | Interim lump sum | 2023-15 §1: *the amount of $6,660,000,000 is hereby appropriated for the fiscal year ending June 30, 2024…* | `direct_appropriation` in an interim law → `INT` (read by code, not typed) |
 | Bond-on-bond amendment | a bond act amending an earlier bond act's item | `figure_change` on `CAP` |
@@ -816,7 +820,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
 | Q17 | **Inserted "available until" wording** (C): an amendment that inserts words like "funds made available until June 30, 2024" into an item is recorded as a `date_extend` (→ `REAUTH`). Is that right, or is it a text-only change? | group | `date_extend` |
 | Q18 | **Fund-to-fund transfers** (C): money moved between funds, with no line item on either side, is recorded as a `transfer` (→ `XFER`) with `medium` confidence. Is that right? | group | `transfer`, `medium` confidence |
-| Q19 | **Earmark figure changes** (C): a figure changed inside an item's text ("both times it appears", "in line 7"), as in 2023-77 §81, may be an earmark rather than the item's total. It is recorded as a `figure_change` with `low` confidence, and the struck-figure check (§13.3) decides. Is that right? | group | `figure_change`, `low` confidence |
+| Q19 | **Earmark figure changes** (C): a figure changed inside an item's text ("both times it appears", "in line 7"), as in 2023-77 §81, may be an earmark rather than the item's total. It is recorded as a `figure_change` with `low` confidence, and the struck-figure check (§13.3) decides. Is that right? *(Partly answered 2026-11-04 by C, Emily H.: §81 is not an earmark. Item 3000-7040 is a retained-revenue item whose ceiling and amount are both $320,000 in the FY2023 GAA, so "both times it appears" / "in each instance" now gets `high` confidence. Still open: other qualifiers such as "in line 7" or "the second time it appears".)* | group | "both times" / "in each instance": `high`; other qualifiers: `low` |
 | Q20 | **Where unread-report explanations go:** `validate` (§13.6) requires every row of `reports/unread_*.csv` to be explained, but reports are generated and must not be hand-edited. Where does a person write the explanation? | group (E owns `validate`) | not decided; on real data, `validate` will flag every unread row until this is settled |
 | Q21 | **Vetoed outside sections** (C): a section with struck text or a "Governor disapproved" note, such as 2023-28 §100 (a $205,000,000 transfer), is still read, with `low` confidence, and listed in `unread_sections.csv` (§11.3). Is flagging enough, should vetoed sections be dropped, or should `amendments_raw` get a veto column (a §7.4 change)? | group (C + E) | keep the rows, `low` confidence, listed for review |
 
@@ -871,7 +875,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M0: law samples and expected rows | B, C | ◐ in progress | six §15 sample laws committed; `expected/example_rows.csv` for EX-001…004; expected rows for other samples still to write (C) |
 | B: `paragraphs.py` (shared paragraph format, §7.2) | B | ◐ in review | branch `b/paragraphs`; tested on all six samples. `para_idx` is 0-based over non-empty paragraphs; a veto note before `<br>` is its own paragraph; a table row is one paragraph, cells joined by ` \| `. Two item IDs in 2024-140 are followed by a typo `v` (`4125-0122vFor`), so readers must not require a space after an ID |
 | B: `read_items` | B | ☐ todo | after `paragraphs.py` is merged |
-| C: `read_amendments` (§11.3) | C | ◐ in review | branch `c/read-amendments`; uses B's `paragraphs.py`; 14 tests on the samples. On the six samples: 169 rows and 13 unread sections (12 unmatched, plus 2023-28 §100, which looks vetoed). Open: Q17–Q21 |
+| C: `read_amendments` (§11.3) | C | ◐ in review | branch `c/read-amendments`; uses B's `paragraphs.py`; 20 tests on the samples. On the six samples: 174 rows and 9 unread sections (8 unmatched that need no row, plus 2023-28 §100, which looks vetoed). Every row checked against the law text, with Emily H. deciding the unclear ones (2026-11-04); the resulting fixes are in reader 0.3.0. Open: Q17–Q21 |
 | C: running amounts table and struck-figure check | C | ☐ todo | needs `combine` and the CTHRU sample (§13.3) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
