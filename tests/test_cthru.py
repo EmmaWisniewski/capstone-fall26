@@ -34,7 +34,7 @@ def test_vetoed_items_show_final_amounts(cthru_rows):
     assert cthru_rows["2024", "4000-0700"]["original_enacted"] == "3601016357"
     assert cthru_rows["2024", "7061-0012"]["original_enacted"] == "498972361"
     assert cthru_rows["2024", "3000-1042"]["original_enacted"] == "35000000"
-    assert cthru_rows["2024", "1231-1000"]["original_enacted"] == "1500000"  # known mismatch
+    assert cthru_rows["2024", "1231-1000"]["original_enacted"] == "1500000"  # law prints the same
 
 
 def test_department_is_the_one_holding_the_money(cthru_rows):
@@ -50,7 +50,7 @@ def test_department_is_the_one_holding_the_money(cthru_rows):
 
 def test_retained_revenue_kept_and_empty_accounts_dropped(cthru_rows):
     assert cthru_rows["2024", "0511-0003"]["retained_revenue_ceiling"] == "16000"
-    # §2B ISF account: $0 in CTHRU, so not a row
+    # §2B ISF account with no money at all that year, so not a row (most ISF accounts have caps)
     assert ("2024", "0321-2215") not in cthru_rows
 
 

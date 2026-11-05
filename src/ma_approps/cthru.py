@@ -9,8 +9,10 @@ one row per fiscal year x account. A snapshot already saved today is reused, not
 
 CTHRU has many rows per account per year, one per department and fund, mostly zeros (§3.4). The
 amounts are summed over all of them; the department is the one holding the most enacted money.
-CTHRU covers budgeted funds only: no bond-funded capital, no §2D federal grants, and §2B ISF
-accounts show $0. All CTHRU-specific code lives in this file, so a format change is a one-file fix.
+CTHRU covers budgeted funds only: no bond-funded capital and no §2D federal grants. §2B ISF
+chargebacks (fund 0015) show $0 enacted but non-zero fee-revenue caps. Fee-revenue items that
+CTHRU records only as an estimate are left out; combine takes those from the law text. All
+CTHRU-specific code lives in this file, so a format change is a one-file fix.
 """
 
 from __future__ import annotations
