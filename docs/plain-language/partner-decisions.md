@@ -4,22 +4,20 @@
 open questions in [DESIGN §19](../DESIGN.md#19-open-questions); if the two disagree, §19 is
 correct. When the partner answers a question, record the answer in the
 [Decision Log (§20)](../DESIGN.md#20-decision-log) and update this page. Last updated
-2026-11-03.*
+2026-11-04.*
 
 For each question: the question, why it matters, and what the program does until we hear back.
 None of these block our work, because the program uses a sensible default for now. But each
 answer changes what the final dataset says.
 
-### 1. How should federal money be treated? (§19 Q1)
-**The question:** Some of the money in state laws comes from the federal government, such as
-COVID relief or federal grants. Should we include it, leave it out, or count it separately? And
-what about state programs the federal government later pays back, like MassHealth? Does that count
-as federal money?
-
-**Why it matters:** It can change the totals by billions of dollars.
-
-**For now:** we keep federal money in the dataset but mark it, and leave it out of the main
-totals.
+### 1. How should federal money be treated? (§19 Q1) **Decided**
+**The answer:** Keep federal money in the dataset, mark it as federal, and leave it out of total
+spending. Only money that comes from federal sources is marked: federal grants, COVID relief
+(ARPA and the CARES Coronavirus Relief Fund), and two state trust funds that were filled with ARPA
+money. State surplus money counts as state money. Under this rule, programs the federal government
+later pays back, like MassHealth, count as state money, because the state pays for them from its
+General Fund. Our partner decided this, and the group confirmed it. Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-02.
 
 ### 2. What counts as "new money"? (Q2) **Decided**
 **The answer:** When money is moved into a special fund and spent from it later, it counts once,
@@ -34,9 +32,13 @@ previously funded if it had money in the immediately preceding budget year, and 
 even if it was funded in some earlier year. Our partner decided this. Recorded in the
 [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
 
+**Decided:** **"One-time or recurring?"**: recurring means funded in at least 2 budgets in a row.
+A program's first year counts if the next year's budget funds it again. Our partner decided this.
+Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-02.
+
 **Still open:**
-- **"One-time or recurring?":** how do we tell which is which?
 - **"New money or re-using existing money?"**
+- **Is money a supplemental budget adds to a recurring item recurring or one-time?**
 - **When to answer "Unknown"** for "previously funded?", for example when a program seems to have
   been given a new item number.
 - **One example row looks inconsistent:** it says "Unknown" for a program that state records
