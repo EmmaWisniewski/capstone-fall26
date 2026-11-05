@@ -1,1 +1,154 @@
 department_code,department_name,policy_area,mixed,decided_by,decided_on,note
+AGO,ATTORNEY GENERAL OFFICE,Courts and legal services,false,Emily R.,2026-11-01,"Prosecution and civil litigation office. Wage enforcement, consumer protection and Medicaid fraud lines can be moved in the line-item list if needed."
+AGR,DEPARTMENT of AGRICULTURAL RESOURCES,Environment and natural resources,false,Emily R.,2026-11-01,
+ALA,ADMINISTRATIVE LAW APPEALS DIVISION,Government administration and oversight,false,Emily R.,2026-11-01,Hearings on appeals of state agency decisions; part of state government's own process.
+ANF,EXECUTIVE OFFICE for ADMINISTRATION and FINANCE,,true,Emily R.,2026-11-01,A&F reserves (1599-xxxx) span every area; decide per item. Reserves should be label_every_year in the catalog.
+APC,APPEALS COURT,Courts and legal services,false,Emily R.,2026-11-01,
+ART,MASS CULTURAL COUNCIL,"Arts, culture, and recreation",false,Emily R.,2026-11-01,
+ATB,APPELLATE TAX BOARD,Government administration and oversight,false,Emily R.,2026-11-01,Tax appeals.
+BBE,BOARD OF BAR EXAMINERS,Courts and legal services,false,Emily R.,2026-11-01,
+BCC,BERKSHIRE COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+BER,BERKSHIRE DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+BHC,BUNKER HILL COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+BLC,BOARD OF LIBRARY COMMISSIONERS,"Arts, culture, and recreation",false,Emily R.,2026-11-01,Libraries.
+BRC,BRISTOL COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+BRI,BRISTOL DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+BSB,BUREAU OF STATE BUILDINGS,Government administration and oversight,false,Emily R.,2026-11-01,
+BSC,BRIDGEWATER STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+BSD,SHERIFF DEPARTMENT BRISTOL,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+CAD,COMMISSION AGAINST DISCRIMINATION,Courts and legal services,false,Emily R.,2026-11-02,Civil rights enforcement; fits civil legal remedies under Courts and legal services (Emma's review suggestion on PR #9).
+CCC,CAPE COD COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+CDA,EMERGENCY MANAGEMENT AGENCY,Public safety and corrections,false,Emily R.,2026-11-01,MEMA (emergency management).
+CHE,VETERANS' HOME IN CHELSEA,Veterans’ services,false,Emily R.,2026-11-01,
+CHS,CRIMINAL JUSTICE INFORMATION SERVICES DEPARTMENT,Public safety and corrections,false,Emily R.,2026-11-01,
+CJC,COMMISSION ON JUDICIAL CONDUCT,Courts and legal services,false,Emily R.,2026-11-01,
+CJT,Municipal Police Training Committee,Public safety and corrections,false,Emily R.,2026-11-01,
+CME,CHIEF MEDICAL EXAMINER,Public safety and corrections,false,Emily R.,2026-11-01,Death investigations support police and prosecutors.
+CNB,CANNABIS CONTROL COMMISSION,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+CPC,COMMITTEE FOR PUBLIC COUNSEL SERVICES,Courts and legal services,false,Emily R.,2026-11-01,Public defense.
+CPF,CAMPAIGN & POLITICAL FINANCE,Government administration and oversight,false,Emily R.,2026-11-01,
+CPI,CAPE & ISLANDS DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+CSC,CIVIL SERVICE COMMISSION,Government administration and oversight,false,Emily R.,2026-11-01,
+CSW,COMMISSION ON STATUS OF WOMEN,Government administration and oversight,false,Emily R.,2026-11-01,
+CTR,OFFICE OF THE COMPTROLLER,,true,Emily R.,2026-11-01,"Comptroller accounting entities: transfers to MassHealth, Retiree Benefits Trust, MBTA/RTAs, deficiency reserves."
+DAA,DISTRICT ATTORNEY ASSOCIATION,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+DAC,Commission for the Protection of Persons with Disabilities,Public safety and corrections,false,Emily R.,2026-11-01,Investigates abuse and neglect of adults with disabilities; counted as an investigative agency. Formerly Disabled Persons Protection Commission.
+DCP,CAPITAL ASSET MANAGEMENT and MAINTENANCE DIVISION,Government administration and oversight,false,Emily R.,2026-11-01,Shared facilities (DCAMM).
+DCR,DEPARTMENT CONSERVATION AND RECREATION,,true,Emily R.,2026-11-01,"Parks and recreation = Arts, culture, and recreation; watershed, beaches, dams, stormwater = Environment; parkway snow and ice = Transportation."
+DFS,DEPARTMENT OF FIRE SERVICES,Public safety and corrections,false,Emily R.,2026-11-01,
+DMH,DEPARTMENT OF MENTAL HEALTH,Health and public health,false,Emily R.,2026-11-01,
+DMR,DEPARTMENT OF DEVELOPMENTAL SERVICES,Human services and income support,false,Emily R.,2026-11-01,Department of Developmental Services (disability services).
+DOB,DIVISION OF BANKS,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+DOC,DEPARTMENT OF CORRECTION,Public safety and corrections,false,Emily R.,2026-11-01,
+DOE,DEPARTMENT OF ELEMENTARY & SECONDARY EDUCATION,Education,false,Emily R.,2026-11-01,
+DOI,DIVISION OF INSURANCE,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+DOR,DEPARTMENT OF REVENUE,,true,Emily R.,2026-11-01,Unrestricted local aid (1233-2350) = General local aid; child support (1201-0160) = Children and families; tax administration = Government administration.
+DOS,DIVISION OF STANDARDS,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+DOT,MASSACHUSETTS DEPARTMENT OF TRANSPORTATION,Transportation,false,Emily R.,2026-11-01,
+DPH,DEPARTMENT OF PUBLIC HEALTH,Health and public health,false,Emily R.,2026-11-01,
+DPU,DEPARTMENT OF PUBLIC UTILITIES,Government administration and oversight,false,Emily R.,2026-11-01,Utility regulation counted as general regulation.
+DSS,DEPARTMENT OF CHILDREN AND FAMILIES,Children and families,false,Emily R.,2026-11-01,Department of Children and Families.
+DYS,DEPARTMENT OF YOUTH SERVICES,Public safety and corrections,false,Emily R.,2026-11-01,Juvenile justice counted as a correctional program.
+EAS,EASTERN DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+EDU,EXECUTIVE OFFICE OF EDUCATION,Education,false,Emily R.,2026-11-01,
+EEC,DEPARTMENT OF EARLY EDUCATION & CARE,Education,false,Emily R.,2026-11-01,Early education and child care.
+EED,EXECUTIVE OFFICE OF ECONOMIC DEVELOPMENT,Economic development and workforce,false,Emily R.,2026-11-01,"Includes Community Action Agency grants (7002-0025), which could be Human services, and tourism programs (Economic development)."
+EHS,EXECUTIVE OFFICE OF HEALTH and HUMAN SERVICES,,true,Emily R.,2026-11-01,EOHHS umbrella: MassHealth (4000-xxxx) = Health; other umbrella items vary.
+ELD,DEPARTMENT OF ELDER AFFAIRS,Human services and income support,false,Emily R.,2026-11-01,Aging services.
+ENE,DEPARTMENT OF ENERGY RESOURCES,Environment and natural resources,false,Emily R.,2026-11-01,
+ENV,EXECUTIVE OFFICE OF ENVIRONMENTAL AFFAIRS,Environment and natural resources,false,Emily R.,2026-11-01,
+EOL,Executive Office of Labor and Workforce Development,Economic development and workforce,false,Emily R.,2026-11-01,
+EPS,EXECUTIVE OFFICE OF PUBLIC SAFETY & HOMELAND SECURITY,Public safety and corrections,false,Emily R.,2026-11-01,
+EQE,DEPARTMENT OF ENVIRONMENTAL PROTECTION,Environment and natural resources,false,Emily R.,2026-11-01,
+ETH,STATE ETHICS COMMISSION,Government administration and oversight,false,Emily R.,2026-11-01,
+FRC,FRAMINGHAM STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+FSC,FITCHBURG STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+FWE,DEPARTMENT OF FISH AND GAME,Environment and natural resources,false,Emily R.,2026-11-01,
+GCC,GREENFIELD COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+GIC,GROUP INSURANCE COMMISSION,Public employee pensions and benefits,false,Emily R.,2026-11-01,Employee and retiree health insurance.
+GOV,GOVERNORS OFFICE,Government administration and oversight,false,Emily R.,2026-11-01,Exception: Office of the Climate Chief (0411-1020) = Environment.
+HCC,HOLYOKE COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+HCF,CENTER FOR HEALTH INFORMATION & ANALYSIS,Health and public health,false,Emily R.,2026-11-01,
+HLY,VETERANS' HOME IN HOLYOKE,Veterans’ services,false,Emily R.,2026-11-01,
+HOU,HOUSE OF REPRESENTATIVES,Government administration and oversight,false,Emily R.,2026-11-01,Exception: 9600-0001 (early education and care commission) may belong elsewhere.
+HPC,HEALTH POLICY COMMISSION,Health and public health,false,Emily R.,2026-11-01,
+HRD,HUMAN RESOURCES DIVISION,,true,Emily R.,2026-11-01,Workers' comp and health & welfare contributions = Public employee pensions and benefits; HR and civil service = Government administration.
+HSD,SHERIFF DEPARTMENT HAMPSHIRE,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+IGO,OFFICE OF INSPECTOR GENERAL,Government administration and oversight,false,Emily R.,2026-11-01,
+ITD,EXECUTIVE OFFICE OF TECHNOLOGY SERVICES AND SECURITY,Government administration and oversight,false,Emily R.,2026-11-01,Shared technology.
+LEG,JOINT LEGISLATIVE EXPENDITURES,Government administration and oversight,false,Emily R.,2026-11-01,
+LIB,GEORGE FINGOLD LIBRARY,"Arts, culture, and recreation",false,Emily R.,2026-11-01,"State Library; libraries are listed under Arts, culture, and recreation."
+LOT,LOTTERY AND GAMING COMMISSION,Government administration and oversight,false,Emily R.,2026-11-01,"Cost of running the Lottery, treated as revenue administration."
+MAS,MASSASOIT COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+MBC,MASS BAY COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+MCA,MASSACHUSETTS COLLEGE OF ART AND DESIGN,Education,false,Emily R.,2026-11-01,Public higher education campus.
+MCB,MASS COMMISSION FOR THE BLIND,Human services and income support,false,Emily R.,2026-11-01,Disability services.
+MCC,MIDDLESEX COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+MCD,COMMISSION FOR THE DEAF AND HARD OF HEARING,Human services and income support,false,Emily R.,2026-11-01,Disability services.
+MGC,MASSACHUSETTS GAMING COMMISSION,General local aid,false,Emily R.,2026-11-01,Payments to cities and towns near casinos.
+MHL,MENTAL HEALTH LEGAL ADVISORS,Courts and legal services,false,Emily R.,2026-11-01,
+MID,WORCESTER (MIDDLE) DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+MIL,MILITARY DIVISION,Public safety and corrections,false,Emily R.,2026-11-01,National Guard.
+MMA,MASSACHUSETTS MARITIME ACADEMY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+MMP,MASSACHUSETTS MARKETING PARTNERSHIP,Economic development and workforce,false,Emily R.,2026-11-01,Includes Office of Travel and Tourism.
+MRC,MASS REHABILITATION COMMISSION,Human services and income support,false,Emily R.,2026-11-01,Disability services.
+MWC,MT WACHUSETT COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+NAC,MASSACHUSETTS COLLEGE OF LIBERAL ARTS,Education,false,Emily R.,2026-11-01,Public higher education campus.
+NEC,NORTHERN ESSEX COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+NFK,NORFOLK DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+NOR,MIDDLESEX (NORTHERN) DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+NSC,NORTH SHORE COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+NSD,SHERIFF DEPARTMENT NANTUCKET,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+NWD,NORTHWESTERN DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+OCA,OFFICE OF THE CHILD ADVOCATE,Children and families,false,Emily R.,2026-11-01,
+OCD,EXECUTIVE OFFICE OF HOUSING AND LIVABLE COMMUNITIES,Housing and homelessness,false,Emily R.,2026-11-01,EOHLC (housing). Formerly DHCD.
+OHA,MASSACHUSETTS OFFICE ON DISABILITY,Human services and income support,false,Emily R.,2026-11-01,Disability services.
+ORI,OFFICE FOR REFUGEES and IMMIGRANTS,Human services and income support,false,Emily R.,2026-11-01,"Includes immigration legal assistance (4003-0124), which could be Courts and legal services."
+OSC,OFFICE OF THE COMPTROLLER,Government administration and oversight,false,Emily R.,2026-11-01,
+OSD,DIVISION OF OPERATIONAL SERVICES,Government administration and oversight,false,Emily R.,2026-11-01,
+OVA,OFFICE OF THE VETERAN ADVOCATE,Veterans’ services,false,Emily R.,2026-11-01,
+PAR,PAROLE BOARD,Public safety and corrections,false,Emily R.,2026-11-01,
+PLY,PLYMOUTH DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+POL,DEPARTMENT OF STATE POLICE,Public safety and corrections,false,Emily R.,2026-11-01,
+PST,Massachusetts  Peace Officer Standards and Training,Public safety and corrections,false,Emily R.,2026-11-01,
+QCC,QUINSIGAMOND COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+RCC,ROXBURY COMMUNITY COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+REG,Division of Occupational Licensure,Government administration and oversight,false,Emily R.,2026-11-01,General regulation (occupational licensing).
+RGT,DEPARTMENT OF HIGHER EDUCATION,Education,false,Emily R.,2026-11-01,
+SAA,Commission on the Status of African Americans,Government administration and oversight,false,Emily R.,2026-11-01,
+SAO,STATE AUDITORS OFFICE,Government administration and oversight,false,Emily R.,2026-11-01,
+SBM,Commission on the Social Status of Black Men and Boys,Government administration and oversight,false,Emily R.,2026-11-01,
+SCA,OFFICE OF CONSUMER AFFAIRS AND BUSINESS REGULATION,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+SDA,SHERIFFS DEPARTMENT ASSOCIATION,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDB,SHERIFF DEPARTMENT BERKSHIRE,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDC,SHERIFF DEPARTMENT BARNSTABLE,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDD,SHERIFF DEPARTMENT DUKES,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDE,SHERIFF DEPARTMENT ESSEX,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDF,SHERIFF DEPARTMENT FRANKLIN,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDH,SHERIFF DEPARTMENT HAMPDEN,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDM,SHERIFF DEPARTMENT MIDDLESEX,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDN,SHERIFF DEPARTMENT NORFOLK,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDO,Supplier Diversity Office,Government administration and oversight,false,Emily R.,2026-11-01,
+SDP,SHERIFF DEPARTMENT PLYMOUTH,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDS,SHERIFF DEPARTMENT SUFFOLK,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SDW,SHERIFF DEPARTMENT WORCESTER,Public safety and corrections,false,Emily R.,2026-11-01,Sheriff.
+SEA,DEPARTMENT OF BUSINESS and TECHNOLOGY,Economic development and workforce,false,Emily R.,2026-11-01,"Exception: Commonwealth Zoological Corp. (7007-0952) = Arts, culture, and recreation."
+SEC,SECRETARY OF STATE,Government administration and oversight,false,Emily R.,2026-11-01,"Elections, registries of deeds, archives. Exception: Mass. Historical Commission (0526-0100) = Arts, culture, and recreation."
+SEN,SENATE,Government administration and oversight,false,Emily R.,2026-11-01,
+SJC,SUPREME JUDICIAL COURT,Courts and legal services,false,Emily R.,2026-11-01,
+SLL,Commission on the Status of Latinos and Latinas,Government administration and oversight,false,Emily R.,2026-11-01,
+SOR,SEX OFFENDER REGISTRY,Public safety and corrections,false,Emily R.,2026-11-01,
+SPD,Commission on the Status of Persons with Disabilities,Government administration and oversight,false,Emily R.,2026-11-01,Consistent with the other status commissions.
+SSA,SALEM STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+STC,SPRINGFIELD TECH COMM COLLEGE,Education,false,Emily R.,2026-11-01,Public higher education campus.
+SUF,SUFFOLK DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+TAC,DEPARTMENT of TELECOMMUNICATION and CABLE,Government administration and oversight,false,Emily R.,2026-11-01,General regulation.
+TRC,TRIAL COURT,Courts and legal services,false,Emily R.,2026-11-01,
+TRE,OFFICE OF THE STATE TREASURER,,true,Emily R.,2026-11-01,Debt service (0699-xxxx) = Debt service; ABCC = Government administration; Welcome Home bonus = Veterans' services.
+UMS,UNIVERSITY OF MASSACHUSETTS SYSTEM,Education,false,Emily R.,2026-11-01,
+VET,EXECUTIVE OFFICE OF VETERANS' SERVICES,Veterans’ services,false,Emily R.,2026-11-01,
+VWA,VICTIM and WITNESS ASSISTANCE BOARD,Courts and legal services,false,Emily R.,2026-11-01,Legal assistance for victims.
+WEL,DEPARTMENT OF TRANSITIONAL ASSISTANCE,Human services and income support,false,Emily R.,2026-11-01,Department of Transitional Assistance.
+WES,HAMPDEN DISTRICT ATTORNEY,Courts and legal services,false,Emily R.,2026-11-01,District attorney (prosecution).
+WOR,WORCESTER STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
+WSC,WESTFIELD STATE UNIVERSITY,Education,false,Emily R.,2026-11-01,Public higher education campus.
