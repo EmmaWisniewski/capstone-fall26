@@ -225,7 +225,7 @@ This is the candidate list produced during design research (2026-10-21) by scann
 - 2020-227 (FY2021 GAA).
 - FY2021 supplementals approved in 2020. A title scan at M0 found none (2020 ch. 201 is the FY2020 closeout; ch. 101, 131 and 198 are FY2021 interims). Discover's full-text scan should confirm this.
 - FY2026 supplementals approved in 2026: 2026-55 and 2026-101.
-- Any act named as an amendment target, such as 2019-5.
+- Any act named as an amendment target, such as 2019-5. Targets older than the Legislature's API (1993-52, 1993-494) are kept as text in `review/sources/`, marked `parse_strategy = manual`.
 
 ---
 
@@ -619,7 +619,7 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
   - 2022-176 item 6622-2214 ($25,501,000) against §48's $8,300,000. This item lacks that sentence, but allows spending on projects in the federal Infrastructure Investment and Jobs Act of 2021.
 
   Under the Q11 decision, these laws' capital totals therefore **include federally funded amounts**, which bears on Q1. **2024-139 §4** (items $1,455,000,000 against a limit of $1,055,000,000) is explained the same way. §3 creates a fund (new G.L. c. 29 §2EEEEEE) that is also credited with "federal financial participation revenues" claimed for eligible expenditures, and with interest. Amounts credited "shall be expended without further appropriation", so part of the items can be paid without borrowing. The law gives no dollar figure for those other sources. ✓ (found by Emma.) **So every gap between items and borrowing limits in the 16 laws is now explained** by vetoes, federal shares or other fund sources.
-- **Amendments to earlier bond laws** go to `read_amendments` (§11.3, "bond-on-bond amendment"). 2024-150 §60 replaces item 4000-8200 of 1993 ch. 52. ✓ That law would normally be listed as reference-only, but it predates the Legislature's API (the 1993 year list returns HTTP 400) and website, so its details and the item's original amount need another source. **Pending: Emma is raising it with the group.**
+- **Amendments to earlier bond laws** go to `read_amendments` (§11.3, "bond-on-bond amendment"). 2024-150 §60 replaces item 4000-8200 of 1993 ch. 52, and §61 changes the wording of item 3722-8899 of 1993 ch. 494. ✓ Both laws predate the Legislature's API (the 1993 year list returns HTTP 400) and website, so their text comes from the State Archives and is kept in `review/sources/`. They are listed as reference-only with `parse_strategy = manual`, which the `laws` stage doesn't download. Sources and the item histories are in `review/research_log.md` (Emma, 2026-11-04). 4000-8200 was also amended by 1993 ch. 494 §4 and 2002 ch. 244 §15–18 (listed as reference-only); none of these changed its $50,000,000.
 
 ### 11.3 Outside-section grammar (`read_amendments`)
 Resolve "said item … of said section 2 of said chapter 28" by carrying the last explicitly named law, section, and item forward through consecutive sections. Patterns to support, each with a sample:
