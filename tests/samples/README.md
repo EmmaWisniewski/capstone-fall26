@@ -21,3 +21,17 @@ stage. In that list response the `Year` field is the
 `expected/example_rows.csv` holds the parser- and combine-derived fields for EX-001…EX-004
 (DESIGN §17). Expected rows for the other sample laws are still to be written by
 workstreams B and C.
+
+`expected/bond_items.csv` and `expected/bond_authorizations.csv` hold the expected `read_bonds`
+output for the two bond samples (workstream A; DESIGN §11.2 "Bond laws"):
+- `bond_items.csv`: every capital-section item, with a subset of the `bond_items_raw` columns.
+  All 16 line items were hand-checked against the official text on malegislature.gov
+  (Emma, 2026-10-29).
+- `bond_authorizations.csv`: each borrowing-limit section and the capital sections it covers.
+  Its columns are a proposal: where to store it is DESIGN §19 Q11, and which details to keep is
+  Q12.
+
+`para_start`/`para_end` use the paragraph numbering of `paragraphs.py` (PR #6): 0-based, counting
+non-empty paragraphs. `tests/test_law_list_and_samples.py` checks that every ID and amount appears
+in the sample's text, and that the items add up to the borrowing limits, except for 2024-139 §4,
+whose items exceed it by $400,000,000.
