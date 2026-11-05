@@ -800,7 +800,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 
 ## 19. Open questions
 
-Keep this list current. When one is resolved, move it to the Decision Log.
+Keep this list current. When one is resolved, move it to the Decision Log. Numbers already used: Q1–Q18 on `main`, plus Q11–Q12 on `a/bond-expected-rows`, Q17 on `docs/partner-decisions` and Q19–Q23 on `c/read-amendments`; the next new question is Q24.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
@@ -813,7 +813,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
 | Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
-| Q18 | **Contact email** for the `laws` stage (`contact_email` in `config/settings.toml`): malegislature.gov asks for one, and it may become public record. One member's address, or a new project address? (Numbers in use on open branches: Q11–Q12 `a/bond-expected-rows`, Q17 `docs/partner-decisions`, Q19–Q23 `c/read-amendments`.) | group | blank; `laws` shouldn't download until it's set |
 
 ---
 
@@ -850,6 +849,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Struck wording (follows Q4):** when the governor strikes an item's wording and substitutes new wording, `item_text` keeps only the final wording, and `veto_kind_inline = reduced_and_wording` notes that it changed (§7.3, §11.2). This settles the "wording changes" part left open in the Q4 entry; how `veto_status` records a wording-only veto is still open. | Group; reported by Tierney. Follow-up: Tierney to ask George whether vetoed wording has research uses. |
+| 2026-11-04 | **Q18 resolved: the `laws` stage's contact email is Emma's Northeastern address**, set as `contact_email` in `config/settings.toml`. The repo is public, so the address is visible on GitHub; malegislature.gov also receives it with each request. | Group decision, reported by Emma. One member's address needs no new account; the group accepted that it is public. A future cohort should replace it with its own contact (§1). |
 
 ---
 
@@ -872,6 +872,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
+| Q18: `laws` contact email | group | ☑ resolved | Emma's Northeastern address, in `config/settings.toml` (recorded 2026-11-04) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |

@@ -186,5 +186,5 @@ that our goal doesn't need, or you're being asked to decide between two options 
 > **Say:** "Set up this repo for me following the Quickstart in README.md, and run the tests."
 
 That creates the `.venv` folder (the project's private copy of Python and its libraries), installs
-the project, and runs `pytest` and `validate`. Also set `contact_email` in
-`config/settings.toml` before anyone runs the `laws` stage (ask the group which address to use).
+the project, and runs `pytest` and `validate`. The contact email the `laws` stage sends to
+malegislature.gov is already set in `config/settings.toml` (the group chose it; DESIGN §20, Q18).
