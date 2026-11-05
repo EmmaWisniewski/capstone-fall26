@@ -833,7 +833,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 
 ## 19. Open questions
 
-Keep this list current. When one is resolved, move it to the Decision Log. Numbers already used: Q1–Q18 on `main`, plus Q11–Q12 on `a/bond-samples`, Q17 on `docs/partner-decisions` and Q19–Q23 on `c/read-amendments`; the next new question is Q24.
+Keep this list current. When one is resolved, move it to the Decision Log. Numbers already used: Q1–Q18 on `main`, plus Q11–Q12 on `a/bond-expected-rows`, Q17 on `docs/partner-decisions` and Q19–Q23 on `c/read-amendments`; the next new question is Q24.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
