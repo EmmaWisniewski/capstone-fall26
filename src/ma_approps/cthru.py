@@ -9,10 +9,31 @@ one row per fiscal year x account. A snapshot already saved today is reused, not
 
 CTHRU has many rows per account per year, one per department and fund, mostly zeros (§3.4). The
 amounts are summed over all of them; the department is the one holding the most enacted money.
-CTHRU covers budgeted funds only: no bond-funded capital and no §2D federal grants. §2B ISF
-chargebacks (fund 0015) show $0 enacted but non-zero fee-revenue caps. Fee-revenue items that
-CTHRU records only as an estimate are left out; combine takes those from the law text. All
-CTHRU-specific code lives in this file, so a format change is a one-file fix.
+All CTHRU-specific code lives in this file, so a format change is a one-file fix.
+
+Rules for anyone using cthru_line_items.csv:
+1. Fee-revenue items come from the law text. For some items that let an agency spend fees it
+   collects ("may expend not more than $X"), CTHRU records the amount only as an estimate, so
+   they have no row here. combine takes the printed amount from items_raw instead: about $285M a
+   year, e.g. 4000-0320 MassHealth recoveries, $225M.
+2. Chargebacks never count toward totals. Fund 0015 rows are §2B ISF chargebacks, one agency
+   paying another (e.g. for IT or workers' comp). They show $0 enacted but non-zero fee-revenue
+   caps, $632M-$704M a year; counting them would count the same money twice.
+3. Federal money is flagged, not counted. Rows in federal funds (is_federal in config/funds.csv,
+   e.g. fund 2005, the Federal COVID-19 Response Fund) are kept but left out of the main totals
+   (Q1). In FY2022 that is $4.5B of the $56.7B total enacted.
+
+Limitations:
+- Authorized amounts only, not actual spending (Q10).
+- Budgeted funds only: no bond-funded capital projects (read_bonds reads those from the law text)
+  and no §2D federal grants.
+- Totals per fiscal year, not per law: ``supplemental`` adds up every supplemental budget for that
+  year. Which law made each change comes from the law text.
+- No fund splits: each funded account sits in one fund in CTHRU, so splits come from the law text.
+- Some account names are cut short (1231-1000: "FOR THE RATE RELIEF COMPONENT OF THE").
+- CTHRU updates daily and can revise past years. The dated snapshot records what was used.
+- FY2025 lists only 12 chargeback accounts ($215M), against about 36 in earlier years. Not yet
+  explained; it doesn't change totals (rule 2).
 """
 
 from __future__ import annotations
@@ -176,7 +197,7 @@ def aggregate(rows: list[dict]) -> list[dict[str, str]]:
     out = []
     for (fy, account), group in sorted(by_account.items()):
         funded = [r for r in group if _has_money(r)]
-        if not funded:
+        if not funded:  # includes fee items CTHRU only estimates (rule 1 above)
             continue
         by_dept: dict[str, list[dict]] = defaultdict(list)
         for r in group:
@@ -189,6 +210,7 @@ def aggregate(rows: list[dict]) -> list[dict[str, str]]:
             "department_code": dept.get("department_code") or "",
             "department_name": dept.get("department_name") or "",
             "secretariat": dept.get("cabinet_secretariat_name") or "",
+            # 0015 = chargebacks, federal funds per config/funds.csv (rules 2 and 3 above)
             "fund_numbers": ";".join(sorted({r.get("fund_number") or "" for r in funded} - {""})),
         }
         for col, field in AMOUNT_FIELDS.items():
