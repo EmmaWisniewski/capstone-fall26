@@ -107,7 +107,7 @@ def check_schemas(ctx: Context) -> list[tuple[Path, Problem]]:
 def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
     """§13.6: unread reports must be empty or every row explained (an `explanation` column)."""
     found = []
-    for name in ("unread_paragraphs", "unread_sections"):
+    for name in ("unread_paragraphs", "unread_paragraphs_bonds", "unread_sections"):
         path = ctx.reports_dir / f"{name}.csv"
         if not path.exists():
             continue
