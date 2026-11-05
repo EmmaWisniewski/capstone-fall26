@@ -67,7 +67,7 @@ that haven't been written yet are skipped with a message.
 
 | # | Stage (file) | Its job, in plain words | Owner |
 |---|---|---|---|
-| 1 | `laws.py` | Finds each year's spending laws for humans to approve, and downloads their text (slowly and politely, saving a copy) | Emma (A) |
+| 1 | `laws.py` | Finds each year's spending laws for humans to approve, and downloads their text (slowly and politely, saving a copy). [Plain-language guide](plain-language/laws.md) | Emma (A) |
 | 2 | `cthru.py` | Downloads the Comptroller's budget data, saves a dated copy, and lists every line item per year with its amount and agency | Mario (E) |
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |

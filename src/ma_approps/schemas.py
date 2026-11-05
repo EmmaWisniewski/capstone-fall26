@@ -359,6 +359,15 @@ SCHEMAS["funds"] = _cols(
     "notes",
 )
 
+# §7.15 data/raw/manifest.csv (written by `laws`; one row per cached file)
+SCHEMAS["raw_manifest"] = _cols(
+    Col("path", required=True),
+    Col("source_url", required=True),
+    Col("sha256", required=True),
+    Col("bytes", "int", required=True),
+    Col("fetched_at", required=True),  # UTC, YYYY-MM-DDTHH:MM:SSZ
+)
+
 # §7.12 review/review_queue.csv: fixed leading columns, then free context columns
 REVIEW_QUEUE_LEADING = _cols(
     Col("record_id", required=True),
