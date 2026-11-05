@@ -588,7 +588,7 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
 - **Struck wording:** where the governor struck wording and substituted new wording (2210-0106 in FY2024), `item_text` keeps **only the final wording**. `veto_kind_inline = reduced_and_wording` records that the wording changed (group decision 2026-11-01).
 - **Retained revenue:** if the text contains `may expend … not more than $X` and there is no trailing amount, set `retained_revenue_ceiling` and leave `amount` null. `amount_kind` = `retained_revenue_ceiling`.
 - **Fund splits:** paragraphs like `General Fund…… 52.63%`, possibly several per paragraph separated by `<br>`. Attach them to the preceding item. Variants seen: no dotted leader (`Marijuana Regulation Fund 100%`), a fund name wrapped onto two lines, a split on the same line as the amount, and a missing `%` (`General Fund …… 80.32`, 2024-140). In all 31 law-list GAAs and supplementals, every item's splits add up to 100%.
-- **Unread:** any paragraph in an appropriation section that isn't consumed goes to `reports/unread_paragraphs.csv` (or `…_bonds.csv`). This file must be empty, or explained, before a law can be marked done.
+- **Unread:** any paragraph in an appropriation section that isn't consumed goes to `reports/unread_paragraphs.csv` (`unread_paragraphs_bonds.csv` for `read_bonds`). This file must be empty, or explained, before a law can be marked done.
 
 **Bond laws** (checked 2026-10-29 on samples 2024-139 and 2025-17, using `paragraphs.py` from PR #6). Expected output is in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv`.
 - **The state machine works unchanged for the items.** Every item is one paragraph that starts with its ID and ends with a dotted leader and amount. Headers follow the ALL-CAPS secretariat / Title-case agency pattern. Earmarks inside the text ("not less than $300,000 …") are skipped by the trailing-amount rule. Spacing before the `$` varies, which the end pattern already allows. The samples have no fund splits, veto markup or retained revenue. All 16 items in the two samples are found, and no capital-section paragraph is left unread.
@@ -610,7 +610,7 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
   - may be **special obligation bonds** paid from a named fund (2020-383 §36, 2021-9, 2022-176 §44).
 - **Vetoes appear in bond laws** and are read from the inline markup (CTHRU has no capital data, so these rows are flagged `veto_unverified`, §5.7):
   - **A reduction** shows the old amount crossed out before the new one. 2020-383 item 6621-2117: $400,000,000 → $370,000,000. The capital total uses **$370,000,000**. ✓
-  - **A pocket-vetoed item** is entirely crossed out under "Governor pocket vetoed the following item". 2020-383 items 6720-2127 ($250,000,000) and 6921-2110 ($25,000,000) **never became law and are left out of the capital total.** ✓
+  - **A pocket-vetoed item** is entirely crossed out under "Governor pocket vetoed the following item". 2020-383 items 6720-2127 ($250,000,000) and 6921-2110 ($25,000,000) **never became law and are left out of the capital total.** ✓ `read_bonds` keeps each as a row for the record, with `amount` blank, the printed amount in `amount_struck` and `veto_kind_inline = disapproved`.
   - Wording vetoes and section vetoes (2020-383, 2022-176) don't change amounts.
 - **Federal-aid items exceed their borrowing limits because the limit is the state's share.** These items may only be committed "based upon a prior or anticipated future commitment of federal funds and the availability of corresponding state funding", so the borrowing limit covers only the state's part. ✓ Cases:
   - 2020-383 item 6121-2114: $4,400,000,000 of items against a §32 limit of $880,000,000;
@@ -906,6 +906,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | B: `read_items` | B | ◐ in review | branch `b/read-items`. Reads supplemental, surplus, GAA and `other` laws (§11.2, incl. issue #12 headings). On all 31 such law-list laws in the local cache: 8,710 items, 0 low and 28 medium confidence (printed amount typos), 3 unread paragraphs, all misprinted item numbers (`340-1000` 2020-227, `911-1003` 2024-140, `4190-010` 2025-9). 17 hand-checked expected rows in `tests/samples/expected/items_raw_selected.csv`. Proposed, to agree with C and E: B reads §2CI/§2CII prior-appropriation lists (`combine` needs a `section_type` for them); C reads items inserted by outside sections, using `paragraphs.ITEM_START_RE` and `TRAILING_AMOUNT_RE`. For E: the FY2024 text prints 1231-1000 at $1,500,000, matching CTHRU; the $10,000,000 is the next item, 1232-0100. Tierney to ask George about uses for vetoed wording |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` output in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv` (2026-10-29; branch `a/bond-expected-rows`); all 16 line items hand-checked against the official text by Emma (2026-10-29); borrowing-limit format open (Q11, Q12) |
+| A: `read_bonds` (§11.2) | A | ◐ in review | branch `a/read-bonds`; reuses B's `read_items.read_law` and adds the pocket-veto rule. On all 15 downloaded bond laws: 181 items, 0 unread paragraphs, all high confidence; 2020-383 totals $16,229,698,500 after leaving out its 2 pocket-vetoed items, as in the survey. Not yet: borrowing limits and check 7 (wait on Q11/Q12), and 2023-2's capital §3–§3B (in a supplemental). 2026-11-05 |
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
@@ -913,7 +914,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
-| M4: bond bills | A | ☐ todo | |
+| M4: bond bills | A | ◐ in progress | `read_bonds` reads the items (in review); borrowing limits next, after Q11/Q12 |
 | M5: labels, review, release | D, all | ☐ todo | |
 | M6: runbook and 2026 re-run test | A | ☐ todo | |
 | Q1: federal treatment (OSA partner) | group | ☐ open | |
