@@ -1,7 +1,25 @@
 fund_name,fund_number,is_federal,notes
-General Fund,,false,Default fund for GAA section 2.
-General Federal Grants Fund,,true,GAA section 2D (§9.5).
-Federal COVID-19 Response Fund,,true,"ARPA (§9.5); e.g. 2021-102, 2022-268."
+General Fund,0010,false,Default fund for GAA section 2.
+Intragovernmental Service Fund,0015,false,"GAA section 2B chargebacks, which don't count toward totals (§10). CTHRU name: Intragovernmental Services Fund."
+Transitional Escrow Fund,0030,false,"State surplus, not federal (partner rule, Q1). Created by 2021-76; appropriated from in 2021-102 and 2025-1 §2A."
+Commonwealth Transportation Fund,0103,false,
+Darey Inland Fisheries and Game Fund,0114,false,CTHRU name: Inland Fisheries and Game Fund.
+Marine Recreational Fisheries Development Fund,0116,false,CTHRU name: Marine Recreational Fisheries Development Fd.
+Local Capital Projects Fund,1106,false,
+Gaming Economic Development Fund,1153,false,CTHRU name: Gaming Economic Devl Fund.
+Marijuana Regulation Fund,2001,false,
+Underground Storage Tank Petroleum Product Cleanup Fund,2003,false,
+"Behavioral Health Outreach, Access and Support Trust Fund",2004,false,"CTHRU name: Behavioral Health Outreach, Access and Support Trust."
+Federal COVID-19 Response Fund,2005,true,"ARPA (§9.5); e.g. 2021-102, 2022-268."
+Broadband Innovation Fund,2007,true,"Federal (ARPA): filled by $50M from 2021-102 item 1599-2045, which CTHRU books to the Federal COVID-19 Response Fund; appropriated out in 2022-268. Partner rule (Q1): flag ARPA money as federal."
+Behavioral Health Trust Fund,2013,true,"Federal (ARPA): created by 2021-102 §72 and filled by $198.65M from item 1599-2026, which CTHRU books to the Federal COVID-19 Response Fund. Partner rule (Q1): flag ARPA money as federal."
+Education and Transportation Fund,2017,false,"Fair Share surtax, GAA section 2F (FY2024+)."
+Education and Transportation Innovation and Capital Fund,2019,false,"Fair Share surtax, capital side (FY2026)."
+General Federal Grants Fund,,true,GAA section 2D (§9.5). Not in CTHRU's budgeted-fund data.
 Coronavirus Relief Fund,,true,CARES Act (§9.5).
-Education and Transportation Fund,,false,"Fair Share surtax, GAA section 2F (FY2024+)."
-Transitional Escrow Fund,,false,Created by 2021-76; appropriated from in 2025-1 §2A.
+Gaming Local Aid Fund,,false,Named in GAA fund-split lines; no separate CTHRU fund.
+Public Safety Training Fund,,false,Named in GAA fund-split lines; no separate CTHRU fund.
+High-Quality Early Education & Care Affordability Fund,,false,"Named in GAA fund-split lines, also written ""High-Quality EEC Affordability Fund""; no separate CTHRU fund."
+Early Education and Care Operational Grant Fund,,false,Named in GAA fund-split lines; no separate CTHRU fund.
+Student Opportunity Act Investment Fund,,false,Named in GAA fund-split lines; no separate CTHRU fund.
+Youth Development & Achievement Fund,,false,Named in GAA fund-split lines; no separate CTHRU fund.
