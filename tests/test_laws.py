@@ -61,9 +61,15 @@ def make_client(routes, offline=False, **http):
     return client, session, clock
 
 
-def entry(key, role="in_scope"):
+def entry(key, role="in_scope", parse_strategy="auto"):
     year, chapter = key.split("-")
-    return {"law_key": key, "acts_year": year, "chapter": chapter, "role": role}
+    return {
+        "law_key": key,
+        "acts_year": year,
+        "chapter": chapter,
+        "role": role,
+        "parse_strategy": parse_strategy,
+    }
 
 
 @pytest.fixture
@@ -129,10 +135,12 @@ def test_downloads_every_role_except_excluded():
         entry("2020-316", "tbd"),
         entry("2021-9", "excluded"),
         entry("2019-5", "reference_only"),
+        entry("1993-52", "reference_only", "manual"),  # older than the API; text kept by hand
     ]
     assert laws.laws_to_download(law_list) == ([(2023, "77"), (2020, "316"), (2019, "5")], [])
     assert laws.laws_to_download(law_list, law="2019-5") == ([(2019, "5")], [])
     assert laws.laws_to_download(law_list, law="2021-9")[1]  # excluded: reported, not fetched
+    assert laws.laws_to_download(law_list, law="1993-52")[1]  # manual: reported, not fetched
 
 
 def test_download_matches_sample_then_uses_cache(samples_dir, tmp_path, year_list):

@@ -3,11 +3,12 @@
 Owner: workstream A (Law list and bond bills).
 
 **Done: downloading.** For every law in config/law_list.csv except `excluded` ones (`tbd`
-candidates are downloaded so reviewers can read them), cache the chapter's JSON in
-``data/raw/sessionlaws/{acts_year}/{chapter}.json`` and record it in ``data/raw/manifest.csv``
-(§7.15). Chapters are split out of one ``/api/SessionLaws/{year}`` request per Acts volume, cached
-in ``data/raw/sessionlaws/_lists/{year}.json``. In that list the ``Year`` field is the approval
-year; the Acts volume is the year requested.
+candidates are downloaded so reviewers can read them) and `parse_strategy = manual` ones (text
+the API doesn't have, such as laws older than the API, kept in ``review/sources/``), cache the
+chapter's JSON in ``data/raw/sessionlaws/{acts_year}/{chapter}.json`` and record it in
+``data/raw/manifest.csv`` (§7.15). Chapters are split out of one ``/api/SessionLaws/{year}`` request
+per Acts volume, cached in ``data/raw/sessionlaws/_lists/{year}.json``. In that list the ``Year``
+field is the approval year; the Acts volume is the year requested.
 
 **Not yet: discovery.** Scanning each year's full text for appropriation language and appending
 new candidates with role=tbd (never overwriting human decisions).
@@ -205,11 +206,13 @@ def laws_to_download(
     law_list: list[Mapping[str, str]], law: str | None = None
 ) -> tuple[list[tuple[int, str]], list[str]]:
     """``(acts_year, chapter)`` for each law to download, plus any problems."""
-    rows = [r for r in law_list if r["role"] in DOWNLOAD_ROLES]
+    rows = [
+        r for r in law_list if r["role"] in DOWNLOAD_ROLES and r.get("parse_strategy") != "manual"
+    ]
     if law:
         rows = [r for r in rows if r["law_key"] == law]
         if not rows:
-            return [], [f"{law}: not in config/law_list.csv (or excluded)"]
+            return [], [f"{law}: not in config/law_list.csv (or excluded, or entered by hand)"]
     return [(int(r["acts_year"]), r["chapter"]) for r in rows], []
 
 
