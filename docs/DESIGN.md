@@ -800,7 +800,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 
 ## 19. Open questions
 
-Keep this list current. When one is resolved, move it to the Decision Log.
+Keep this list current. When one is resolved, move it to the Decision Log. Numbers already used: Q1–Q18 on `main`, plus Q11–Q12 on `a/bond-expected-rows`, Q17 on `docs/partner-decisions` and Q19–Q23 on `c/read-amendments`; the next new question is Q24.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
@@ -812,7 +812,6 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
 | Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
-| Q18 | **Contact email** for the `laws` stage (`contact_email` in `config/settings.toml`): malegislature.gov asks for one, and it may become public record. One member's address, or a new project address? (Numbers in use on open branches: Q11–Q12 `a/bond-expected-rows`, Q17 `docs/partner-decisions`, Q19–Q23 `c/read-amendments`.) | group | blank; `laws` shouldn't download until it's set |
 
 ---
 
@@ -852,6 +851,7 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-02 | **Proposed, pending group sign-off (affects the `export` rule, E):** catalog rows generated from the department table are marked `decided_by = department list (automatic)` and **don't count as human reviewed** (§7.10, §8 column 17). A person who checks a row replaces that with their name. | Emily R. (D): otherwise every generated row would claim a human check that only the ~5% spot-check actually gets. |
 | 2026-11-02 | **Q1 resolved: federal money stays in the data, flagged as federal, and is excluded from total spending.** Only money from federal sources is flagged: the General Federal Grants Fund (§2D), the Federal COVID-19 Response Fund (ARPA), the Coronavirus Relief Fund (CARES), and trust funds filled with ARPA money (Broadband Innovation Fund and Behavioral Health Trust Fund, whose 2021-102 source items CTHRU books to the Federal COVID-19 Response Fund). State surplus, e.g. the Transitional Escrow Fund, counts as state money. Encoded in `config/funds.csv`. | Partner (Office of the State Auditor); reported by Emily R., 2026-11-02. |
 | 2026-11-02 | **Q3 partly resolved: "recurring" means funded in at least 2 consecutive budgets.** A line item is `Recurring` when it has non-zero enacted GAA authority in the row's fiscal year and in the year before or the year after (a program's first year counts when the next budget funds it again); otherwise `One-time`. Labels for the newest year can change once the next GAA passes. Still open in Q3: *New vs. re-appropriation*, how supplemental, surplus and bond events are labeled, and the EX-001 `Unknown`. | Partner (Office of the State Auditor); first-year reading confirmed by Emily R.; reported by Emily R., 2026-11-02. |
+| 2026-11-04 | **Q18 resolved: the `laws` stage's contact email is Emma's Northeastern address**, set as `contact_email` in `config/settings.toml`. The repo is public, so the address is visible on GitHub; malegislature.gov also receives it with each request. | Group decision, reported by Emma. One member's address needs no new account; the group accepted that it is public. A future cohort should replace it with its own contact (§1). |
 
 ---
 
@@ -875,6 +875,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | D: `config/funds.csv` | D | ☑ done | 24 funds with CTHRU fund numbers; 5 federal (General Federal Grants, Federal COVID-19 Response, Coronavirus Relief, and the ARPA-filled Broadband Innovation and Behavioral Health trust funds), per the partner's Q1 rule. 2026-11-02 |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
+| Q18: `laws` contact email | group | ☑ resolved | Emma's Northeastern address, in `config/settings.toml` (recorded 2026-11-04) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |

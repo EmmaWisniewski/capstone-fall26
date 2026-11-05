@@ -32,4 +32,4 @@ Unimplemented stages are skipped with a message.
 - `review/` — `corrections.csv` (one-row fixes) and `research_log.md` (reasoning); policy-area labels go in `config/line_item_catalog.csv`
 - `data/raw/` — download cache (law texts, CTHRU snapshots), never committed
 
-Set `contact_email` in `config/settings.toml` before running the `laws` stage. No API key is needed.
+The `laws` stage identifies itself with `contact_email` in `config/settings.toml`, already set to the group's chosen address (DESIGN §20, Q18). No API key is needed.
