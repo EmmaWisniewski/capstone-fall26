@@ -24,6 +24,10 @@ $54,100,000 (ch. 52 §8) and $295,000,000 (ch. 494 §6).
   §4; later amended by 2002 ch. 244 §15–18 (not yet looked at); replaced again by 2024 ch. 150 §60
   at $50,000,000.
 - **Item 3722-8899** (loans for alternative forms of housing, $30,000,000 in 1993 ch. 494 §2): 2024
-  ch. 150 §61 replaces the wording at the end of its clause (2), the condition that a property's
-  use restriction isn't released until the loan is repaid or a foreclosure deed is recorded. It
-  changes wording only, not dollars.
+  ch. 150 §61 rewrites the condition in its clause (2) for releasing a property's use restriction.
+  The 1993 text allowed release only when the loan is repaid or a foreclosure deed is recorded;
+  2024 adds a third option, a **disposition of the property**, provided the executive office of
+  housing and livable communities determines that clients will be better served at an
+  alternative property, and the proceeds are used, as needed to replace the housing, to acquire
+  or rehabilitate that alternative property. It changes wording only, not dollars. (Wording
+  checked against the official text by Emma, 2026-11-04.)
