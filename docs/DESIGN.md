@@ -576,7 +576,7 @@ The **operating total** for a law (or fiscal year) is the sum of `amount` over e
 - Don't rely on CSS classes. `HWMLineItem`, `HWMAgency`, and `HWMSecretariat` exist in the FY2021 HTML but not reliably in later years.
 
 ### 11.2 Item extraction state machine (`read_items`, `read_bonds`)
-One state machine, used in three modes: **supplementals** (full items), **GAAs** (description, printed amount and veto markup only; amounts come from CTHRU) and **bonds** (capital sections §2–§2I and Chapter 90 bills; `amount_kind = bond_authorization`). Bond formatting hasn't been checked yet. Workstream A's first task is to save one bond law as a sample and see what needs to change.
+One state machine, used in three modes: **supplementals** (full items), **GAAs** (description, printed amount and veto markup only; amounts come from CTHRU) and **bonds** (capital sections §2–§2I and Chapter 90 bills; `amount_kind = bond_authorization`). Bond formatting was checked on the two bond samples on 2026-10-29 (see **Bond laws** below).
 
 States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | ITEM | FUND_SPLIT | VETO_NOTE)* → next SECTION`.
 
@@ -589,6 +589,37 @@ States: `PREAMBLE → SECTION_HEADER → (SECRETARIAT_HEADER | AGENCY_HEADER | I
 - **Retained revenue:** if the text contains `may expend … not more than $X` and there is no trailing amount, set `retained_revenue_ceiling` and leave `amount` null. `amount_kind` = `retained_revenue_ceiling`.
 - **Fund splits:** paragraphs like `General Fund…… 52.63%`, possibly several per paragraph separated by `<br>`. Attach them to the preceding item. Variants seen: no dotted leader (`Marijuana Regulation Fund 100%`), a fund name wrapped onto two lines, a split on the same line as the amount, and a missing `%` (`General Fund …… 80.32`, 2024-140). In all 31 law-list GAAs and supplementals, every item's splits add up to 100%.
 - **Unread:** any paragraph in an appropriation section that isn't consumed goes to `reports/unread_paragraphs.csv` (or `…_bonds.csv`). This file must be empty, or explained, before a law can be marked done.
+
+**Bond laws** (checked 2026-10-29 on samples 2024-139 and 2025-17, using `paragraphs.py` from PR #6). Expected output is in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv`.
+- **The state machine works unchanged for the items.** Every item is one paragraph that starts with its ID and ends with a dotted leader and amount. Headers follow the ALL-CAPS secretariat / Title-case agency pattern. Earmarks inside the text ("not less than $300,000 …") are skipped by the trailing-amount rule. Spacing before the `$` varies, which the end pattern already allows. The samples have no fund splits, veto markup or retained revenue. All 16 items in the two samples are found, and no capital-section paragraph is left unread.
+- **Capital sections may start at §2A.** 2024-139 has no §2. They end at the first `SECTION 3.` or higher.
+- **No preamble per section.** `SECTION 1` introduces all the capital sections at once. It names no fund and no fiscal year, so `section_fund_default` and `fy_stated` stay empty and the fiscal year comes from the enactment date (§5.4, `fy_rule = enactment_fy`). It may give an availability date ("made available through December 31, 2030", 2024-139), which becomes `available_through`.
+- **Borrowing limits come after the items**, one section each: "the state treasurer shall … issue and sell bonds … not exceeding, in the aggregate, $X". Each names the capital sections it covers, which may be more than one (2024-139 §4 covers §2A and §2B). It also gives the bond's name, its maximum term and its final payment date. No §7 file holds these yet, but check 7 needs them (Q11).
+- **Items don't always add up to the borrowing limit.** In 2024-139, the §2A and §2B items total $1,455,000,000, but §4 allows borrowing of only $1,055,000,000. The item text doesn't explain the $400,000,000 gap, but §3 does (see the survey below). Check 7 must still report differences for review rather than treat them as reader errors. **Decided (Q11, partner, 2026-11-01):** a law's capital total is the sum of its items, any difference from its borrowing limits is flagged, and the borrowing limits are recorded too.
+
+**Survey of every law with capital sections** (2026-11-04: the 15 bond laws plus supplemental 2023-2; 191 capital items). Findings marked ✓ were hand-checked by Emma against the official text.
+- **Every item is one paragraph** that starts with its line item number and ends with its amount, so the item rules above still apply, with two adjustments:
+  - **The amount may have no dotted leader** ("…applies $4,400,000,000"; 2020-383, 2022-176, 2023-2, 2024-150). ✓ (2024-150 item 7004-0074.)
+  - **The line item number may be followed by dots or a space** ("6121-2114.. For" or "6121-2617 For"), sometimes both in one law.
+- **Capital sections can sit inside a supplemental budget,** numbered §3 and up: 2023-2 §3–§3B (10 items, $740,300,000), with borrowing limits in §§77–79 that match exactly. ✓ (found by Emma.)
+- **Read capital sections only from the first capital heading to the first section after them.** A later amendment can contain its own "Section 2." heading as part of the new text it inserts. For example, 2024-238 §183 replaces section 2 of General Laws chapter 61A ("Section 2. Land shall be considered to be in horticultural use…"). That's part of §183, not a capital section. ✓
+- **Borrowing limits:**
+  - may cover **several sections** (2022-140 §7 covers §2, §2A and §2B);
+  - may cover **a single line item** rather than a section: 2021-15 §6 is for item 4000-2026 ($400,000,000) and §7 for item 4000-2027 ($200,000,000), both in §2 ✓;
+  - use varying wording ("in the aggregate" or "in an aggregate principal amount", 2021-9 §23 ✓);
+  - may be **special obligation bonds** paid from a named fund (2020-383 §36, 2021-9, 2022-176 §44).
+- **Vetoes appear in bond laws** and are read from the inline markup (CTHRU has no capital data, so these rows are flagged `veto_unverified`, §5.7):
+  - **A reduction** shows the old amount crossed out before the new one. 2020-383 item 6621-2117: $400,000,000 → $370,000,000. The capital total uses **$370,000,000**. ✓
+  - **A pocket-vetoed item** is entirely crossed out under "Governor pocket vetoed the following item". 2020-383 items 6720-2127 ($250,000,000) and 6921-2110 ($25,000,000) **never became law and are left out of the capital total.** ✓
+  - Wording vetoes and section vetoes (2020-383, 2022-176) don't change amounts.
+- **Federal-aid items exceed their borrowing limits because the limit is the state's share.** These items may only be committed "based upon a prior or anticipated future commitment of federal funds and the availability of corresponding state funding", so the borrowing limit covers only the state's part. ✓ Cases:
+  - 2020-383 item 6121-2114: $4,400,000,000 of items against a §32 limit of $880,000,000;
+  - 2022-176 §2 against §41's $611,800,000;
+  - 2022-176 item 6720-2215 ($3,500,000,000) against §47's $1,750,000,000;
+  - 2022-176 item 6622-2214 ($25,501,000) against §48's $8,300,000. This item lacks that sentence, but allows spending on projects in the federal Infrastructure Investment and Jobs Act of 2021.
+
+  Under the Q11 decision, these laws' capital totals therefore **include federally funded amounts**, which bears on Q1. **2024-139 §4** (items $1,455,000,000 against a limit of $1,055,000,000) is explained the same way. §3 creates a fund (new G.L. c. 29 §2EEEEEE) that is also credited with "federal financial participation revenues" claimed for eligible expenditures, and with interest. Amounts credited "shall be expended without further appropriation", so part of the items can be paid without borrowing. The law gives no dollar figure for those other sources. ✓ (found by Emma.) **So every gap between items and borrowing limits in the 16 laws is now explained** by vetoes, federal shares or other fund sources.
+- **Amendments to earlier bond laws** go to `read_amendments` (§11.3, "bond-on-bond amendment"). 2024-150 §60 replaces item 4000-8200 of 1993 ch. 52. ✓ That law would normally be listed as reference-only, but it predates the Legislature's API (the 1993 year list returns HTTP 400) and website, so its details and the item's original amount need another source. **Pending: Emma is raising it with the group.**
 
 ### 11.3 Outside-section grammar (`read_amendments`)
 Resolve "said item … of said section 2 of said chapter 28" by carrying the last explicitly named law, section, and item forward through consecutive sections. Patterns to support, each with a sample:
@@ -673,7 +704,7 @@ Rules and humans only, with no LLM (Decision Log 2026-10-28). Each row records `
    - Report dollar and percent differences. Known non-law differences (9C cuts) are annotated.
 5. **Internal consistency:** fund splits sum to 100% (±0.01); the item-ID prefix is consistent with the CTHRU department; no item appears twice in one section without a reason.
 6. **Coverage:** `unread_*` reports are empty or every row is explained; every law-list `in_scope` law has at least one funding-action row; every GAA item in CTHRU has a description or is listed as missing.
-7. **Bond totals:** for each bond act, the sum of `CAP` items is compared with the act's stated borrowing authorization.
+7. **Bond totals:** for each bond act, the sum of `CAP` items is compared with the act's stated borrowing authorization. The capital total is the sum of items; a difference is flagged for review, not treated as a reader error (Q11, decided).
 8. **Law status:** each law gets `checked` / `partially_checked` / `not_checked` plus a sentence. This text becomes the `Source or calculation for total` column.
 9. **Orphaned corrections:** corrections whose record ID no longer exists are listed in `reports/correction_problems.csv`.
 10. **Manual rows:** the number of `manual_rows.csv` rows per law (target zero), for the runbook.
@@ -735,7 +766,9 @@ capstone-fall26/
   - `2025-3` (short title, trailing period)
   - `2021-35` (whole-item replacement)
   - `2023-15` (interim)
-  - **to add:** a small CTHRU snapshot for FY2023–FY2024 covering the example-row and veto items (E); one bond law and one Chapter 90 bill (A).
+  - `2024-139` (IT bond; capital sections start at §2A; one borrowing section covers two item sections)
+  - `2025-17` (Chapter 90; §2 municipal roads and §2A MassDOT programs, each with its own borrowing section)
+  - **to add:** a small CTHRU snapshot for FY2023–FY2024 covering the example-row and veto items (E).
 - **CLI:** `python -m ma_approps run --stage {laws…validate|all} [--law 2023-28] [--offline]`.
 - **Git:** branch per task (`a/bond-sample`, `b/paragraphs`, …), PRs reviewed by one other person where possible, CI runs `ruff` and `pytest` (example rows plus samples). Never commit `data/raw/` or API keys. See [`WORKFLOW.md`](WORKFLOW.md).
 - **Politeness:** about 1 request per second, a descriptive User-Agent, exponential backoff on 429/5xx, and the cache first.
@@ -807,7 +840,7 @@ Expected curated values, for the law list: `law_name` = `FY2024 General Appropri
 
 ## 19. Open questions
 
-Keep this list current. When one is resolved, move it to the Decision Log.
+Keep this list current. When one is resolved, move it to the Decision Log, and update the plain-language version for the partner, [`plain-language/partner-decisions.md`](plain-language/partner-decisions.md). Numbers already used: Q1–Q18, plus Q19–Q23 on `c/read-amendments`; the next new question is Q24.
 
 | # | Question | Who decides | Current default |
 |---|---|---|---|
@@ -816,16 +849,18 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | Q6 | Overrides in 2026 of items in laws enacted in 2025: in scope? Which enactment date applies to acts "Passed over veto"? | group | include override events dated 2026 in the extended file, out of the main window; for a whole act passed over veto, use the override date |
 | Q7 | Include 2021 ch. 9 (UI Trust Fund financing)? Confirm 2020 ch. 316? | group | **2020 ch. 316:** recorded `in_scope` by Emma's law-list review (2026-11-03). Its Section 2 supplements FY2021 item 1750-0119 by $46,515, so it's a real appropriation, not just a reference; group to confirm. **2021 ch. 9:** still `tbd`; Emma recommends in scope (a bond financing, and bonds are in scope) |
 | Q8 | Funding-action labels beyond the two in the examples | partner | §9.2 labels |
+| Q11 | **How** are bond laws' borrowing limits recorded and their differences flagged (§11.2, check 7)? Which file holds the limits, and is a difference flagged only in check 7's report and the review queue, or also on the rows? A limit may cover a single line item, not only whole sections (2021-15 §6–§7), so the format needs to allow both. *(What to do was decided 2026-11-01: items' total, differences flagged, limits recorded; see the Decision Log.)* | group (E owns §7) | proposed: a new `data/interim/bond_authorizations_raw.csv` with the columns of `tests/samples/expected/bond_authorizations.csv`; differences reported by check 7 and sent to the review queue |
+| Q12 | Which details of each borrowing limit should be kept? Besides the amount and the sections it covers, the law prints the bond's name, its maximum term (years) and its final repayment date. | group (E owns §7) | proposed: keep all five (`authorized`, `covers_sections`, `bond_name`, `max_term_years`, `payable_by`), as in `tests/samples/expected/bond_authorizations.csv`; drop any the group doesn't need |
 | Q13 | **Partial overrides** (follows Q4): when the governor reduces an item and the Legislature restores only part of the cut, is the item's `veto_status` `reduced` or `overridden`? | group | not yet decided; `veto_status` values are in §9.9 |
 | Q14 | **Where `veto_status` appears** (follows Q4): only in the extended file, as now, or also in the 19-column main export? | group (the main export's columns come from `exampledata.csv`, so possibly the partner) | extended file only, with `amount_printed`; the main export shows just the final amount |
 | Q15 | **Trust money no law spends** (follows Q2): some trust funds can spend money without a further appropriation. Under the Q2 rule (count money when a law appropriates it out of the fund, not when it's moved in), money transferred into such a trust never counts toward the totals. Should the transfer in count for those funds instead? | group (possibly the partner) | the transfer in doesn't count (§10); flagged `trust_transfer` |
 | Q16 | **Columns of the separate capital file** (follows Q5): which columns should `data/output/ma_capital_authorizations_cy2021_2025.csv` have, and is that the right file name? | group + partner (E owns §7) | proposed: exactly the main export's 19 columns, with only `Capital authorization` rows |
+| Q17 | **Bond file: maturity dates, interest rates and when the money was spent** (follows Q5; partner request at the group's meeting, reported by Emma 2026-11-03). The laws give only each borrowing limit's **maximum term** and **final payable date**. Actual maturities and interest rates belong to the bonds the Treasurer later sells (official statements and state debt records), and one sale can combine several laws' authorizations. When the money was spent is **actual spending**, which Q10 excludes, and DESIGN §16 notes it's unverified whether capital spending can be matched to bond line items. Which of these does the partner want, at what level (per law item, per authorization, per bond sale), and from which source? Is bond spending an exception to Q10? | group + partner (E owns §7) | from the law text only: `max_term_years` and `payable_by` per borrowing limit (Q12); actual sale data and spending not collected until decided |
 | Q19 | **Inserted "available until" wording** (C): an amendment that inserts words like "funds made available until June 30, 2024" into an item is recorded as a `date_extend` (→ `REAUTH`). Is that right, or is it a text-only change? | group | `date_extend` |
 | Q20 | **Fund-to-fund transfers** (C): money moved between funds, with no line item on either side, is recorded as a `transfer` (→ `XFER`) with `medium` confidence. Is that right? | group | `transfer`, `medium` confidence |
 | Q21 | **Earmark figure changes** (C): a figure changed inside an item's text ("both times it appears", "in line 7"), as in 2023-77 §81, may be an earmark rather than the item's total. It is recorded as a `figure_change` with `low` confidence, and the struck-figure check (§13.3) decides. Is that right? *(Partly answered 2026-11-04 by C, Emily H.: §81 is not an earmark. Item 3000-7040 is a retained-revenue item whose ceiling and amount are both $320,000 in the FY2023 GAA, so "both times it appears" / "in each instance" now gets `high` confidence. Still open: other qualifiers such as "in line 7" or "the second time it appears".)* | group | "both times" / "in each instance": `high`; other qualifiers: `low` |
 | Q22 | **Where unread-report explanations go:** `validate` (§13.6) requires every row of `reports/unread_*.csv` to be explained, but reports are generated and must not be hand-edited. Where does a person write the explanation? | group (E owns `validate`) | not decided; on real data, `validate` will flag every unread row until this is settled |
 | Q23 | **Vetoed outside sections** (C): a section with struck text or a "Governor disapproved" note, such as 2023-28 §100 (a $205,000,000 transfer), is still read, with `low` confidence, and listed in `unread_sections.csv` (§11.3). Is flagging enough, should vetoed sections be dropped, or should `amendments_raw` get a veto column (a §7.4 change)? | group (C + E) | keep the rows, `low` confidence, listed for review |
-| Q18 | **Contact email** for the `laws` stage (`contact_email` in `config/settings.toml`): malegislature.gov asks for one, and it may become public record. One member's address, or a new project address? (Numbers in use on open branches: Q11–Q12 `a/bond-expected-rows`, Q17 `docs/partner-decisions`, Q19–Q23 `c/read-amendments`.) | group | blank; `laws` shouldn't download until it's set |
 
 ---
 
@@ -862,6 +897,8 @@ Keep this list current. When one is resolved, move it to the Decision Log.
 | 2026-11-01 | **Q5 resolved: bond laws go in a separate capital file**, not the main export. `CAP` rows are excluded from `ma_appropriations_cy2021_2025.csv` and written to `data/output/ma_capital_authorizations_cy2021_2025.csv` (proposed name), still never summed with operating totals. The capital file's columns are open (Q16). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Q3 partly resolved: "Previously funded?" means the prior fiscal year only.** An item is previously funded (`Yes`) if it had non-zero enacted authority in the immediately preceding fiscal year (FY−1), and `No` otherwise, even if it was funded in an earlier year (§8, column 14). Still open in Q3: *One-time or recurring*, *New vs. re-appropriation*, when `Unknown` applies, and the EX-001 example, which says `Unknown` although the rule gives `Yes`. | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-01 | **Struck wording (follows Q4):** when the governor strikes an item's wording and substitutes new wording, `item_text` keeps only the final wording, and `veto_kind_inline = reduced_and_wording` notes that it changed (§7.3, §11.2). This settles the "wording changes" part left open in the Q4 entry; how `veto_status` records a wording-only veto is still open. | Group; reported by Tierney. Follow-up: Tierney to ask George whether vetoed wording has research uses. |
+| 2026-11-01 | **Q11 (capital total) resolved:** a bond law's capital total is the **sum of its items**. Any difference from the borrowing limits the law sets is **flagged**, and the **borrowing limits are recorded** as well. Example: 2024-139, whose §2A and §2B items total $1,455,000,000 against a §4 limit of $1,055,000,000, reports $1,455,000,000 and flags the $400,000,000 difference. How the limits are stored and the difference flagged stays open (Q11, Q12). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
+| 2026-11-04 | **Q18 resolved: the `laws` stage's contact email is Emma's Northeastern address**, set as `contact_email` in `config/settings.toml`. The repo is public, so the address is visible on GitHub; malegislature.gov also receives it with each request. | Group decision, reported by Emma. One member's address needs no new account; the group accepted that it is public. A future cohort should replace it with its own contact (§1). |
 
 ---
 
@@ -882,10 +919,11 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | C: `read_amendments` (§11.3) | C | ◐ in review | branch `c/read-amendments`; uses B's `paragraphs.py`; 23 tests on the samples. On the six samples: 174 rows and 9 unread sections (8 unmatched that need no row, plus 2023-28 §100, which looks vetoed). Every row checked against the law text, with Emily H. deciding the unclear ones (2026-11-04); the resulting fixes are in reader 0.3.0. Reader 0.4.0 handles the lone "Section 2" heading of the FY2022 GAA (issue #12) and item numbers with no space after them (B's heads-up). Reader 0.5.0 records an item replaced by a renumbered one (2022-268 §228) as a strike plus an insert. Split proposed by B in PR #15: B reads carry-over sections (§2CI, §2CII), C reads items that outside sections insert or replace; `read_amendments` already works this way. Open: Q19–Q23 (renumbered from Q17–Q21; Q17 is used on two other branches) |
 | C: running amounts table and struck-figure check | C | ☐ todo | needs `combine` and the CTHRU sample (§13.3) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
-| M0: bond and Chapter 90 samples | A | ☐ todo | one of each |
+| M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` output in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv` (2026-10-29; branch `a/bond-expected-rows`); all 16 line items hand-checked against the official text by Emma (2026-10-29); borrowing-limit format open (Q11, Q12) |
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
+| Q18: `laws` contact email | group | ☑ resolved | Emma's Northeastern address, in `config/settings.toml` (recorded 2026-11-04) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
