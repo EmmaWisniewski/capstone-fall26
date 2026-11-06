@@ -183,6 +183,104 @@ def test_transfer_source_item_and_funds(rows):
     )
 
 
+def test_transfer_destination_after_to():
+    # 2024-88 §25 (shortened): the destination is the first item after "to", however it is named
+    html = (
+        "<p>SECTION 25. Notwithstanding any general or special law to the contrary, the"
+        " comptroller may transfer not more than $175,000,000 from the Transitional Escrow Fund"
+        " established by section 16 of chapter 76 of the acts of 2021, to the reserve established"
+        " in item 1599-0514 of section 2A of chapter 77 of the acts of 2023 for the purposes of"
+        " item 7004-0101 of section 2 of chapter 28 of the acts of 2023.</p>"
+    )
+    rows, _ = read_amendments.read_law("2024-88", "supplemental", html)
+    assert [(r["from_item"], r["to_item"], r["fund_raw"]) for r in rows] == [
+        (None, "1599-0514", "Transitional Escrow Fund")
+    ]
+
+
+def test_transfer_source_with_to_in_its_description():
+    # 2023-2 §76: "related to the planning" is part of the source, item 1599-6077; the money goes
+    # to a trust fund, so there is no destination item
+    html = (
+        "<p>SECTION 76. Notwithstanding any general or special law to the contrary, the executive"
+        " office of administration and finance shall transfer $250,000 from the startup costs for"
+        " Revolution 250 related to the planning and celebration of the commonwealth’s 250th"
+        " anniversary of the American Revolution established in item 1599-6077 of section 2A of"
+        " chapter 268 of the acts of 2022 to the Massachusetts Tourism Trust Fund established in"
+        " section 13T of chapter 23A of the General Laws.</p>"
+    )
+    rows, _ = read_amendments.read_law("2023-2", "supplemental", html)
+    assert [(r["from_item"], r["to_item"], r["amount"]) for r in rows] == [
+        ("1599-6077", None, 250000)
+    ]
+
+
+def test_misprinted_figure_is_low_confidence():
+    # 2022-42 §46 strikes "$15,000,0000", a misprint in 2021 ch. 102, not $150,000,000: the row
+    # would otherwise read as a $135,000,000 cut
+    html = (
+        "<p>SECTION 46. Item 1599-2026 of section 2A of chapter 102 of the acts of 2021 is hereby"
+        " further amended by striking out the figure “$15,000,0000” and inserting in place thereof"
+        " the following figure:- $15,000,000.</p>"
+    )
+    rows, _ = read_amendments.read_law("2022-42", "supplemental", html)
+    assert [(r["action_type"], r["target_law_key"], r["confidence"]) for r in rows] == [
+        ("figure_change", "2021-102", "low")
+    ]
+    assert not read_amendments._misprinted_figure("$9,310,231, $1,000 and $5,000,")
+
+
+def test_clause_of_an_item_is_an_item_amendment():
+    # 2024-150 §61 rewrites a proviso in "Clause (2) of item 3722-8899"; no dollars involved
+    html = (
+        "<p>SECTION 61. Clause (2) of item 3722-8899 of section 2 of chapter 494 of the acts of"
+        " 1993 is hereby amended by striking out the words “provided, that said property shall not"
+        " be released from such restriction” and inserting in place thereof the following words:-"
+        " provided, that said property shall not be released from such restriction unless and"
+        " until there has been a disposition of the property.</p>"
+    )
+    rows, unread = read_amendments.read_law("2024-150", "bond", html)
+    found = [
+        (r["action_type"], r["target_law_key"], r["target_section"], r["target_item"]) for r in rows
+    ]
+    assert found == [("purpose_change", "1993-494", "2", "3722-8899")]
+    assert unread == []
+
+
+def test_amendment_naming_an_item_without_a_row_is_listed():
+    # 2021-24 §73 replaces a subsection of an earlier outside section whose new text names an
+    # item; no pattern reads it, so a human must see it, even with no dollar sign
+    html = (
+        "<p>SECTION 73. Section 58 of chapter 228 of the acts of 2018 is hereby amended by striking"
+        " out subsection (b) and inserting in place thereof the following subsection:-</p>"
+        "<p>(b) Funds made available in item 7003-1206 shall be used for the program.</p>"
+    )
+    rows, unread = read_amendments.read_law("2021-24", "gaa", html)
+    assert rows == []
+    assert [(u["section"], u["reason"]) for u in unread] == [
+        ("73", "amends text that names a line item but matched no pattern")
+    ]
+
+
+def test_outside_section_listing_items_is_listed():
+    # 2023-2 §3 lists capital items itself; read_items stops at §3, so no stage reads them
+    html = (
+        "<p>SECTION 3. To provide for a program of housing, the sums set forth in sections 3 to"
+        " 3B, inclusive, are hereby made available, subject to the laws regulating the"
+        " disbursement of public funds.</p>"
+        "<p>EXECUTIVE OFFICE OF HOUSING AND ECONOMIC DEVELOPMENT</p>"
+        "<p>7002-8048.. For the MassWorks infrastructure program.......... $400,000,000</p>"
+    )
+    rows, unread = read_amendments.read_law("2023-2", "supplemental", html)
+    assert rows == []
+    assert [(u["section"], u["reason"]) for u in unread] == [
+        ("3", "lists line items itself, which no stage reads")
+    ]
+    # read_items reads §2 of an "other" law, so its items aren't listed here
+    other = html.replace("SECTION 3.", "SECTION 2.")
+    assert read_amendments.read_law("2020-316", "other", other)[1] == []
+
+
 def test_section_2_heading_in_any_case():
     # The FY2022 GAA (2021-24) prints its Section 2 heading as "Section 2", with no period (issue
     # #12). Its items belong to read_items, so their text must not be read as part of §1B.
