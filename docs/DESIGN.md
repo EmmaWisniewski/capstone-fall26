@@ -309,13 +309,14 @@ flowchart LR
 | — | `validate` | everything | `reports/validation/*.csv`, `reports/law_status.csv` | E |
 
 ### Stage notes
-1. **laws.** Pull `/SessionLaws/{year}` for the configured years, keep Acts approved in the window, and **scan full text, not just titles**. Flag a chapter as a candidate if it has any of:
-   - a line-item paragraph,
+1. **laws.** Pull `/SessionLaws/{year}` for the configured years (`[scope] discover_years`) and **scan full text, not just titles**. Flag an Act not yet on the law list as a candidate if it has any of (tightened 2026-11-07, see the Decision Log):
+   - a line-item paragraph (an item ID at the start, a dollar amount at the end),
    - "hereby appropriated",
-   - "the sum of $X is hereby appropriated" or "the amount of $X is hereby appropriated",
-   - "striking out the figure",
-   - bond issuance language,
-   - an appropriation-style title.
+   - an amendment of a line item ("item NNNN-NNNN … is hereby amended", in either order),
+   - borrowing language ("issue and sell … bonds" or "notes"),
+   - an appropriation-style title ("making appropriations", "appropriations for", "supplementing", "financing the …").
+
+   Laws approved outside the window are flagged too, with a note, because they may be needed as reference-only laws.
 
    New candidates are appended with `role = tbd`, and existing human decisions are never overwritten. The stage also adds reference-only laws: same-FY laws outside the window, and amendment targets found by `read_amendments`. It then downloads each listed law's JSON and stores the SHA-256 and fetch time in `manifest.csv`, skipping unchanged files and throttling requests. **This stage is what a future cohort runs first each year.**
 2. **cthru.** One aggregated query per FY (FY2005 onward for history), saved as a dated snapshot. It writes one row per FY × account (§7.5). This is the source of every GAA original appropriation and of agency names.
@@ -895,6 +896,7 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | 2026-11-01 | **Struck wording (follows Q4):** when the governor strikes an item's wording and substitutes new wording, `item_text` keeps only the final wording, and `veto_kind_inline = reduced_and_wording` notes that it changed (§7.3, §11.2). This settles the "wording changes" part left open in the Q4 entry; how `veto_status` records a wording-only veto is still open. | Group; reported by Tierney. Follow-up: Tierney to ask George whether vetoed wording has research uses. |
 | 2026-11-01 | **Q11 (capital total) resolved:** a bond law's capital total is the **sum of its items**. Any difference from the borrowing limits the law sets is **flagged**, and the **borrowing limits are recorded** as well. Example: 2024-139, whose §2A and §2B items total $1,455,000,000 against a §4 limit of $1,055,000,000, reports $1,455,000,000 and flags the $400,000,000 difference. How the limits are stored and the difference flagged stays open (Q11, Q12). | Partner (Office of the State Auditor); reported by Emma, 2026-11-01. |
 | 2026-11-04 | **Q18 resolved: the `laws` stage's contact email is Emma's Northeastern address**, set as `contact_email` in `config/settings.toml`. The repo is public, so the address is visible on GitHub; malegislature.gov also receives it with each request. | Group decision, reported by Emma. One member's address needs no new account; the group accepted that it is public. A future cohort should replace it with its own contact (§1). |
+| 2026-11-07 | **Discovery signals tightened** (§6 stage 1). "Striking out the figure" is replaced by "amends a line item", and the title signal is limited to appropriation and financing wording. As first written, the signals flagged 63 extra Acts on 2020–2026 (town charters, General Laws figure changes, Capital Asset Management land conveyances); the tightened ones flag every law on the list plus 16 candidates. | Emma (workstream A), from a test on the cached year lists. |
 
 ---
 
@@ -914,7 +916,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | B: `read_items` | B | ◐ in review | branch `b/read-items`. Reads supplemental, surplus, GAA and `other` laws (§11.2, incl. issue #12 headings). On all 31 such law-list laws in the local cache: 8,710 items, 0 low and 28 medium confidence (printed amount typos), 3 unread paragraphs, all misprinted item numbers (`340-1000` 2020-227, `911-1003` 2024-140, `4190-010` 2025-9). 17 hand-checked expected rows in `tests/samples/expected/items_raw_selected.csv`. Proposed, to agree with C and E: B reads §2CI/§2CII prior-appropriation lists (`combine` needs a `section_type` for them); C reads items inserted by outside sections, using `paragraphs.ITEM_START_RE` and `TRAILING_AMOUNT_RE`. For E: the FY2024 text prints 1231-1000 at $1,500,000, matching CTHRU; the $10,000,000 is the next item, 1232-0100. Tierney to ask George about uses for vetoed wording |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` output in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv` (2026-10-29; branch `a/bond-expected-rows`); all 16 line items hand-checked against the official text by Emma (2026-10-29); borrowing-limit format open (Q11, Q12) |
-| A: `laws` stage, downloading | A | ◐ in progress | branch `a/laws-download`: downloads listed laws into `data/raw/` with `manifest.csv`; offline tests pass. Run live 2026-10-28 with a one-off contact email: all 52 non-excluded laws in 8 requests, 0 problems; the 6 samples are byte-identical and every law-list API field matches. `contact_email`: the group chose Emma's address (Q18), set in `config/settings.toml` (PR #19). Discovery of new candidates not started |
+| A: `laws` stage, downloading | A | ◐ in progress | branch `a/laws-download`: downloads listed laws into `data/raw/` with `manifest.csv`; offline tests pass. Run live 2026-10-28 with a one-off contact email: all 52 non-excluded laws in 8 requests, 0 problems; the 6 samples are byte-identical and every law-list API field matches. `contact_email`: the group chose Emma's address (Q18), set in `config/settings.toml` (PR #19). **Discovery** (branch `a/laws-discover`, 2026-11-07): appends candidates as `tbd`; on the cached 2020–2026 lists it flags every listed law plus 16 new candidates (2022-83 in the window; 15 from 2020 and 2026) for review. |
 | D: seed department table and catalog | D | ◐ in progress | `config/department_policy_areas.csv` done: 153 CTHRU departments (FY2021–FY2027), all decided by Emily R. 2026-11-01; 7 mixed (ANF, CTR, DCR, DOR, EHS, HRD, TRE). Notes list single lines to move in the catalog (e.g., 0411-1020, 0526-0100, 7007-0952). Catalog next |
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
