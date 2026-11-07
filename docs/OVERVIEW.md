@@ -136,7 +136,7 @@ state actually *spent*. Our partner set this at the proposal stage
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
 | **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ☐ |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |
-| **M6** Re-run test | Someone follows the runbook on 2026 laws without changing code, and we list what broke | ☐ |
+| **M6** Re-run test | Someone follows the [runbook](RUNBOOK.md) on 2026 laws without changing code, and we list what broke | ◐ (runbook first draft) |
 
 Open questions waiting on the group or our State Auditor partner are listed in
 [DESIGN §19](DESIGN.md#19-open-questions). The ones for the partner are explained in plain
