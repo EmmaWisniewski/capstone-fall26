@@ -27,9 +27,8 @@ output for the two bond samples (workstream A; DESIGN §11.2 "Bond laws"):
 - `bond_items.csv`: every capital-section item, with a subset of the `bond_items_raw` columns.
   All 16 line items were hand-checked against the official text on malegislature.gov
   (Emma, 2026-10-29).
-- `bond_authorizations.csv`: each borrowing-limit section and the capital sections it covers.
-  Its columns are a proposal: where to store it is DESIGN §19 Q11, and which details to keep is
-  Q12.
+- `bond_authorizations.csv`: each borrowing-limit section, in the format of
+  `bond_authorizations_raw.csv` (DESIGN §7.16, decided 2026-11-06), without the reader columns.
 
 `para_start`/`para_end` use the paragraph numbering of `paragraphs.py` (PR #6): 0-based, counting
 non-empty paragraphs. `tests/test_law_list_and_samples.py` checks that every ID and amount appears
