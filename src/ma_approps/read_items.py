@@ -30,7 +30,7 @@ from ma_approps.context import Context
 from ma_approps.paragraphs import ITEM_START_RE, TRAILING_AMOUNT_RE, paragraphs
 
 IMPLEMENTED = True
-READER_VERSION = "0.1.0"
+READER_VERSION = "0.2.0"
 
 # Law types read here; bonds go to read_bonds (A) and interim budgets to read_amendments (C)
 LAW_TYPES = ("gaa", "supplemental", "surplus", "other")
@@ -50,8 +50,11 @@ END_RE = re.compile(r"^Approved,")
 BARE_AMOUNT_RE = re.compile(r"^\$[\d,]+\.?$")
 
 VETO_NOTE_RE = re.compile(r"^(?:The\s+)?(?:Governor|Legislature)\b", re.IGNORECASE)
-# Veto notes are bold in most budgets, but not in 2021-24 and 2022-126
-VETO_WORDS_RE = re.compile(r"following item|overr?ode|disapprov", re.IGNORECASE)
+# A veto note must also use veto words: notes are bold in most budgets but not in 2021-24 and
+# 2022-126, and the bold header "LEGISLATURE." (item 9500-0000) is not a note. "dissaproved" is
+# misspelled in 2025-9.
+VETO_WORDS_RE = re.compile(r"following item|overr?ode|dis+ap+rov|vetoed", re.IGNORECASE)
+DISAPPROVED_RE = re.compile(r"dis+ap+rov|vetoed", re.IGNORECASE)
 FUND_SPLIT_RE = re.compile(
     r"^[.\s]*(?P<fund>[A-Za-z][^$%]*?)\s*(?P<dots>\.{2,})?\s*(?P<pct>\d+(?:\.\d+)?)\s*(?P<sign>%?)$"
 )
@@ -138,14 +141,17 @@ def _is_caps(text: str) -> bool:
     return bool(letters) and all(c.isupper() for c in letters)
 
 
-def _veto_kind(notes: list[str]) -> str:
+def _veto_kind(notes: list[str], amount_struck: str) -> str:
+    """`veto_kind_inline` from an item's veto notes (§11.4, Decision Log 2026-11-06)."""
     text = " ".join(notes).lower()
     if "overrode" in text or "overrid" in text:
         return "overridden"
     if "reduced" in text:
         return "reduced_and_wording" if "wording" in text else "reduced"
-    if "disapproved" in text:
-        return "disapproved"
+    if "wording" in text and DISAPPROVED_RE.search(text) and not amount_struck:
+        return "wording_vetoed"  # wording struck, amount unchanged (2020-383 6621-2108)
+    if DISAPPROVED_RE.search(text):
+        return "disapproved"  # whole item, incl. "pocket vetoed the following item"
     return "none"
 
 
@@ -221,7 +227,7 @@ def _row(law_key: str, item: Item, fund: str, fy: str) -> dict[str, str]:
         "retained_revenue_ceiling": _money(rr.group(1)) if rr else "",
         "fund_splits_raw": ";".join(f"{f}:{p}" for f, p in [*splits, *item.splits]),
         "veto_annotation_raw": " ".join(item.notes),
-        "veto_kind_inline": _veto_kind(item.notes),
+        "veto_kind_inline": _veto_kind(item.notes, struck_amount),
         "reader_version": READER_VERSION,
         "confidence": confidence,
     }
@@ -302,7 +308,7 @@ def read_law(law_key: str, paras: list[dict[str, Any]]) -> tuple[list[dict], lis
         elif item and _is_header(text) and _fund_split(following):
             # "Underground Storage Tank Petroleum" / "Product Cleanup Fund … 100%"
             fund_prefix = text
-        elif VETO_NOTE_RE.match(text) and (p["bold"] or VETO_WORDS_RE.search(text)):
+        elif VETO_NOTE_RE.match(text) and VETO_WORDS_RE.search(text):
             close_item()
             notes.append(text)
         elif _is_header(text):

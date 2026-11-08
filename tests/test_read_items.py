@@ -153,6 +153,39 @@ def test_override_notes_and_unbolded_notes():
     assert item["veto_kind_inline"] == "overridden"
 
 
+@pytest.mark.parametrize(
+    "note, amount, kind",
+    [
+        # issue #28: wording struck, amount unchanged (2020-383, 2021-24, 2021-102, 2022-176)
+        ("Governor disapproved wording as indicated in the following item.", "$3,000,000,000",
+         "wording_vetoed"),
+        ("The Governor disapproved of certain wording, for message see House, No. 4019.",
+         "$5,000", "wording_vetoed"),
+        ("Governor disapproved of the certain wording, for message see House, No. 4288",
+         "$5,000", "wording_vetoed"),
+        # a wording note on an item whose amount is struck is a whole-item veto
+        ("Governor disapproved certain wording in the following section", "<s>$5,000</s>",
+         "disapproved"),
+        # whole-item vetoes, incl. the misspelling in 2025-9 and pocket vetoes (2020-383)
+        ("Governor dissaproved of the following item, for message see H4250", "$5,000",
+         "disapproved"),
+        ("Governor pocket vetoed the following item.", "$250,000,000", "disapproved"),
+        ("The Governor disapproved of certain wording, for message see House, No. 4019. "
+         "The Legislature overrode the Governor's veto.", "$5,000", "overridden"),
+    ],
+)
+def test_veto_kinds(note, amount, kind):
+    item = one(f"<p>SECTION 2.</p><p><b>{note}</b></p><p>6621-2108 For roads ...... {amount}</p>")
+    assert item["veto_kind_inline"] == kind
+
+
+def test_legislature_header_is_not_a_veto_note():
+    # the bold "LEGISLATURE." header above item 9500-0000 (2021-24)
+    item = one("<p>SECTION 2.</p><p><b>LEGISLATURE.</b></p><p>9500-0000 Senate ...... $5</p>")
+    assert (item["secretariat_header_raw"], item["veto_kind_inline"]) == ("LEGISLATURE.", "none")
+    assert item["veto_annotation_raw"] == ""
+
+
 def test_replacement_amount_on_its_own_line():
     # 2025-9 item 1595-6368: struck amount at the end, new amount on the next line
     item = one(
