@@ -3,9 +3,9 @@
 
 Owner: workstream C (Amendments). Reads every cached law on the law list (hand-kept laws, with
 `parse_strategy = manual`, have no cached text and are skipped) and, in each outside section (any
-section other than the §2… appropriation sections, and the capital sections that read_bonds reads,
-such as 2023-2 §3–§3B), recognises the §11.3 patterns:
-figure changes, date extensions, item insertions, replacements and strikes, text-only changes,
+section other than the §2… appropriation sections, and the capital sections and borrowing limits
+that read_bonds reads, such as 2023-2 §3–§3B), recognises the §11.3 patterns: figure changes,
+date extensions, item insertions, replacements, strikes and renumberings, text-only changes,
 transfers and direct appropriations. Interim ("1/12th") budgets are direct appropriations, so they
 are read here rather than typed by hand. "Said item … of said section 2 of said chapter 28" is
 resolved by carrying the last named law, section and item forward.
@@ -17,10 +17,12 @@ no stage reads. Only in-scope laws are reported: a reference-only law is read fo
 history, but it adds no rows to the dataset, so its unread sections are only counted. A row whose
 section has a misprinted dollar figure ("$15,000,0000") gets `low` confidence.
 
-An outside section that looks vetoed (struck-through text, or a "Governor disapproved of the
-following section" note) is still read, but its rows get `low` confidence and it is listed in
-reports/unread_sections.csv so a human checks whether the Legislature overrode the veto. Inline
-veto markup is a hint, not truth (§11.4).
+A section the Governor returned with a recommendation of amendment isn't law in that chapter (the
+Legislature's version, if any, is a later chapter), so it gives no rows and is listed in
+reports/unread_sections.csv. An outside section that looks vetoed (struck-through text, or a
+"Governor disapproved of the following section" note) is still read, but its rows get `low`
+confidence and it is listed in reports/unread_sections.csv so a human checks whether the
+Legislature overrode the veto. Inline veto markup is a hint, not truth (§11.4).
 
 This stage only records what each law says. The running amounts table and the struck-figure check
 (§5.5) need dates and CTHRU amounts, so they belong in `combine` and `validate`.
@@ -39,7 +41,7 @@ from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.7.0"
+READER_VERSION = "0.9.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -64,10 +66,19 @@ AMENDED_RE = re.compile(
 AS_AMENDED_RE = re.compile(
     r",\s*as (?:most recently |so |further )?(?:amended|appearing|inserted)\b[^,]*,"
 )
+# Chapter numbers can carry a half: "chapter 159A1⁄2 of the General Laws" (2020-383 §8). A
+# chapter of the resolves isn't an appropriation act, so it is treated like the General Laws.
 CHAPTER_RE = re.compile(
-    r"\b(said\s+)?chapter\s+(\d+[A-Z]*)"
-    r"(?:\s+of\s+the\s+acts\s+of\s+(\d{4})|\s+of\s+the\s+(General\s+Laws))?",
+    r"\b(said\s+)?chapter\s+(\d+[A-Z]*(?:1⁄2|½|1/2)?)"
+    r"(?:\s+of\s+the\s+acts\s+of\s+(\d{4})|\s+of\s+the\s+(General\s+Laws|resolves\s+of\s+\d{4}))?",
     re.I,
+)
+# Only the General Laws have an "Official Edition", and "as so appearing" refers back to one
+# (2024-238 §101: "Section 29K of said chapter 29, as appearing in the 2022 Official Edition").
+OFFICIAL_EDITION_RE = re.compile(r"Official Edition|as so appearing", re.I)
+RENUMBER_RE = re.compile(
+    rf'striking out the (?:figure|item number) "(?P<old>{ITEM})" and inserting in place'
+    rf" thereof the following (?:figure|item number):-\s*(?P<new>{ITEM})"
 )
 ITEMS_RE = re.compile(rf"items?\s+({ITEM}(?:(?:,\s*|,?\s+and\s+){ITEM})*)")
 # An amendment's subject that is an item, or a clause of one: "Clause (2) of item 3722-8899 of
@@ -144,7 +155,8 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     A Governor's note comes just before what it is about, so it is held back: before a new
     section it only marks that section, and anywhere else it stays in place in the text. A section
-    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved.
+    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved,
+    and ``returned`` if a note says the Governor returned it with a recommendation of amendment.
     """
     out: list[dict[str, Any]] = []
     notes: list[str] = []
@@ -153,7 +165,10 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
             notes.append(p["text"])
             continue
         if m := SECTION_START_RE.match(p["text"]) or SECTION2_HEADING_RE.match(p["text"]):
-            out.append({"section": m[1].upper(), "texts": [], "vetoed": False})
+            returned = any("returned" in n and "amendment" in n for n in notes)
+            out.append(
+                {"section": m[1].upper(), "texts": [], "vetoed": False, "returned": returned}
+            )
         elif out:
             out[-1]["texts"] += notes
         if out:
@@ -181,17 +196,15 @@ def _chapter_law(m: re.Match, chapters: dict[str, str]) -> str | None:
     """Law key for a chapter mention; "GL" for the General Laws; None if unknown."""
     if m[3]:
         return schemas.law_key(m[3], m[2])
-    if m[4]:
-        return "GL"
     if m[1]:
         return chapters.get(m[2])
-    return None
+    return "GL"  # "of the General Laws", a resolve, or a bare "chapter 40R"
 
 
 def _remember_chapters(text: str, chapters: dict[str, str]) -> None:
-    """Record every explicit chapter mention so a later "said chapter N" can be resolved."""
+    """Record every chapter mention so a later "said chapter N" can be resolved."""
     for m in CHAPTER_RE.finditer(text):
-        if m[3] or m[4]:
+        if not m[1]:
             chapters[m[2]] = _chapter_law(m, chapters)
 
 
@@ -206,6 +219,8 @@ def _resolve(
         law = law_key
     elif ch:
         law = _chapter_law(ch, chapters)
+    elif "General Laws" in subject:  # "The General Laws are hereby amended by inserting …"
+        law = "GL"
     elif "said" in subject.lower():
         law = last["law"]
     else:
@@ -284,6 +299,10 @@ def _amendment_actions(
             {"action_type": "item_insert", "target_item": i, "new_figure": amount}
             for i, amount in _inserted_items(rest).items()
         ]
+    # An item renumbered in an earlier law (2021-102 §46: 'striking out the figure "7002-0015"
+    # and inserting in place thereof the following figure:- 7002-0016'): no money changes
+    if m := RENUMBER_RE.search(predicate):
+        return [{"action_type": "purpose_change", "target_item": m["old"], "to_item": m["new"]}]
     if not items:
         return []
 
@@ -425,12 +444,16 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
     last: dict[str, Any] = {"law": None, "section": None}
     paras = paragraphs.paragraphs(law_key, html)
     capital = read_bonds.capital_sections(paras)  # read_bonds reads these sections' items
+    # ... and, in laws with capital items, the borrowing limits ("issue and sell bonds", §7.16)
+    borrows = law_type in read_bonds.LAW_TYPES or bool(capital)
     for s in _sections(paras):
         section, texts = s["section"], s["texts"]
         keyed = [paragraphs.key(t) for t in texts]
         full = "\n".join(keyed)
-        if (law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section)) or (
-            section in capital
+        if (
+            (law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section))
+            or section in capital
+            or (borrows and read_bonds.BORROW_RE.search(texts[0]))
         ):
             _remember_chapters(full, chapters)
             continue
@@ -452,6 +475,8 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                 m, rest, nested = inner_m, rest[1:], True
         if m:
             target = _resolve(AS_AMENDED_RE.sub("", m["subject"]), law_key, chapters, last)
+            if target is None and OFFICIAL_EDITION_RE.search(m["subject"]):
+                target = ("GL", None, [])
             if target is None:
                 reason = "could not tell which law this section amends"
             elif target[0] != "GL":
@@ -487,6 +512,15 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                 reason = "mentions dollars and an item or appropriation but matched no pattern"
         if actions and s["vetoed"]:
             reason = "looks vetoed (struck text or a veto note); check whether it was overridden"
+        if s["returned"] and (actions or reason):
+            # Not law in this chapter: the Legislature acts on the Governor's amendment in a
+            # separate bill, which becomes its own chapter (2021-24 §102–§103 became 2021 ch. 33).
+            # Listed only when it would have given rows or been unread anyway.
+            actions = []
+            reason = (
+                "returned by the Governor with a recommendation of amendment, so it isn't law in"
+                " this chapter; the Legislature's version, if any, is a later chapter"
+            )
         if reason:
             unread.append(
                 {"law_key": law_key, "section": section, "reason": reason, "text": texts[0][:500]}
