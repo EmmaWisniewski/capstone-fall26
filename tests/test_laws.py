@@ -204,3 +204,133 @@ def test_run_stops_without_contact_email(root, tmp_path, capsys):
     assert laws.run(ctx) == 2
     assert "contact_email" in capsys.readouterr().out
     assert not (tmp_path / "manifest.csv").exists()
+
+
+# --- discovery ------------------------------------------------------------------------------
+
+SCOPE = {"approved_from": "2021-01-01", "approved_to": "2025-12-31"}
+TODAY = laws.date(2026, 11, 7)
+
+
+def act(chapter, body, title="AN ACT", approved="Mar 1 2023", resolve=False):
+    return {
+        "Type": "Resolves" if resolve else "Acts",
+        "ChapterNumber": str(chapter),
+        "Title": title,
+        "ApprovedDate": approved,
+        "ApprovalType": "Executive approval (signed)",
+        "OriginBill": {"GeneralCourtNumber": 193, "BillNumber": "H4040"},
+        "ChapterText": body,
+    }
+
+
+@pytest.mark.parametrize(
+    ("body", "title", "signal"),
+    [
+        ("<p>SECTION 2.</p><p>1599-0001 For a reserve ...... $1,000</p>", "AN ACT", "line items"),
+        (
+            "<p>SECTION 1. The sum of $5,000 is hereby appropriated.</p>",
+            "AN ACT",
+            "hereby appropriated",
+        ),
+        (
+            "<p>SECTION 3. Item 4513-1000 of section 2 of chapter 28 of the acts of 2023 is hereby "
+            "amended by inserting the following words.</p>",
+            "AN ACT REQUIRING EARLY INTERVENTION",  # 2022-83, the 2021-35 kind
+            "amends a line item",
+        ),
+        (
+            "<p>SECTION 4. The state treasurer shall issue and sell bonds.</p>",
+            "AN ACT",
+            "borrowing",
+        ),
+        (
+            "<p>SECTION 1. Text.</p>",
+            "AN ACT MAKING APPROPRIATIONS FOR THE FISCAL YEAR",
+            "appropriation title",
+        ),
+    ],
+)
+def test_each_signal_flags_a_candidate(body, title, signal):
+    assert signal in laws.signals(act(1, body, title))
+
+
+@pytest.mark.parametrize(
+    ("body", "title"),
+    [
+        # A land conveyance and a town charter: no appropriation, though the old signals matched
+        (
+            "<p>SECTION 1. The commissioner may convey a parcel.</p>",
+            "AN ACT AUTHORIZING THE DIVISION OF CAPITAL ASSET MANAGEMENT AND MAINTENANCE TO CONVEY",
+        ),
+        (
+            "<p>SECTION 6. Section 2-5 of said charter is hereby amended by striking out the "
+            "figure "
+            '"5" and inserting in place thereof the following figure:- 7.</p>',
+            "AN ACT AMENDING THE CHARTER OF THE TOWN OF BOURNE",
+        ),
+    ],
+)
+def test_non_appropriation_acts_are_not_candidates(body, title):
+    assert laws.signals(act(1, body, title)) == []
+
+
+def test_discover_adds_new_candidates_only():
+    records = {
+        2023: [
+            act(10, "<p>The sum of $5 is hereby appropriated.</p>"),  # new
+            act(11, "<p>The sum of $5 is hereby appropriated.</p>"),  # listed: in_scope
+            act(12, "<p>The sum of $5 is hereby appropriated.</p>"),  # listed: excluded
+            act(13, "<p>The commissioner may convey a parcel.</p>"),  # no signal
+            act(14, "<p>The sum of $5 is hereby appropriated.</p>", resolve=True),  # a Resolve
+        ],
+        2026: [act(55, "<p>The sum of $5 is hereby appropriated.</p>", approved="Apr 6 2026")],
+    }
+    law_list = [entry("2023-11"), entry("2023-12", "excluded")]
+    rows = laws.discover(records, law_list, SCOPE, TODAY)
+    assert [r["law_key"] for r in rows] == ["2023-10", "2026-55"]
+    first, second = rows
+    assert (first["role"], first["approved_date"], first["origin_bill"]) == (
+        "tbd",
+        "2023-03-01",
+        "193/H4040",
+    )
+    assert first["include_reason"] == "Candidate: hereby appropriated"
+    assert first["notes"] == "Found by discovery on 2026-11-07"
+    assert laws.OUTSIDE_WINDOW_NOTE in second["notes"]
+    # Running again with the new rows on the list adds nothing
+    assert laws.discover(records, law_list + rows, SCOPE, TODAY) == []
+
+
+def test_append_keeps_every_existing_byte(tmp_path):
+    path = tmp_path / "law_list.csv"
+    header = ",".join(schemas.columns("law_list"))
+    before = f"{header}\r\n2023-11,2023,11,2023-03-01,,,,supplemental,in_scope,,,,auto,\r\n"
+    path.write_bytes(before.encode("utf-8"))
+    rows = laws.discover({2023: [act(10, "<p>hereby appropriated</p>")]}, [], SCOPE, TODAY)
+    laws.append_to_law_list(path, rows)
+    after = path.read_bytes()
+    assert after.startswith(before.encode("utf-8"))
+    _, read = schemas.read_csv(path)
+    assert [r["law_key"] for r in read] == ["2023-11", "2023-10"]
+    assert schemas.validate_file("law_list", path) == []
+
+
+def test_run_discovers_from_the_cache_offline_but_not_for_one_law(root, tmp_path):
+    raw = tmp_path / "raw"
+    (raw / "sessionlaws" / "_lists").mkdir(parents=True)
+    (raw / "sessionlaws" / "_lists" / "2023.json").write_text(
+        json.dumps([act(10, "<p>The sum of $5 is hereby appropriated.</p>")]), "utf-8"
+    )
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "law_list.csv").write_text(",".join(schemas.columns("law_list")) + "\n", "utf-8")
+    settings = load_settings(root / "config" / "settings.toml")
+    settings["http"] = HTTP
+    settings["scope"] = settings["scope"] | {"discover_years": [2023]}
+    one = Context(root=tmp_path, raw_dir=raw, settings=settings, offline=True, law="2023-10")
+    laws.run(one)
+    assert schemas.read_csv(config / "law_list.csv")[1] == []  # --law: no discovery
+    ctx = Context(root=tmp_path, raw_dir=raw, settings=settings, offline=True)
+    laws.run(ctx)
+    assert [r["law_key"] for r in schemas.read_csv(config / "law_list.csv")[1]] == ["2023-10"]

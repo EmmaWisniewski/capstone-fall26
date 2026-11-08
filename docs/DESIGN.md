@@ -309,13 +309,14 @@ flowchart LR
 | — | `validate` | everything | `reports/validation/*.csv`, `reports/law_status.csv` | E |
 
 ### Stage notes
-1. **laws.** Pull `/SessionLaws/{year}` for the configured years, keep Acts approved in the window, and **scan full text, not just titles**. Flag a chapter as a candidate if it has any of:
-   - a line-item paragraph,
+1. **laws.** Pull `/SessionLaws/{year}` for the configured years (`[scope] discover_years`) and **scan full text, not just titles**. Flag an Act not yet on the law list as a candidate if it has any of (tightened 2026-11-07, see the Decision Log):
+   - a line-item paragraph (an item ID at the start, a dollar amount at the end),
    - "hereby appropriated",
-   - "the sum of $X is hereby appropriated" or "the amount of $X is hereby appropriated",
-   - "striking out the figure",
-   - bond issuance language,
-   - an appropriation-style title.
+   - an amendment of a line item ("item NNNN-NNNN … is hereby amended", in either order),
+   - borrowing language ("issue and sell … bonds" or "notes"),
+   - an appropriation-style title ("making appropriations", "appropriations for", "supplementing", "financing the …").
+
+   Laws approved outside the window are flagged too, with a note, because they may be needed as reference-only laws.
 
    New candidates are appended with `role = tbd`, and existing human decisions are never overwritten. The stage also adds reference-only laws: same-FY laws outside the window, and amendment targets found by `read_amendments`. It then downloads each listed law's JSON and stores the SHA-256 and fetch time in `manifest.csv`, skipping unchanged files and throttling requests. **This stage is what a future cohort runs first each year.**
 2. **cthru.** One aggregated query per FY (FY2005 onward for history), saved as a dated snapshot. It writes one row per FY × account (§7.5). This is the source of every GAA original appropriation and of agency names.
@@ -947,6 +948,7 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | 2026-11-06 | **Q15 resolved: the default stands.** Money moved into a trust that spends without a further appropriation doesn't count, and is flagged `trust_transfer`. | Group; reported by Emma, 2026-11-06. |
 | 2026-11-06 | **Q25 resolved: 2023-2 §3–§3B are capital authorizations** (mostly matching grants; §§77–79 authorize borrowing that covers them exactly). They go in the capital file and are read by `read_bonds` (A). | Group; Emma checked the law text; reported by Emma, 2026-11-06. |
 | 2026-11-06 | **Q3 partly resolved: placeholder answers.** `Unknown` means the fact has not been established; `Not classified` means a category has not been assigned; `Pending` means a review or counting decision remains open; all are for when there truly isn't enough information. EX-001 is therefore `Yes` (its item was funded the year before). The interim rules for *New vs. re-appropriation* and supplemental *One-time or recurring* stay for now. | Partner (Office of the State Auditor); reported by Emma, 2026-11-06. |
+| 2026-11-07 | **Discovery signals tightened** (§6 stage 1). "Striking out the figure" is replaced by "amends a line item", and the title signal is limited to appropriation and financing wording. As first written, the signals flagged 63 extra Acts on 2020–2026 (town charters, General Laws figure changes, Capital Asset Management land conveyances); the tightened ones flag every law on the list plus 16 candidates. | Emma (workstream A), from a test on the cached year lists. |
 
 ---
 
@@ -968,7 +970,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | C: running amounts table and struck-figure check | C | ☐ todo | needs `combine` and the CTHRU sample (§13.3) |
 | M0: CTHRU sample | E | ☐ todo | small FY2023–FY2024 snapshot covering example-row and veto items |
 | M0: bond and Chapter 90 samples | A | ☑ done | `2024-139` (IT bond) and `2025-17` (Chapter 90) in `tests/samples/` (2026-10-28); expected `read_bonds` output in `tests/samples/expected/bond_items.csv` and `bond_authorizations.csv` (2026-10-29; branch `a/bond-expected-rows`); all 16 line items hand-checked against the official text by Emma (2026-10-29); borrowing-limit format open (Q11, Q12) |
-| A: `laws` stage, downloading | A | ◐ in progress | branch `a/laws-download`: downloads listed laws into `data/raw/` with `manifest.csv`; offline tests pass. Run live 2026-10-28 with a one-off contact email: all 52 non-excluded laws in 8 requests, 0 problems; the 6 samples are byte-identical and every law-list API field matches. `contact_email`: the group chose Emma's address (Q18), set in `config/settings.toml` (PR #19). Discovery of new candidates not started |
+| A: `laws` stage, downloading | A | ◐ in progress | branch `a/laws-download`: downloads listed laws into `data/raw/` with `manifest.csv`; offline tests pass. Run live 2026-10-28 with a one-off contact email: all 52 non-excluded laws in 8 requests, 0 problems; the 6 samples are byte-identical and every law-list API field matches. `contact_email`: the group chose Emma's address (Q18), set in `config/settings.toml` (PR #19). **Discovery** (branch `a/laws-discover`, 2026-11-07): appends candidates as `tbd`; on the cached 2020–2026 lists it flags every listed law plus 16 new candidates (2022-83 in the window; 15 from 2020 and 2026) for review. |
 | D: seed department table and catalog | D | ☑ done | `config/department_policy_areas.csv`: 153 CTHRU departments (FY2021–FY2027), 7 mixed; merged in PR #9. `config/line_item_catalog.csv`: 1,173 line items. 259 lines from mixed departments and flagged exceptions decided by Emily R.; 914 generated from the department table, marked `department list (automatic)`. A random 46 (5%) were spot-checked (2 changed: 7008-0250 → Arts; 2511-0103 → Government administration), and 18 more changed after Emma's review (2026-11-07: 14 jail addiction-treatment lines → Health; 3 elder housing lines and 7503-0101 → Housing), leaving 850 marked automatic. 124 1599-xxxx reserves are `label_every_year`. 2026-11-07 |
 | D: `config/funds.csv` | D | ☑ done | 24 funds with CTHRU fund numbers; 5 federal (General Federal Grants, Federal COVID-19 Response, Coronavirus Relief, and the ARPA-filled Broadband Innovation and Behavioral Health trust funds), per the partner's Q1 rule. 2026-11-02 |
 | A: `read_bonds` (§11.2) | A | ◐ in review | branch `a/read-bonds`; reuses B's `read_items.read_law` and adds the pocket-veto rule. On all 15 downloaded bond laws: 181 items, 0 unread paragraphs, all high confidence; 2020-383 totals $16,229,698,500 after leaving out its 2 pocket-vetoed items, as in the survey. **Step 2 (branch `a/read-bonds-limits`, 2026-11-06):** borrowing limits to `bond_authorizations_raw.csv` (§7.16), and capital sections outside §2 (2023-2 §3–§3B, Q25). On all downloaded laws: 191 items, 47 limits, 0 unread; every item/limit difference is one the survey explained; identified federal shares $7,470,657,157 (2020-383 §32, 2022-176 §41 and §47), `unknown` for 2020-383 §34, 2021-15 §6, 2022-176 §48 and 2024-139 §4. Not yet: check 7 (`validate`, E) and the capital file (`export`). |
