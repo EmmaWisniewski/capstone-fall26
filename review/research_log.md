@@ -37,3 +37,22 @@ $54,100,000 (ch. 52 §8) and $295,000,000 (ch. 494 §6).
   alternative property, and the proceeds are used, as needed to replace the housing, to acquire
   or rehabilitate that alternative property. It changes wording only, not dollars. (Wording
   checked against the official text by Emma, 2026-11-04.)
+
+## 2021-029-S49-1595-1068-INC-1 and 2023-077-S81-3000-7040-INC-1 (Q27)
+
+Emily H., 2026-11-08. Emma's review of PR #17 asked whether FY2021 item 1595-1068 is counted twice.
+
+- **2021 ch. 29.** §2 supplements FY2021 item 1595-1068 by $31,937,236. §49 amends the same item in the
+  FY2021 GAA (2020 ch. 227, §2E), striking "$505,250,000" and inserting "$537,190,000" (+$31,940,000).
+  (§48 changes a different figure in the item's text, a cap of "up to $437,750,000" on payments to the
+  Cambridge Public Health Commission, to $465,350,000. That's a limit inside the item, not its total; see Q21.)
+- **CTHRU, FY2021, 1595-1068:** original $505,250,000; supplemental $31,937,236; total $537,187,236.
+  So CTHRU counts §2's amount once. §49's $537,190,000 is that total rounded up to the nearest $10,000:
+  §49 restates the item's figure to include §2's money.
+- **The same pattern in 2023 ch. 77:** §2 supplements FY2023 item 3000-7040 (a retained-revenue item)
+  by $200,000, and §81 amends the FY2023 GAA (2022 ch. 126) item from $320,000 to $520,000. CTHRU,
+  FY2023: one retained-revenue ceiling of $520,000 and no supplemental.
+- In the laws cached locally (9 laws plus the 8 samples), these are the only two cases where one law
+  both supplements an item in §2 and changes the same item's figure in an outside section.
+
+Conclusion: count the §2 row only; the outside section restates it. Proposed as a general rule in DESIGN Q27.
