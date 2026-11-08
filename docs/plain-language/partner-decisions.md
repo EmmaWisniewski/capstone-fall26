@@ -4,7 +4,7 @@
 open questions in [DESIGN §19](../DESIGN.md#19-open-questions); if the two disagree, §19 is
 correct. When the partner answers a question, record the answer in the
 [Decision Log (§20)](../DESIGN.md#20-decision-log) and update this page. Last updated
-2026-11-04.*
+2026-11-06.*
 
 For each question: the question, why it matters, and what the program does until we hear back.
 None of these block our work, because the program uses a sensible default for now. But each
@@ -36,40 +36,42 @@ even if it was funded in some earlier year. Our partner decided this. Recorded i
 A program's first year counts if the next year's budget funds it again. Our partner decided this.
 Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-02.
 
+**Decided:** **what the placeholder answers mean.** "Unknown" means a fact hasn't been
+established; "Not classified" means a category hasn't been assigned; "Pending" means a review or
+counting decision is still open. They're only for when we truly don't have enough information.
+So the example row that said "Unknown" for a program funded the year before should say "Yes".
+Our partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
+2026-11-06.
+
 **Still open:**
 - **"New money or re-using existing money?"**
 - **Is money a supplemental budget adds to a recurring item recurring or one-time?**
-- **When to answer "Unknown"** for "previously funded?", for example when a program seems to have
-  been given a new item number.
-- **One example row looks inconsistent:** it says "Unknown" for a program that state records
-  show was funded the year before, so under the new rule it would be "Yes". We'd like to know what
-  was meant.
 
 **Why it matters:** these columns appear on every row.
 
-**For now:** we use temporary rules for the open parts and mark them as provisional.
+**For now:** we use temporary rules for the open parts (the group chose to keep them on
+2026-11-06) and mark them as provisional.
 
 ### 4. Should vetoes appear as their own rows? (Q4) **Decided**
 **The answer:** No. Each item has one row showing its final amount, after any veto or
 restoration, with a note saying whether it was vetoed, reduced or restored. The group decided
 this, keeping the default. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
-2026-11-01. The note and the amount before the veto are in the extended file, not the main
-spreadsheet. How to show changes to an item's *wording* is still being discussed by the group.
+2026-11-01. On 2026-11-06 the group added a "Veto status" column to the main spreadsheet, with
+two new notes: "partial override" (the Legislature restored only part of a cut) and "wording
+vetoed" (wording struck, amount unchanged). The amount before the veto stays in the extended
+file. Our partner agreed to the extra column.
 
 ### 5. Where should borrowing (bond) laws go? (Q5) **Decided**
 **The answer:** In a separate spreadsheet, not the main one. Bond laws authorize borrowing and
 spending over several years, so keeping them apart avoids confusing readers about yearly
 totals. Our partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log)
-on 2026-11-01. What columns that separate spreadsheet should have is still open (question 9).
+on 2026-11-01. Its columns were decided on 2026-11-06 (question 9).
 
-### 6. What names should we use for each kind of action? (§19 Q8)
-**The question:** The example rows only show two types: "Original appropriation" and
-"Supplemental increase". We've proposed names for the others, such as "Supplemental reduction",
-"Transfer" and "Capital authorization". Are these the names the partner wants?
-
-**Why it matters:** these names are what readers see.
-
-**For now:** we use our proposed names (full list in DESIGN §9.2).
+### 6. What names should we use for each kind of action? (Q8) **Decided**
+**The answer:** Our proposed names, such as "Supplemental reduction", "Transfer" and "Capital
+authorization", alongside the examples' "Original appropriation" and "Supplemental increase"
+(full list in DESIGN §9.2). Our partner approved them. Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-06.
 
 ### 7. Should we track spending too, not just what laws allowed? (Q10) **Decided**
 **The answer:** No. The project covers only what laws *allowed* the state to spend
@@ -86,17 +88,33 @@ $400 million difference, and also records the borrowing limits so the two can be
 partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
 2026-11-01.
 
-### 9. What should the separate bond spreadsheet look like? (§19 Q16)
-**The question:** Now that bond laws get their own spreadsheet (question 5), which columns should
-it have?
+**Updated 2026-11-06: federal money in bond laws.** Some projects are partly paid for by the
+federal government. When the law says so, the borrowing limit is the state's share and the rest is
+federal: in the 2020 transportation bond law, a $4.4 billion highway item has an $880 million
+borrowing limit, so $3.52 billion is federal. That federal share is now **left out of the bond
+total and marked as federal**, like federal money elsewhere (question 1). When the law doesn't
+say how the money splits, the split is marked "unknown" and the full amount stays in. Each
+project's full amount, the borrowing limit and the federal share are all kept. Our partner
+decided this.
 
-**Why it matters:** It decides how easily readers can compare bond money with the yearly budget
-spreadsheet.
+### 9. What should the separate bond spreadsheet look like? (Q16) **Decided**
+**The answer:** The same columns as the main spreadsheet, plus 11 more about each project's
+borrowing limit: which section sets it, the limit, the total of the projects under it, any federal
+share and whether the split is known, a note when the projects and the limit differ, the bond's
+name, its longest term, its final repayment date, which fund repays it, and how long the money may
+be spent. A law that only restates an old project at the same amount adds no new money. Items the
+Governor pocket-vetoed are left out. Decided with our partner. Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-06.
 
-**For now:** we plan to use exactly the same 19 columns as the main spreadsheet, with only the
-bond rows in it.
+### 10. What extra bond details do you want, and from where? (Q17) **Decided**
+**The answer:** Only what the laws themselves say: each bond's longest term, its final repayment
+deadline, which fund pays the interest, and how long the money may be spent. No bond sale data
+(actual maturity dates and interest rates) and no spending data, so "appropriations only"
+(question 7) applies to bonds too. Our partner decided this. Recorded in the
+[Decision Log](../DESIGN.md#20-decision-log) on 2026-11-06.
 
-### 10. What extra bond details do you want, and from where? (§19 Q17)
+*The question as we asked it:*
+
 **What you asked for:** the separate bond spreadsheet should also show each bond's **maturity
 date**, its **interest rate**, and **when the money was spent**.
 
@@ -117,18 +135,12 @@ bonds can run (for example "not more than 30 years") and a final repayment deadl
 law, for each borrowing limit, or for each bond sale? And should bond spending be an exception to
 "appropriations only"?
 
-**For now:** the bond spreadsheet will include each law's maximum term and final repayment
-deadline. We haven't collected sale or spending data.
 
 ---
 
-**Not for the partner (the group decides these itself):** whether two borderline laws belong in
-the dataset (2020 ch. 316 and 2021 ch. 9; §19 Q7), how to date veto overrides that happen in
-2026 for laws passed in 2025 (§19 Q6), where the program stores each bond law's borrowing
-limits and flags their differences (the technical half of §19 Q11), and two follow-ups to the veto decision: whether an item
-the Legislature only partly restored counts as "reduced" or "restored" (§19 Q13), and whether the
-veto note should also appear in the main spreadsheet (§19 Q14; the partner may have a view, since
-the main spreadsheet's columns come from their example). And a follow-up to question 2: some trust
-funds can spend money without another law approving it, so under the "count it when a law spends
-it" rule, money moved into those funds would never count toward the totals. Should the move count
-for those funds instead? (§19 Q15; the partner may have a view.)
+**Not for the partner (the group decides these itself), still open:** how to date veto overrides
+that happen in 2026 for laws passed in 2025 (§19 Q6); how to label a bond row that adds no new
+money because a law only restated an old project (§19 Q26); and several technical questions about
+how amendments are read (§19 Q19–Q24). The group has decided the others it used to list here:
+the two borderline laws (Q7), where bond borrowing limits are stored (Q11), partly restored vetoes
+(Q13), the veto column (Q14), and money moved into trusts (Q15, which keeps the default).

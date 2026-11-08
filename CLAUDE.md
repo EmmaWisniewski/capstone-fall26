@@ -14,7 +14,7 @@ This repo builds a line-item dataset of Massachusetts state appropriations from 
 - **CTHRU first (§3.4).** GAA amounts and agencies come from CTHRU; law text is read only for what CTHRU lacks. Inline veto markup is a hint, not truth (§11.4).
 - **Automate, don't hand-annotate.** Every routine kind of law is read by code; `config/manual_rows.csv` is an escape hatch only. Nothing may be hard-coded to 2021–2025: future cohorts re-run the program each year (§1).
 - **Use `amount_kind` and `counts_toward_total` for every funding-action row.** Interim budgets, ISF chargebacks, reauthorizations, transfers and bond authorizations are not summed into the operating totals (§10).
-- **Federal money stays in the data but is flagged**, pending the Office of the State Auditor partner (Q1).
+- **Federal money stays in the data but is flagged** and left out of totals; only federal-source money (incl. ARPA-filled trusts) is flagged, and state surplus counts as state money (Q1, decided by the partner).
 - Be polite to malegislature.gov: about 1 request per second, cache in `data/raw/`, and use offline samples in tests.
 - Never commit `data/raw/` or API keys. The pipeline uses no LLM (DESIGN §12); don't add one without a Decision Log entry.
 
