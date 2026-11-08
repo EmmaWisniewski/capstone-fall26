@@ -474,7 +474,7 @@ One row per borrowing-limit section (Q11, Q12, Q17, decided 2026-11-06). Numbere
 Only what the laws say is collected: no bond sale data (actual maturities, interest rates) and no spending (Q17; Q10 stands).
 
 ### 7.17 `config/item_number_fixes.csv` (human-curated)
-Item numbers misprinted in a law, so the item is read instead of landing in the unread report (issue #18). `law_key`, `printed` (as in the law, e.g. `911-1003`), `line_item` (the right number, `NNNN-NNNN`), `evidence` (how we know, e.g. the same item's number in other years' budgets). `read_items` (and `read_bonds` through it) applies the fixes for the law it reads, marks those items `confidence = medium`, and warns if a fix isn't used. When a future law has a misprinted number, it shows up in `unread_paragraphs.csv`; add a row here.
+Item numbers misprinted in a law, so the item is read instead of landing in the unread report (issue #18). `law_key`, `printed` (as in the law, e.g. `911-1003`), `line_item` (the right number, `NNNN-NNNN`), `evidence` (how we know, e.g. the same item's number in other years' budgets). `read_items` applies the fixes for the law it reads, marks those items `confidence = medium`, and warns if a fix isn't used. `read_bonds` can pass them to `read_items.read_law` the same way (its optional `fixes` argument); no bond law needs one yet. When a future law has a misprinted number, it shows up in `unread_paragraphs.csv`; add a row here.
 
 ## 8. Mapping to the `exampledata.csv` columns
 
