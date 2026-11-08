@@ -94,6 +94,34 @@ def test_vague_bond_heading_uses_the_secretariat():
     assert out["agency_office"] == "Executive Office of Technology Services and Security"
 
 
+def test_heading_only_offices_use_the_all_caps_heading():
+    # No office line under the heading (2022-175 items 0330-6000…, 2022-140 item 0640-1005)
+    assert label.header_agency("", "JUDICIARY") == "Judiciary"
+    assert label.header_agency("", "TREASURER AND RECEIVER GENERAL") == (
+        "Treasurer and Receiver General"
+    )
+
+
+def test_inherited_heading_from_another_department_is_replaced():
+    # 2022-140 §2: 7066-2011 and 8000-2028 sit under "The Department of Children and Families"
+    cthru_rows = [
+        cthru("4800-0038", 2024, account="x", dept_name="DEPARTMENT OF CHILDREN AND FAMILIES"),
+        cthru("7066-0000", 2024, account="x", dept_name="DEPARTMENT OF HIGHER EDUCATION"),
+        cthru("8910-0102", 2024, account="x", dept_name="SHERIFF DEPARTMENT HAMPDEN"),
+        cthru("8910-8800", 2024, account="x", dept_name="SHERIFF DEPARTMENT SUFFOLK"),
+    ]
+    depts = label.Departments(cthru_rows)
+    dcf = "The Department of Children and Families"
+    assert label.agency_office(action("a", "7066-2011", 2023, "CAP", header=dcf), None, "",
+                               depts) == "Department of Higher Education"
+    assert label.agency_office(action("b", "4800-0017", 2023, "CAP", header=dcf), None, "",
+                               depts) == "Department of Children and Families"
+    # A department that uses the prefix keeps its own heading, even if another one uses it more
+    assert label.agency_office(action("c", "8910-0001", 2023, "CAP",
+                                      header="SHERIFF DEPARTMENT SUFFOLK"), None, "",
+                               depts) == "Suffolk Sheriff's Department"
+
+
 def test_department_names_are_cleaned_up():
     names = {
         "DEPARTMENT of AGRICULTURAL RESOURCES": "Department of Agricultural Resources",

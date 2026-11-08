@@ -7,7 +7,9 @@ Owner: workstream D (Labels). No LLM.
   operation of the division of marine fisheries" gives "Division of Marine Fisheries"), else an
   office named at the start of the CTHRU account name, else the line's CTHRU department that
   fiscal year, else the law's printed agency header (or, when that header is just "Office of
-  the Secretary", the secretariat header above it, read from items_raw / bond_items_raw).
+  the Secretary" or missing, the secretariat header above it, read from items_raw /
+  bond_items_raw). A header inherited from another department is replaced by the department
+  that owns the line item's first four digits in CTHRU.
 - Program / purpose (§8 column 10): the first clause of the law text with boilerplate like "For
   the operation of" removed, else the CTHRU account name.
 - Policy area (§12): config/line_item_catalog.csv, then config/department_policy_areas.csv
@@ -25,7 +27,7 @@ from __future__ import annotations
 
 import csv
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
@@ -146,7 +148,8 @@ def agency_from_account(name: str) -> str:
 
 
 def department_display_name(name: str) -> str:
-    name = title_case(name.strip().rstrip("."))
+    name = re.sub(r"^the\s+", "", name.strip().rstrip("."), flags=re.I)
+    name = title_case(name)
     for pattern, repl in DEPARTMENT_NAME_FIXES:
         name = re.sub(pattern, repl, name)
     return name
@@ -155,25 +158,59 @@ def department_display_name(name: str) -> str:
 def header_agency(agency_header: str, secretariat_header: str = "") -> str:
     """The law's printed agency header. A bare "Office of the Secretary" (common in bond laws)
     says nothing on its own, so the secretariat header above it is used instead; a bare
-    "Highway Division" gets its parent's name in front."""
+    "Highway Division" gets its parent's name in front. Some offices are printed with only the
+    ALL-CAPS heading ("JUDICIARY"), so that heading is used when there's no office line."""
     header = department_display_name(agency_header)
     if not secretariat_header:
         return header
-    if _VAGUE_HEADER.match(header):
+    if not header or _VAGUE_HEADER.match(header):
         return department_display_name(secretariat_header)
     if _BARE_DIVISION.match(header):
         return f"{department_display_name(secretariat_header)} {header}"
     return header
 
 
-def agency_office(row: Row, account: Row | None, secretariat_header: str = "") -> str:
+class Departments:
+    """CTHRU departments by display name and by line-item prefix (the first four digits)."""
+
+    def __init__(self, cthru_rows: Iterable[Row]) -> None:
+        self.prefixes: dict[str, set[str]] = defaultdict(set)  # department -> prefixes it uses
+        by_prefix: dict[str, Counter] = defaultdict(Counter)  # prefix -> department counts
+        for r in cthru_rows:
+            name = department_display_name(r["department_name"])
+            if name:
+                self.prefixes[name].add(r["line_item"][:4])
+                by_prefix[r["line_item"][:4]][name] += 1
+        self.owner = {p: c.most_common(1)[0][0] for p, c in by_prefix.items()}
+
+    def fix_inherited(self, agency: str, line_item: str) -> str:
+        """A bond item with no heading of its own inherits the one above it, which can belong to
+        another department (2022-140 §2: 7066-2011 under "The Department of Children and
+        Families"). If the agency is a CTHRU department that never uses this line item's prefix,
+        the prefix's own department is used instead."""
+        prefix = line_item[:4]
+        owner = self.owner.get(prefix)
+        if owner and agency in self.prefixes and prefix not in self.prefixes[agency]:
+            return owner
+        return agency
+
+
+def agency_office(
+    row: Row,
+    account: Row | None,
+    secretariat_header: str = "",
+    departments: Departments | None = None,
+) -> str:
     """§8 column 9: the most specific administering office."""
-    return (
+    found = (
         agency_from_text(row["item_text"])
         or (account and agency_from_account(account["account_name"]))
         or (account and department_display_name(account["department_name"]))
-        or header_agency(row["agency_header_raw"], secretariat_header)
     )
+    if found:
+        return found
+    agency = header_agency(row["agency_header_raw"], secretariat_header)
+    return departments.fix_inherited(agency, row["line_item"]) if departments else agency
 
 
 def program_purpose(row: Row, account: Row | None) -> tuple[str, str]:
@@ -296,6 +333,7 @@ def label_rows(
     secretariats = {
         (r["law_key"], r["section"], r["line_item"]): r["secretariat_header_raw"] for r in item_rows
     }
+    cthru_departments = Departments(cthru_rows)
     funded, gaa_funded = funded_years(cthru_rows, funding_rows)
     out = []
     for r in funding_rows:
@@ -307,7 +345,7 @@ def label_rows(
         label = dict.fromkeys(schemas.columns("labels"), "")
         label.update(
             record_id=r["record_id"],
-            agency_office=agency_office(r, account, secretariat),
+            agency_office=agency_office(r, account, secretariat, cthru_departments),
             program_purpose=purpose,
             program_purpose_method=purpose_method,
             policy_area=area,
