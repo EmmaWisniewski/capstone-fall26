@@ -1,8 +1,10 @@
 """Stage 5 `read_amendments`: outside sections to data/interim/amendments_raw.csv (DESIGN §7.4,
 §11.3).
 
-Owner: workstream C (Amendments). Reads every cached law on the law list and, in each outside
-section (any section other than the §2… appropriation sections), recognises the §11.3 patterns:
+Owner: workstream C (Amendments). Reads every cached law on the law list (hand-kept laws, with
+`parse_strategy = manual`, have no cached text and are skipped) and, in each outside section (any
+section other than the §2… appropriation sections, and the capital sections that read_bonds reads,
+such as 2023-2 §3–§3B), recognises the §11.3 patterns:
 figure changes, date extensions, item insertions, replacements and strikes, text-only changes,
 transfers and direct appropriations. Interim ("1/12th") budgets are direct appropriations, so they
 are read here rather than typed by hand. "Said item … of said section 2 of said chapter 28" is
@@ -11,8 +13,9 @@ resolved by carrying the last named law, section and item forward.
 These go to reports/unread_sections.csv for a human to explain (§13.6): an outside section that
 mentions dollars and an item or appropriation but matches no pattern; an amendment whose text
 names a line item but produces no row; and an outside section that lists line items itself, which
-no stage reads. A row whose section has a misprinted dollar figure ("$15,000,0000") gets `low`
-confidence.
+no stage reads. Only in-scope laws are reported: a reference-only law is read for its items'
+history, but it adds no rows to the dataset, so its unread sections are only counted. A row whose
+section has a misprinted dollar figure ("$15,000,0000") gets `low` confidence.
 
 An outside section that looks vetoed (struck-through text, or a "Governor disapproved of the
 following section" note) is still read, but its rows get `low` confidence and it is listed in
@@ -32,11 +35,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ma_approps import paragraphs, read_items, schemas
+from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.6.0"
+READER_VERSION = "0.7.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -420,11 +423,15 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
     unread: list[dict] = []
     chapters: dict[str, str] = {}
     last: dict[str, Any] = {"law": None, "section": None}
-    for s in _sections(paragraphs.paragraphs(law_key, html)):
+    paras = paragraphs.paragraphs(law_key, html)
+    capital = read_bonds.capital_sections(paras)  # read_bonds reads these sections' items
+    for s in _sections(paras):
         section, texts = s["section"], s["texts"]
         keyed = [paragraphs.key(t) for t in texts]
         full = "\n".join(keyed)
-        if law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section):
+        if (law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section)) or (
+            section in capital
+        ):
             _remember_chapters(full, chapters)
             continue
 
@@ -512,12 +519,16 @@ def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[dict]) -
 
 def run(ctx: Context) -> int:
     _, laws = schemas.read_csv(ctx.config_dir / "law_list.csv")
-    laws = [r for r in laws if r["role"] in ("in_scope", "reference_only")]
+    laws = [
+        r
+        for r in laws
+        if r["role"] in ("in_scope", "reference_only") and r["parse_strategy"] != "manual"
+    ]
     if ctx.law:
         laws = [r for r in laws if r["law_key"] == ctx.law]
     rows: list[dict] = []
     unread: list[dict] = []
-    read, missing = 0, 0
+    read, missing, reference_unread = 0, 0, 0
     for law in sorted(laws, key=lambda r: (int(r["acts_year"]), int(r["chapter"]))):
         path = ctx.raw_dir / "sessionlaws" / law["acts_year"] / f"{law['chapter']}.json"
         if not path.exists():
@@ -526,11 +537,16 @@ def run(ctx: Context) -> int:
         html = json.loads(path.read_text("utf-8"))["ChapterText"]
         law_rows, law_unread = read_law(law["law_key"], law["law_type"], html)
         rows += law_rows
-        unread += law_unread
+        if law["role"] == "in_scope":
+            unread += law_unread
+        else:
+            reference_unread += len(law_unread)
         read += 1
     _write(ctx.interim_dir / "amendments_raw.csv", schemas.columns("amendments_raw"), rows)
     _write(ctx.reports_dir / "unread_sections.csv", UNREAD_COLUMNS, unread)
     print(f"  read {read} laws: {len(rows)} amendment rows, {len(unread)} unread sections")
+    if reference_unread:
+        print(f"  {reference_unread} unread sections in reference-only laws (not reported)")
     if missing:
         print(f"  {missing} laws on the law list have no cached text yet (run the laws stage)")
     return 0

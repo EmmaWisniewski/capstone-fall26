@@ -279,6 +279,63 @@ def test_outside_section_listing_items_is_listed():
     # read_items reads §2 of an "other" law, so its items aren't listed here
     other = html.replace("SECTION 3.", "SECTION 2.")
     assert read_amendments.read_law("2020-316", "other", other)[1] == []
+    # The real 2023-2 also borrows for §3 (§77), so read_bonds reads its items (Q25): not listed
+    borrowing = (
+        "<p>SECTION 77. Notwithstanding any general or special law to the contrary, to meet the"
+        " expenditures necessary in carrying out section 3, the state treasurer shall, upon receipt"
+        " of a request by the governor, issue and sell bonds of the commonwealth in an amount to be"
+        " specified by the governor from time to time but not exceeding, in the aggregate,"
+        " $400,000,000.</p>"
+    )
+    assert read_amendments.read_law("2023-2", "supplemental", html + borrowing) == ([], [])
+
+
+def test_run_reports_only_in_scope_laws_and_skips_hand_kept(root, tmp_path, capsys):
+    # A reference-only law is read for its items' history, but its unread sections don't affect
+    # the dataset, so they're counted, not reported. A hand-kept law has no cached text.
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "settings.toml").write_bytes((root / "config" / "settings.toml").read_bytes())
+    header = ",".join(schemas.columns("law_list"))
+    laws = [
+        "2024-150,2024,150,2024-11-14,,,,bond,in_scope,,,,auto,",
+        "2002-244,2002,244,2002-08-10,,,,bond,reference_only,,,,auto,",
+        "1993-52,1993,52,1993-05-21,,,,bond,reference_only,,,,manual,",
+    ]
+    (config / "law_list.csv").write_text("\n".join([header, *laws]) + "\n", "utf-8")
+    unmatched = (
+        "<p>SECTION 5. The department may make grants of up to $10,000 from the appropriation in"
+        " section 2 for supportive services.</p>"
+    )
+    wording = (
+        "<p>SECTION 15. Item 4000-8200 of section 2 of chapter 52 of the acts of 1993 is hereby"
+        ' amended by striking out the word "thirty" and inserting in place thereof the following'
+        " figure:- 50.</p>"
+    )
+    for acts_year, chapter, html in (
+        ("2024", "150", unmatched),
+        ("2002", "244", unmatched + wording),
+    ):
+        path = tmp_path / "raw" / "sessionlaws" / acts_year / f"{chapter}.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps({"ChapterText": html}), "utf-8")
+    ctx = Context(
+        root=tmp_path,
+        raw_dir=tmp_path / "raw",
+        interim_dir=tmp_path / "interim",
+        reports_dir=tmp_path / "reports",
+        offline=True,
+    )
+    assert read_amendments.run(ctx) == 0
+    _, unread = schemas.read_csv(tmp_path / "reports" / "unread_sections.csv")
+    assert [(r["law_key"], r["section"]) for r in unread] == [("2024-150", "5")]
+    _, rows = schemas.read_csv(tmp_path / "interim" / "amendments_raw.csv")
+    assert [(r["law_key"], r["section"], r["target_item"]) for r in rows] == [
+        ("2002-244", "15", "4000-8200")
+    ]
+    out = capsys.readouterr().out
+    assert "1 unread sections in reference-only laws (not reported)" in out
+    assert "no cached text" not in out
 
 
 def test_section_2_heading_in_any_case():
