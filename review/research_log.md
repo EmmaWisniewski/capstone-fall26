@@ -54,5 +54,10 @@ Emily H., 2026-11-08. Emma's review of PR #17 asked whether FY2021 item 1595-106
   FY2023: one retained-revenue ceiling of $520,000 and no supplemental.
 - In the laws cached locally (9 laws plus the 8 samples), these are the only two cases where one law
   both supplements an item in §2 and changes the same item's figure in an outside section.
+- **Update, 2026-11-08:** with 16 laws downloaded, the struck-figure check (DESIGN §13 check 3) flags
+  two more, both in 2024 ch. 206 and both retained-revenue items in the FY2024 GAA (2023 ch. 28):
+  §33 raises 1775-0700 from $200,000 to $600,000 while §2 adds $400,000, and §39 raises 8100-0102
+  from $45,000,000 to $52,000,000 while §2 adds $7,000,000. CTHRU, FY2024: ceilings of $600,000 and
+  $52,000,000, with no supplemental, so again the money appears once.
 
 Conclusion: count the §2 row only; the outside section restates it. Proposed as a general rule in DESIGN Q27.
