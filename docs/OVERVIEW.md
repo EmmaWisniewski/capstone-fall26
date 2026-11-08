@@ -115,7 +115,7 @@ for their own area.
 
 | WS | Owner | Name: what it covers | Start now with… | Status |
 |---|---|---|---|---|
-| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; saving one bond law and one Chapter 90 bill as samples | ◐ |
+| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; writing the expected bond rows for the two saved bond samples (2024-139, 2025-17) | ◐ |
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` merged; `read_items` in review) |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list, line-item catalog and funds list done; `label.py` session 1 merged, session 2 in review) |
@@ -139,7 +139,8 @@ state actually *spent*. Our partner set this at the proposal stage
 | **M6** Re-run test | Someone follows the runbook on 2026 laws without changing code, and we list what broke | ☐ |
 
 Open questions waiting on the group or our State Auditor partner are listed in
-[DESIGN §19](DESIGN.md#19-open-questions).
+[DESIGN §19](DESIGN.md#19-open-questions). The ones for the partner are explained in plain
+language in [Decisions we need from our partner](plain-language/partner-decisions.md).
 
 ---
 
