@@ -214,13 +214,8 @@ def read_limits(
     return rows
 
 
-def _outside_capital(law_key: str, sections: list[tuple[str, list[dict]]]) -> list[dict]:
-    """Items of capital sections numbered §3 and up (2023-2 §3–§3B, Q25).
-
-    read_items stops at the first section above 2, so each such section is read on its own: its
-    heading is renamed to a §2 heading for the reader ("SECTION 3A." -> "SECTION 2A.") and the
-    rows get their real section back.
-    """
+def _capital_outside_2(sections: list[tuple[str, list[dict]]]) -> set[str]:
+    """Sections numbered §3 and up that a borrowing limit covers (2023-2 §3–§3B, Q25)."""
     names = [n for n, _ in sections]
     borrowing = [
         " ".join(key(p["text"]) for p in paras)
@@ -228,9 +223,26 @@ def _outside_capital(law_key: str, sections: list[tuple[str, list[dict]]]) -> li
         if BORROW_RE.search(paras[0]["text"])
     ]
     covered = {s for text in borrowing for s in _covers(text, [n for n in names if n != "1"])[0]}
+    return {s for s in covered if not re.match(r"^2[A-Z]*$", s)}
+
+
+def capital_sections(paras: list[dict]) -> set[str]:
+    """The sections outside §2 whose items this stage reads. read_amendments skips them, so they
+    aren't also listed as unread."""
+    return _capital_outside_2(_sections(paras))
+
+
+def _outside_capital(law_key: str, sections: list[tuple[str, list[dict]]]) -> list[dict]:
+    """Items of capital sections numbered §3 and up (2023-2 §3–§3B, Q25).
+
+    read_items stops at the first section above 2, so each such section is read on its own: its
+    heading is renamed to a §2 heading for the reader ("SECTION 3A." -> "SECTION 2A.") and the
+    rows get their real section back.
+    """
+    covered = _capital_outside_2(sections)
     out = []
     for name, paras in sections:
-        if name not in covered or re.match(r"^2[A-Z]*$", name):
+        if name not in covered:
             continue
         letters = re.match(r"\d+([A-Z]*)", name).group(1)
         renamed = SECTION_RE.sub(f"SECTION 2{letters}.", paras[0]["text"], count=1)
