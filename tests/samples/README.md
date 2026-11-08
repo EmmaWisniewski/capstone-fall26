@@ -19,8 +19,10 @@ stage. In that list response the `Year` field is the
 **approval** year (2020 ch. 358 shows `Year: 2021`); the Acts volume is the year requested.
 
 `expected/example_rows.csv` holds the parser- and combine-derived fields for EX-001…EX-004
-(DESIGN §17). Expected rows for the other sample laws are still to be written by
-workstreams B and C.
+(DESIGN §17). Hand-checked rows from the other sample laws are in
+`expected/items_raw_selected.csv` (workstream B) and `expected/amendments_raw_selected.csv`
+(workstream C: 14 rows from 2023-77, 2021-35 and 2023-15, one or more of each `action_type` the samples have (none strikes an item),
+checked against the law text by Emily H., 2026-11-04 and 2026-11-08).
 
 `expected/bond_items.csv` and `expected/bond_authorizations.csv` hold the expected `read_bonds`
 output for the two bond samples (workstream A; DESIGN §11.2 "Bond laws"):
