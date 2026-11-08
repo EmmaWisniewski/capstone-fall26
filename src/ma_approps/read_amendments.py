@@ -17,10 +17,12 @@ no stage reads. Only in-scope laws are reported: a reference-only law is read fo
 history, but it adds no rows to the dataset, so its unread sections are only counted. A row whose
 section has a misprinted dollar figure ("$15,000,0000") gets `low` confidence.
 
-An outside section that looks vetoed (struck-through text, or a "Governor disapproved of the
-following section" note) is still read, but its rows get `low` confidence and it is listed in
-reports/unread_sections.csv so a human checks whether the Legislature overrode the veto. Inline
-veto markup is a hint, not truth (§11.4).
+A section the Governor returned with a recommendation of amendment isn't law in that chapter (the
+Legislature's version, if any, is a later chapter), so it gives no rows and is listed in
+reports/unread_sections.csv. An outside section that looks vetoed (struck-through text, or a
+"Governor disapproved of the following section" note) is still read, but its rows get `low`
+confidence and it is listed in reports/unread_sections.csv so a human checks whether the
+Legislature overrode the veto. Inline veto markup is a hint, not truth (§11.4).
 
 This stage only records what each law says. The running amounts table and the struck-figure check
 (§5.5) need dates and CTHRU amounts, so they belong in `combine` and `validate`.
@@ -39,7 +41,7 @@ from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.8.0"
+READER_VERSION = "0.9.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -153,7 +155,8 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     A Governor's note comes just before what it is about, so it is held back: before a new
     section it only marks that section, and anywhere else it stays in place in the text. A section
-    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved.
+    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved,
+    and ``returned`` if a note says the Governor returned it with a recommendation of amendment.
     """
     out: list[dict[str, Any]] = []
     notes: list[str] = []
@@ -162,7 +165,10 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
             notes.append(p["text"])
             continue
         if m := SECTION_START_RE.match(p["text"]) or SECTION2_HEADING_RE.match(p["text"]):
-            out.append({"section": m[1].upper(), "texts": [], "vetoed": False})
+            returned = any("returned" in n and "amendment" in n for n in notes)
+            out.append(
+                {"section": m[1].upper(), "texts": [], "vetoed": False, "returned": returned}
+            )
         elif out:
             out[-1]["texts"] += notes
         if out:
@@ -506,6 +512,15 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                 reason = "mentions dollars and an item or appropriation but matched no pattern"
         if actions and s["vetoed"]:
             reason = "looks vetoed (struck text or a veto note); check whether it was overridden"
+        if s["returned"] and (actions or reason):
+            # Not law in this chapter: the Legislature acts on the Governor's amendment in a
+            # separate bill, which becomes its own chapter (2021-24 §102–§103 became 2021 ch. 33).
+            # Listed only when it would have given rows or been unread anyway.
+            actions = []
+            reason = (
+                "returned by the Governor with a recommendation of amendment, so it isn't law in"
+                " this chapter; the Legislature's version, if any, is a later chapter"
+            )
         if reason:
             unread.append(
                 {"law_key": law_key, "section": section, "reason": reason, "text": texts[0][:500]}

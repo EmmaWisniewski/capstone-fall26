@@ -61,3 +61,28 @@ Emily H., 2026-11-08. Emma's review of PR #17 asked whether FY2021 item 1595-106
   $52,000,000, with no supplemental, so again the money appears once.
 
 Conclusion: count the §2 row only; the outside section restates it. Proposed as a general rule in DESIGN Q27.
+
+## Sections returned with a recommendation of amendment, or vetoed (Q23)
+
+Emily H., 2026-11-08. `read_amendments` listed five outside sections as "looks vetoed". The law text
+and each bill's history on malegislature.gov (`/api/GeneralCourts/{court}/Documents/{bill}/DocumentHistoryActions`)
+show that four of them were not vetoed: the Governor **returned them with a recommendation of
+amendment**. A returned section isn't law in the chapter that prints it. The Legislature acts on it
+as a separate bill, and its version becomes a separate chapter.
+
+| Section | Printed in | What happened | Became law in |
+|---|---|---|---|
+| §22: $75,000,000 of federal COVID-19 money to the COVID-19 Emergency Paid Sick Leave Fund | 2021 ch. 9 (H90) | H3702: Governor's amendment rejected, House amendment adopted, re-enacted | **2021 ch. 16** §13 ($75,000,000), May 28, 2021 |
+| §74: replaces item 8100-1014 of 2019 ch. 5 (sexual assault evidence kits) | 2021 ch. 24, FY2022 GAA (H4002) | H4013 (with §119): Governor's amendment rejected, re-enacted | **2021 ch. 35** §1, Aug 3, 2021 (already a sample and on the law list) |
+| §102: $250,000,000 to the Pension Liability Fund | 2021 ch. 24 | H4004 (with §7, §103): Governor's amendment rejected, re-enacted | **2021 ch. 33** §2: "no less than" $250,000,000, on a monthly schedule, if FY2022 revenues meet the estimates, Aug 3, 2021 |
+| §103: $350,000,000 to the Student Opportunity Act Investment Fund | 2021 ch. 24 | H4004 | **2021 ch. 33** §2: "no less than" $350,000,000, same condition |
+| §100: $205,000,000 transfer from the federal COVID-19 response fund or the Transitional Escrow Fund | 2023 ch. 28, FY2024 GAA (H4040) | **Disapproved** (a veto). H4040's history lists override votes on many items but none on §100 | never: the veto stands |
+
+What follows:
+- Reader 0.9.0 gives no rows for a section returned with a recommendation of amendment, and lists it
+  as unread when it would otherwise have given rows. That keeps 2021-24 §74 from counting alongside
+  2021-35 §1, and §102–§103 alongside 2021 ch. 33 once that law is listed.
+- **2021 ch. 16 and 2021 ch. 33 aren't on the law list** (nor in PR #34). Both hold the enacted
+  versions of these transfers, so workstream A should consider adding them. All of these are
+  transfers into funds, which don't count toward the operating totals (Q2), so the totals don't change.
+- 2023-28 §100 keeps its `low` confidence row; `combine` should leave it out as vetoed.

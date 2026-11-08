@@ -389,6 +389,27 @@ def test_borrowing_sections_of_bond_laws_are_left_to_read_bonds():
     assert read_amendments.read_law("2021-15", "bond", html) == ([], [])
 
 
+def test_section_returned_with_amendment_is_not_law_in_that_chapter():
+    # 2021-24 §102: the Legislature's version became 2021 ch. 33, so this one gives no rows
+    html = (
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 102. Notwithstanding any general or special law to the contrary, the"
+        " comptroller shall, not later than September 1, 2021, transfer $250,000,000 from the"
+        " General Fund to the Commonwealth’s Pension Liability Fund.</s></p>"
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 101A. Section 7 of chapter 62 of the General Laws is hereby amended by"
+        " adding the following words:- or a regulation.</s></p>"
+    )
+    rows, unread = read_amendments.read_law("2021-24", "gaa", html)
+    assert rows == []
+    # listed only when it would have given rows; a wording change to the General Laws isn't
+    assert [(u["section"], u["reason"][:40]) for u in unread] == [
+        ("102", "returned by the Governor with a recommen")
+    ]
+
+
 def test_section_2_heading_in_any_case():
     # The FY2022 GAA (2021-24) prints its Section 2 heading as "Section 2", with no period (issue
     # #12). Its items belong to read_items, so their text must not be read as part of §1B.
