@@ -6,9 +6,12 @@ from ma_approps import schemas
 
 
 def test_export_columns_match_exampledata(root):
+    # exampledata.csv's 19 columns, plus "Veto status" after the amount (Q14)
     with open(root / "exampledata.csv", newline="", encoding="utf-8") as f:
         header = next(csv.reader(f))
-    assert tuple(header) == schemas.EXPORT_COLUMNS
+    i = header.index("Appropriation/change ($)") + 1
+    assert schemas.EXPORT_COLUMNS == (*header[:i], "Veto status", *header[i:])
+    assert schemas.CAPITAL_EXPORT_COLUMNS[: len(schemas.EXPORT_COLUMNS)] == schemas.EXPORT_COLUMNS
 
 
 def test_policy_areas_match_policyareas_csv(root):

@@ -131,7 +131,15 @@ POLICY_AREAS = (
 
 # §7.3 / §7.4 / §7.7 / §7.9 enums
 CONFIDENCE_LEVELS = ("high", "medium", "low")
-VETO_KINDS_INLINE = ("none", "disapproved", "reduced", "reduced_and_wording", "overridden")
+# wording_vetoed: wording struck, amount unchanged (decided 2026-11-06)
+VETO_KINDS_INLINE = (
+    "none",
+    "disapproved",
+    "reduced",
+    "reduced_and_wording",
+    "overridden",
+    "wording_vetoed",
+)
 ACTION_TYPES = (
     "figure_change",
     "item_insert",
@@ -144,8 +152,18 @@ ACTION_TYPES = (
     "transfer",
     "direct_appropriation",
 )
-# §5.7 vetoes are netted into the amount; veto_status records what happened (Q4)
-VETO_STATUSES = ("none", "vetoed", "reduced", "overridden", "unknown")
+# §5.7 vetoes are netted into the amount; veto_status records what happened (Q4). Added
+# 2026-11-06: partial_override (a reduction the Legislature only partly restored, Q13) and
+# wording_vetoed (wording struck, amount unchanged)
+VETO_STATUSES = (
+    "none",
+    "vetoed",
+    "reduced",
+    "partial_override",
+    "overridden",
+    "wording_vetoed",
+    "unknown",
+)
 # §5.2 where a funding-action row's amount came from
 AMOUNT_SOURCES = ("cthru", "law_text", "manual")
 FY_RULES = ("stated", "target_act", "enactment_fy")
@@ -154,6 +172,8 @@ POLICY_AREA_METHODS = ("catalog", "department", "human")
 PREVIOUSLY_FUNDED = ("Yes", "No", "Unknown")
 ONE_TIME_OR_RECURRING = ("Recurring", "One-time", "Not classified")
 NEW_OR_REAPPROP = ("New", "Re-appropriation", "Transfer of existing authority", "Pending")
+# §7.16 whether a borrowing limit's federal share is known (decided 2026-11-06)
+FEDERAL_SPLITS = ("identified", "unknown", "none")
 
 # ---------------------------------------------------------------------------
 # §7 File formats
@@ -250,6 +270,23 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
 }
 # §7.3 data/interim/bond_items_raw.csv: same columns as items_raw (workstream A writes it)
 SCHEMAS["bond_items_raw"] = SCHEMAS["items_raw"]
+# §7.16 data/interim/bond_authorizations_raw.csv: one row per borrowing limit (Q11, Q12, Q17)
+SCHEMAS["bond_authorizations_raw"] = _cols(
+    Col("law_key", required=True),
+    Col("section", required=True),
+    "covers_sections",
+    "covers_items",
+    Col("authorized", "int", required=True),
+    Col("items_total", "int"),
+    Col("federal_share", "int"),
+    Col("federal_split", "enum", FEDERAL_SPLITS),
+    "bond_name",
+    Col("max_term_years", "int"),
+    Col("payable_by", "date"),
+    "paying_fund",
+    Col("available_through", "date"),
+    *_READER,
+)
 
 # §7.7 data/interim/funding_actions.csv (canonical)
 FUNDING_ACTIONS_TABLE = _cols(
@@ -378,7 +415,8 @@ REVIEW_QUEUE_LEADING = _cols(
 # §7.2 data/interim/paragraphs/{law_key}.jsonl keys
 PARAGRAPH_KEYS = ("law_key", "para_idx", "text", "raw_html", "classes", "struck", "bold", "links")
 
-# §7.13 / §8: the export uses exactly these 19 columns, in this order (exampledata.csv)
+# §7.13 / §8: the export uses the 19 columns of exampledata.csv, in that order, plus "Veto status"
+# after the amount (Q14, decided 2026-11-06)
 EXPORT_COLUMNS = (
     "Record ID",
     "Law citation",
@@ -393,12 +431,28 @@ EXPORT_COLUMNS = (
     "Policy area",
     "Funding action",
     "Appropriation/change ($)",
+    "Veto status",
     "Previously funded?",
     "One-time or recurring funding",
     "New funding appropriation or re-appropriation of existing funding?",
     "Human review status",
     "Source URL",
     "Source or calculation for total",
+)
+# §7.13: the capital file adds the borrowing-limit details to the export columns (Q16, Q17, Q11)
+CAPITAL_EXPORT_COLUMNS = (
+    *EXPORT_COLUMNS,
+    "Borrowing limit section",
+    "Borrowing limit ($)",
+    "Total of items under this limit ($)",
+    "Identified federal share ($)",
+    "Federal split",
+    "Limit difference note",
+    "Bond name",
+    "Maximum term (years)",
+    "Final payable date",
+    "Fund paying the bonds",
+    "Spending authority through",
 )
 
 
