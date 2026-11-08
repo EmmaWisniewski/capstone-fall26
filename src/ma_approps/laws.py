@@ -285,6 +285,14 @@ TEXT_SIGNALS = {
         re.IGNORECASE,
     ),
     "borrowing": re.compile(r"\bissue and sell (?:[\w-]+ ){0,4}?(?:bonds|notes)\b", re.IGNORECASE),
+    # The comptroller moving state money between funds, as in laws that enact a section the
+    # Governor returned (2021-16, 2021-33: "transferring no less than: (i) $350,000,000"). Not
+    # transfers by others, such as municipal energy aggregators (2021-8). Added 2026-11-08.
+    "transfers money": re.compile(
+        r"\b(?:comptroller|secretary of administration and finance)\b[^.;]{0,160}?"
+        r"\btransfer(?:s|red|ring)?\b[^.;]{0,60}?\$\s*\d[\d,]*",
+        re.IGNORECASE,
+    ),
 }
 TITLE_SIGNAL = re.compile(
     r"MAKING APPROPRIATIONS|APPROPRIATIONS? FOR|FINANCING (?:THE|A|AN|IMPROVEMENTS)"

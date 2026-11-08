@@ -316,6 +316,7 @@ flowchart LR
    - "hereby appropriated",
    - an amendment of a line item ("item NNNN-NNNN … is hereby amended", in either order),
    - borrowing language ("issue and sell … bonds" or "notes"),
+   - the comptroller transferring a dollar amount ("the comptroller shall transfer $…", "transferring no less than … $…"; added 2026-11-08),
    - an appropriation-style title ("making appropriations", "appropriations for", "supplementing", "financing the …").
 
    Laws approved outside the window are flagged too, with a note, because they may be needed as reference-only laws.
@@ -954,6 +955,7 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | 2026-11-06 | **Q3 partly resolved: placeholder answers.** `Unknown` means the fact has not been established; `Not classified` means a category has not been assigned; `Pending` means a review or counting decision remains open; all are for when there truly isn't enough information. EX-001 is therefore `Yes` (its item was funded the year before). The interim rules for *New vs. re-appropriation* and supplemental *One-time or recurring* stay for now. | Partner (Office of the State Auditor); reported by Emma, 2026-11-06. |
 | 2026-11-07 | **Discovery signals tightened** (§6 stage 1). "Striking out the figure" is replaced by "amends a line item", and the title signal is limited to appropriation and financing wording. As first written, the signals flagged 63 extra Acts on 2020–2026 (town charters, General Laws figure changes, Capital Asset Management land conveyances); the tightened ones flag every law on the list plus 16 candidates. | Emma (workstream A), from a test on the cached year lists. |
 | 2026-11-08 | **Amendment targets come only from in-scope laws** (§6 stage 1). The `laws` stage adds a law that an in-scope law amends; one amended only by reference-only laws (e.g. 2018-154, amended by the 2019 budgets) isn't added, since it only matters for history the dataset doesn't report. On the downloaded laws this gives 8 candidates of 15 amended laws missing from the list. | Emma (workstream A). |
+| 2026-11-08 | **Sixth discovery signal: the comptroller transferring money** (§6 stage 1). Laws whose only money is a transfer between funds had no signal, so 2021 ch. 16 and ch. 33 (the enacted versions of sections the Governor returned, found by C in #35) and 2021 ch. 22 ($4.9B of ARPA money into the Federal COVID-19 Response Fund) were missed. The signal requires the comptroller or the secretary of administration and finance, so transfers by others (municipal energy aggregators, 2021-8) don't match. On 2020–2026 it matches 22 Acts, 19 already listed; the 3 new ones are in scope (Emma). Transfers into funds still don't count toward totals (Q2). | Emma (workstream A), following Emily H.'s finding. |
 
 ---
 

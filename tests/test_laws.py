@@ -245,6 +245,13 @@ def act(chapter, body, title="AN ACT", approved="Mar 1 2023", resolve=False):
             "borrowing",
         ),
         (
+            # 2021-33: the enacted version of transfers the Governor returned
+            "<p>SECTION 2. The comptroller shall establish a monthly schedule transferring no "
+            "less than: (i) $350,000,000 to the Student Opportunity Act Investment Fund.</p>",
+            "AN ACT RELATIVE TO CERTAIN STATUTORY FUNDS",
+            "transfers money",
+        ),
+        (
             "<p>SECTION 1. Text.</p>",
             "AN ACT MAKING APPROPRIATIONS FOR THE FISCAL YEAR",
             "appropriation title",
@@ -268,6 +275,12 @@ def test_each_signal_flags_a_candidate(body, title, signal):
             "figure "
             '"5" and inserting in place thereof the following figure:- 7.</p>',
             "AN ACT AMENDING THE CHARTER OF THE TOWN OF BOURNE",
+        ),
+        (
+            # 2021-8: municipal aggregators transferring their own money aren't the state
+            "<p>SECTION 9. Municipal aggregators with certified energy plans shall transfer not "
+            "less than $12,000,000 each year.</p>",
+            "AN ACT CREATING A NEXT-GENERATION ROADMAP FOR MASSACHUSETTS CLIMATE POLICY",
         ),
     ],
 )
