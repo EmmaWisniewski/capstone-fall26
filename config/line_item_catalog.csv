@@ -1004,7 +1004,7 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 7118-0100,Education,false,department list (automatic),2026-11-02,MMA: MASSACHUSETTS MARITIME ACADEMY.
 7502-0100,Education,false,department list (automatic),2026-11-02,BCC: BERKSHIRE COMMUNITY COLLEGE.
 7503-0100,Education,false,department list (automatic),2026-11-02,BRC: BRISTOL COMMUNITY COLLEGE.
-7503-0101,Education,false,department list (automatic),2026-11-02,BRC: Affordable Housing Trust Fund Transfer.
+7503-0101,Housing and homelessness,false,Emily R.,2026-11-07,"BRC: Affordable Housing Trust Fund Transfer. A transfer to an affordable housing trust, so Housing rather than the college's Education. (Emma's review of PR #10.)"
 7504-0100,Education,false,department list (automatic),2026-11-02,CCC: CAPE COD COMMUNITY COLLEGE.
 7505-0100,Education,false,department list (automatic),2026-11-02,GCC: GREENFIELD COMMUNITY COLLEGE.
 7506-0100,Education,false,department list (automatic),2026-11-02,HCC: HOLYOKE COMMUNITY COLLEGE.
@@ -1076,50 +1076,50 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 8900-1100,Public safety and corrections,false,department list (automatic),2026-11-02,DOC: Re-Entry Programs.
 8910-0102,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: HAMPDEN COUNTY CORRECTIONS.
 8910-0103,Public safety and corrections,false,Emily R.,2026-11-02,SDH: Hampden Sheriff's Office Payroll Costs.
-8910-0104,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Hampden Section 35.
+8910-0104,Health and public health,false,Emily R.,2026-11-07,"SDH: Hampden Section 35. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0105,Public safety and corrections,false,department list (automatic),2026-11-02,SDW: WORCESTER COUNTY CORRECTIONS.
 8910-0106,Public safety and corrections,false,Emily R.,2026-11-02,SDW: Worcester Sheriff's Office Payroll Costs.
 8910-0107,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: FORMER MIDDLESEX COUNTY CORRECTIONAL.
 8910-0108,Public safety and corrections,false,department list (automatic),2026-11-02,SDF: FRANKLIN COUNTY CORRECTIONS.
 8910-0110,Public safety and corrections,false,department list (automatic),2026-11-02,HSD: HAMPSHIRE COUNTY CORRECTIONS.
 8910-0111,Public safety and corrections,false,department list (automatic),2026-11-02,HSD: Hampshire Sheriff's Office Payroll Costs.
-8910-0112,Public safety and corrections,false,department list (automatic),2026-11-02,HSD: Hampshire Sheriff's Office Medically Assisted Treatment.
+8910-0112,Health and public health,false,Emily R.,2026-11-07,"HSD: Hampshire Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0113,Public safety and corrections,false,department list (automatic),2026-11-02,HSD: Hampshire Sheriff's Office No Cost Calls.
 8910-0145,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: BERKSHIRE SHERIFF'S DEPARTMENT.
 8910-0146,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: Berkshire Sheriff's Office Payroll Costs.
-8910-0147,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: Berkshire Sheriff's Office Medically Assisted Treatment.
+8910-0147,Health and public health,false,Emily R.,2026-11-07,"SDB: Berkshire Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0148,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: Berkshire Sheriff's Office No Cost Calls.
 8910-0155,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: Berkshire Aquaponics Program.
 8910-0201,Public safety and corrections,false,department list (automatic),2026-11-02,SDC: Barnstable Sheriff's Office Payroll Costs.
-8910-0202,Public safety and corrections,false,department list (automatic),2026-11-02,SDC: Barnstable Sheriff's Office Medically Assisted Treatment.
+8910-0202,Health and public health,false,Emily R.,2026-11-07,"SDC: Barnstable Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0203,Public safety and corrections,false,department list (automatic),2026-11-02,SDC: Barnstable Sheriff's Office No Cost Calls.
 8910-0445,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: BERKSHIRE SHERIFF'S RETAINED REVENUE.
 8910-0450,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: Middlesex Sheriff Community Programs Retained Revenue.
 8910-0601,Public safety and corrections,false,department list (automatic),2026-11-02,SDN: Norfolk Sheriff's Office Payroll Costs.
-8910-0602,Public safety and corrections,false,department list (automatic),2026-11-02,SDN: Norfolk Sheriff's Office Medically Assisted Treatment.
+8910-0602,Health and public health,false,Emily R.,2026-11-07,"SDN: Norfolk Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0603,Public safety and corrections,false,department list (automatic),2026-11-02,SDN: Norfolk Sheriff's Office No Cost Calls.
 8910-0618,Public safety and corrections,false,department list (automatic),2026-11-02,SDE: Essex Sheriff Private Detail Retained Re.
 8910-0619,Public safety and corrections,false,department list (automatic),2026-11-02,SDE: ESSEX SHERIFF'S DEPARTMENT.
 8910-0620,Public safety and corrections,false,department list (automatic),2026-11-02,SDE: Essex Sheriff's Office Payroll Costs.
-8910-0621,Public safety and corrections,false,department list (automatic),2026-11-02,SDE: Essex Sheriff's Office Medically Assisted Treatment.
+8910-0621,Health and public health,false,Emily R.,2026-11-07,"SDE: Essex Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-0622,Public safety and corrections,false,department list (automatic),2026-11-02,SDE: Essex Sheriff's Office No Cost Calls.
 8910-0701,Public safety and corrections,false,department list (automatic),2026-11-02,SDP: Plymouth Sheriff's Office Payroll Costs.
 8910-0703,Public safety and corrections,false,department list (automatic),2026-11-02,SDP: Plymouth Sheriff's Office No Cost Calls.
 8910-0760,Public safety and corrections,false,department list (automatic),2026-11-02,SDB: Berkshire Sheriff Private Detail Retaine.
 8910-1000,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: HAMPDEN PRISON INDUSTRIES RETAINED.
 8910-1010,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Hampden Sheriff Regional Mental Health Stab. Unit.
-8910-1011,Public safety and corrections,false,department list (automatic),2026-11-02,SDW: Worcester Sheriff's Office Medically Assisted Treatment.
+8910-1011,Health and public health,false,Emily R.,2026-11-07,"SDW: Worcester Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-1012,Public safety and corrections,false,department list (automatic),2026-11-02,SDW: Worcester Sheriff's Office No Cost Calls.
 8910-1013,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: Middlesex Sheriff's Office Payroll Costs.
-8910-1014,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: Middlesex Sheriff's Office Medically Assisted Treatment.
+8910-1014,Health and public health,false,Emily R.,2026-11-07,"SDM: Middlesex Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-1015,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: Middlesex Sheriff's Office No Cost Calls.
 8910-1020,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Hampden Sheriff Inmate Transfers.
 8910-1021,Public safety and corrections,false,department list (automatic),2026-11-02,SDF: Franklin Sheriff's Office Payroll Costs.
-8910-1022,Public safety and corrections,false,department list (automatic),2026-11-02,SDF: Franklin Sheriff's Office Medically Assisted Treatment.
+8910-1022,Health and public health,false,Emily R.,2026-11-07,"SDF: Franklin Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-1023,Public safety and corrections,false,Emily R.,2026-11-02,SDF: Franklin Sheriff's Office No Cost Calls.
 8910-1030,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Western Mass Regional Women's Correction.
 8910-1031,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Western Mass Regional Women's Correctional Center.
-8910-1040,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Hampden Sheriff's Office Medically Assisted Treatment.
+8910-1040,Health and public health,false,Emily R.,2026-11-07,"SDH: Hampden Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-1060,Public safety and corrections,false,department list (automatic),2026-11-02,SDH: Hampden Sheriff's Office No Cost Calls.
 8910-1100,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: MIDDLESEX PRISON INDUSTRIES RETAINED.
 8910-1101,Public safety and corrections,false,department list (automatic),2026-11-02,SDM: Middlesex Sheriff Mental Health Stab Unit.
@@ -1129,12 +1129,12 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 8910-8213,Public safety and corrections,false,department list (automatic),2026-11-02,SDC: Barnstable Sheriff Communications Retained Revenue.
 8910-8300,Public safety and corrections,false,department list (automatic),2026-11-02,BSD: Bristol Sheriff's Department.
 8910-8301,Public safety and corrections,false,department list (automatic),2026-11-02,BSD: Bristol Sheriff's Office Payroll Costs.
-8910-8302,Public safety and corrections,false,department list (automatic),2026-11-02,BSD: Bristol Sheriff's Office Medically Assisted Treatment.
+8910-8302,Health and public health,false,Emily R.,2026-11-07,"BSD: Bristol Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-8303,Public safety and corrections,false,department list (automatic),2026-11-02,BSD: Bristol Sheriff's Office No Cost Calls.
 8910-8400,Public safety and corrections,false,department list (automatic),2026-11-02,SDD: Dukes Sheriff's Department.
 8910-8401,Public safety and corrections,false,department list (automatic),2026-11-02,SDD: Dukes Sheriff Communications Retained Revenue.
 8910-8402,Public safety and corrections,false,department list (automatic),2026-11-02,SDD: Dukes Sheriff's Office Payroll Costs.
-8910-8403,Public safety and corrections,false,department list (automatic),2026-11-02,SDD: Dukes Sheriff's Office Medically Assisted Treatment.
+8910-8403,Health and public health,false,Emily R.,2026-11-07,"SDD: Dukes Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-8404,Public safety and corrections,false,department list (automatic),2026-11-02,SDD: Dukes Sheriff's Office No Cost Calls.
 8910-8500,Public safety and corrections,false,department list (automatic),2026-11-02,NSD: Nantucket Sheriff's Department.
 8910-8501,Public safety and corrections,false,department list (automatic),2026-11-02,NSD: Nantucket Sheriff's Office Payroll Costs.
@@ -1142,12 +1142,12 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 8910-8629,Public safety and corrections,false,department list (automatic),2026-11-02,SDN: Norfolk Sheriff Communications Retained Revenue.
 8910-8630,Public safety and corrections,false,department list (automatic),2026-11-02,SDN: Norfolk Sheriff Community Programs Retained Revenue.
 8910-8700,Public safety and corrections,false,department list (automatic),2026-11-02,SDP: Plymouth Sheriff's Department.
-8910-8702,Public safety and corrections,false,department list (automatic),2026-11-02,SDP: Plymouth Sheriff's Office Medically Assisted Treatment.
+8910-8702,Health and public health,false,Emily R.,2026-11-07,"SDP: Plymouth Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-8718,Public safety and corrections,false,department list (automatic),2026-11-02,SDP: Plymouth Sheriff Communications Retained Revenue.
 8910-8800,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk Sheriff's Department.
 8910-8801,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk County Employee Assistance Program.
 8910-8802,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk Sheriff's Office Payroll Costs.
-8910-8803,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk Sheriff's Office Medically Assisted Treatment.
+8910-8803,Health and public health,false,Emily R.,2026-11-07,"SDS: Suffolk Sheriff's Office Medically Assisted Treatment. Addiction treatment in county jails; substance use treatment is Health (policyareas.csv), like 1599-0105. (Emma's review of PR #10.)"
 8910-8804,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk Sheriff's Office No Cost Calls.
 8910-8900,Public safety and corrections,false,department list (automatic),2026-11-02,SDS: Suffolk Regional Lockup Retained Revenue.
 8950-0001,Public safety and corrections,false,department list (automatic),2026-11-02,PAR: PAROLE BOARD.
@@ -1155,15 +1155,15 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 9110-0100,Human services and income support,false,department list (automatic),2026-11-02,ELD: ELDER AFFAIRS ADMINISTRATION.
 9110-0600,Human services and income support,false,Emily R.,2026-11-02,ELD: Community Choices.
 9110-1455,Human services and income support,false,department list (automatic),2026-11-02,ELD: SENIOR PRESCRIPTION DRUG INSURANCE.
-9110-1604,Human services and income support,false,department list (automatic),2026-11-02,ELD: SUPPORTIVE SENIOR HOUSING.
+9110-1604,Housing and homelessness,false,Emily R.,2026-11-07,"ELD: SUPPORTIVE SENIOR HOUSING. Housing for older adults, so Housing rather than the department's Human services. (Emma's review of PR #10.)"
 9110-1630,Human services and income support,false,department list (automatic),2026-11-02,ELD: HOME CARE SERVICES FOR THE ELDERLY.
 9110-1633,Human services and income support,false,department list (automatic),2026-11-02,ELD: HOME CARE PROGRAM ADMINISTRATION.
 9110-1635,Human services and income support,false,department list (automatic),2026-11-02,ELD: Enough Pay to Stay.
 9110-1636,Human services and income support,false,department list (automatic),2026-11-02,ELD: PROTECTIVE SERVICES.
 9110-1637,Human services and income support,false,department list (automatic),2026-11-02,ELD: Home Care Aide Training Grant Program.
 9110-1640,Human services and income support,false,department list (automatic),2026-11-02,ELD: Geriatric Mental Health Services Program.
-9110-1660,Human services and income support,false,department list (automatic),2026-11-02,ELD: PROGRAM OF CONGREGATE AND SHARED HOUSING.
-9110-1700,Human services and income support,false,department list (automatic),2026-11-02,ELD: Elder Homeless Placement.
+9110-1660,Housing and homelessness,false,Emily R.,2026-11-07,"ELD: PROGRAM OF CONGREGATE AND SHARED HOUSING. Housing for older adults, so Housing rather than the department's Human services. (Emma's review of PR #10.)"
+9110-1700,Housing and homelessness,false,Emily R.,2026-11-07,"ELD: Elder Homeless Placement. Housing for older adults, so Housing rather than the department's Human services. (Emma's review of PR #10.)"
 9110-1900,Human services and income support,false,department list (automatic),2026-11-02,ELD: PROGRAMS PROVIDING LOCAL SERVICES TO THE.
 9110-9002,Human services and income support,false,department list (automatic),2026-11-02,ELD: GRANTS TO COUNCILS ON AGING.
 9500-0000,Government administration and oversight,false,department list (automatic),2026-11-02,SEN: SENATE OPERATIONS.
