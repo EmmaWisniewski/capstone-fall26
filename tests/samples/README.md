@@ -10,11 +10,28 @@ Offline inputs for tests and CI (DESIGN §15). Layout mirrors `data/raw/`.
 | `sessionlaws/2025/3.json` | FY2025 supp. | short title, trailing period on amount |
 | `sessionlaws/2021/35.json` | policy act | whole-item replacement of 2019 ch. 5 item 8100-1014 |
 | `sessionlaws/2023/15.json` | FY2024 interim | interim lump sum |
+| `sessionlaws/2024/139.json` | IT bond ($1.66B) | bond sample for `read_bonds`: capital sections start at §2A (no §2); §4 authorizes borrowing for two sections (2A and 2B); earmarks inside item text; uneven spacing before amounts |
+| `sessionlaws/2025/17.json` | Chapter 90 bond ($1.19B) | Chapter 90 sample: §2 municipal roads ($300M) and §2A MassDOT programs ($885M), each with its own borrowing section; contains a narrow no-break space (U+202F) that text cleaning must handle |
 
-Each file is the full, untrimmed chapter record from `GET /api/SessionLaws/{year}`
-(fetched 2026-10-21), written with sorted keys. In that list response the `Year` field is the
+Each file is the full, untrimmed chapter record from `GET /api/SessionLaws/{year}`, written
+with sorted keys: the first six fetched 2026-10-21, the two bond samples 2026-10-28 by the `laws`
+stage. In that list response the `Year` field is the
 **approval** year (2020 ch. 358 shows `Year: 2021`); the Acts volume is the year requested.
 
 `expected/example_rows.csv` holds the parser- and combine-derived fields for EX-001…EX-004
 (DESIGN §17). Expected rows for the other sample laws are still to be written by
 workstreams B and C.
+
+`expected/bond_items.csv` and `expected/bond_authorizations.csv` hold the expected `read_bonds`
+output for the two bond samples (workstream A; DESIGN §11.2 "Bond laws"):
+- `bond_items.csv`: every capital-section item, with a subset of the `bond_items_raw` columns.
+  All 16 line items were hand-checked against the official text on malegislature.gov
+  (Emma, 2026-10-29).
+- `bond_authorizations.csv`: each borrowing-limit section and the capital sections it covers.
+  Its columns are a proposal: where to store it is DESIGN §19 Q11, and which details to keep is
+  Q12.
+
+`para_start`/`para_end` use the paragraph numbering of `paragraphs.py` (PR #6): 0-based, counting
+non-empty paragraphs. `tests/test_law_list_and_samples.py` checks that every ID and amount appears
+in the sample's text, and that the items add up to the borrowing limits, except for 2024-139 §4,
+whose items exceed it by $400,000,000.
