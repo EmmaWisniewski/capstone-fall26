@@ -41,8 +41,9 @@ def test_validate_catches_bad_funding_actions_record_id(root, tmp_path):
 
 
 def test_empty_pipeline_runs(root, tmp_path):
-    # M0: with no laws downloaded, every stage runs or is skipped and validate passes. An empty
-    # raw_dir keeps laws cached in data/raw/ on this computer out of the test.
+    # M0: every stage runs or is skipped and validate passes. `laws` is left out because it
+    # downloads; tests/test_laws.py covers it with a fake connection. An empty raw_dir keeps laws
+    # cached in data/raw/ on this computer out of the test.
     ctx = Context(
         root=root,
         raw_dir=tmp_path / "raw",
@@ -50,4 +51,4 @@ def test_empty_pipeline_runs(root, tmp_path):
         interim_dir=tmp_path / "interim",
         offline=True,
     )
-    assert cli.run_stages(ctx, list(cli.STAGE_NAMES)) == 0
+    assert cli.run_stages(ctx, [s for s in cli.STAGE_NAMES if s != "laws"]) == 0

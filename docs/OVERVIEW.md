@@ -67,7 +67,7 @@ that haven't been written yet are skipped with a message.
 
 | # | Stage (file) | Its job, in plain words | Owner |
 |---|---|---|---|
-| 1 | `laws.py` | Finds each year's spending laws for humans to approve, and downloads their text (slowly and politely, saving a copy) | Emma (A) |
+| 1 | `laws.py` | Finds each year's spending laws for humans to approve, and downloads their text (slowly and politely, saving a copy). [Plain-language guide](plain-language/laws.md) | Emma (A) |
 | 2 | `cthru.py` | Downloads the Comptroller's budget data, saves a dated copy, and lists every line item per year with its amount and agency | Mario (E) |
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |
@@ -115,10 +115,10 @@ for their own area.
 
 | WS | Owner | Name: what it covers | Start now with… | Status |
 |---|---|---|---|---|
-| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; writing the expected bond rows for the two saved bond samples (2024-139, 2025-17) | ◐ |
+| **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; writing the expected bond rows for the two saved bond samples (2024-139, 2025-17) | ◐ (law list, samples and expected rows done; `read_bonds` reads every bond law's items, in review; borrowing limits wait on Q11/Q12) |
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` merged; `read_items` in review) |
-| **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ (`read_amendments` ready for review; running amounts next) |
-| **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list done; catalog next) |
+| **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ (`read_amendments` approved; running amounts next) |
+| **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list, line-item catalog and funds list done; `label.py` session 1 merged, session 2 in review) |
 | **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
 | — | **everyone** | **Putting it together:** combining the pieces into the final dataset | Waits on the above (milestone M1) | ☐ |
 
@@ -134,7 +134,7 @@ state actually *spent*. Our partner set this at the proposal stage
 | **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
 | **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ☐ |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
-| **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ☐ |
+| **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ◐ (items read by code; borrowing limits next) |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |
 | **M6** Re-run test | Someone follows the runbook on 2026 laws without changing code, and we list what broke | ☐ |
 

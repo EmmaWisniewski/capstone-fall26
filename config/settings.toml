@@ -8,6 +8,7 @@ discover_years = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 
 [http]
 # Identify the scraper (§3.6). contact_email is Emma's Northeastern address, chosen by the group (Q18, 2026-11-04).
+# The `laws` stage sends nothing without one.
 user_agent = "ma-approps-capstone/0.1 (Northeastern University capstone research)"
 contact_email = "wisniewski.em@northeastern.edu"
 min_interval_seconds = 1.0
