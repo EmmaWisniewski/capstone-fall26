@@ -37,3 +37,14 @@ $54,100,000 (ch. 52 §8) and $295,000,000 (ch. 494 §6).
   alternative property, and the proceeds are used, as needed to replace the housing, to acquire
   or rehabilitate that alternative property. It changes wording only, not dollars. (Wording
   checked against the official text by Emma, 2026-11-04.)
+
+## Misprint in 2024 ch. 248 §35 (amendment target 2022-24)
+Emma, 2026-11-08.
+
+2024 ch. 248 §35 reads "Item 8200-0200 of section 2 of chapter 24 of the acts of 2022 is hereby amended
+by striking out the figure "2024", inserted by section 50 of chapter 77 of the acts of 2023, and
+inserting in place thereof the following figure:- 2025." Item 8200-0200 is in **2021** ch. 24 (the FY2022
+GAA): 2023 ch. 77 §50, which §35 cites, amends it there ("said chapter 24", resolved to 2021-24), and
+2022 ch. 24 (a Northampton conservation easement act) doesn't contain the item. So §35 means 2021 ch. 24.
+`read_amendments` follows the text, so it attaches this date extension (2024 → 2025) to 2022-24; the
+target needs correcting on that side. 2022-24 is excluded from the law list.
