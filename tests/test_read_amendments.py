@@ -215,6 +215,93 @@ def test_transfer_source_with_to_in_its_description():
     ]
 
 
+def test_other_transfer_wordings():
+    # Comptroller transfers in wordings the two transfer patterns miss (shortened)
+    html = (
+        # 2021-22 §3: cents, and words between the figure and "from"
+        "<p>SECTION 3. Notwithstanding any general or special law to the contrary, the comptroller"
+        " shall transfer $4,891,987,249.40 allocated to the commonwealth from the Coronavirus State"
+        " Fiscal Recovery Fund pursuant to section 602 of Title VI of the federal Social Security"
+        " Act, 42 U.S.C. 802, to the federal COVID-19 response fund.</p>"
+        # 2021-33 §2: a list, with no source
+        "<p>SECTION 4. The comptroller shall, not later than October 15, 2021, establish a monthly"
+        " schedule transferring no less than: (i) $350,000,000 to the Student Opportunity Act"
+        " Investment Fund; and (ii) $250,000,000 into the Commonwealth's Pension Liability Fund;"
+        " provided, however, that the comptroller shall prorate said transfers.</p>"
+        # 2021-102 §84: a list, with sources
+        "<p>SECTION 5. The comptroller shall transfer: (i) an amount not to exceed $10,000,000 from"
+        " the Transitional Escrow Fund to the Massachusetts Life Sciences Investment Fund; and (ii)"
+        " an amount not to exceed $20,000,000 from the General Fund to the Massachusetts Community"
+        " Preservation Trust Fund.</p>"
+        # 2022-126 §163: an estimate; the deposits listed in (b) aren't transfers
+        "<p>SECTION 6. (a) The comptroller shall transfer $1,399,699,283, or such amount as may be"
+        " required, to the Commonwealth Stabilization Fund. (b) In addition, the following are"
+        " expected to be deposited in the fund: (i) $21,722,876 from gaming revenues.</p>"
+        # 2025-73 §191: the figure is for each of two years
+        "<p>SECTION 7. The comptroller shall transfer in both fiscal year 2026 and 2027 $50,000,000"
+        " each such fiscal year from the Commonwealth Care Trust Fund established in section 2OOO"
+        " of chapter 29 of the General Laws to the Health Safety Net Trust Fund.</p>"
+        # 2022-268 §265: the source is the General Fund, not an "undesignated fund"
+        "<p>SECTION 8. The comptroller shall transfer up to $100,000,000 of the undesignated fund"
+        " balance in the General Fund to the Unemployment Compensation Fund.</p>"
+    )
+    rows, unread = read_amendments.read_law("2099-1", "supplemental", html)
+    assert [(r["section"], r["amount"], r["fund_raw"], r["confidence"]) for r in rows] == [
+        ("3", 4_891_987_249, "Coronavirus State Fiscal Recovery Fund", "medium"),
+        ("4", 350_000_000, None, "medium"),
+        ("4", 250_000_000, None, "medium"),
+        ("5", 10_000_000, "Transitional Escrow Fund", "medium"),
+        ("5", 20_000_000, "General Fund", "medium"),
+        ("6", 1_399_699_283, None, "low"),
+        ("7", 50_000_000, "Commonwealth Care Trust Fund", "low"),
+        ("8", 100_000_000, "General Fund", "medium"),
+    ]
+    assert unread == []
+
+
+def test_transfer_figure_must_follow_the_verb():
+    # 2024-140 §224 reduces a transfer by up to $375,000,000; it doesn't transfer that amount
+    html = (
+        "<p>SECTION 224. Notwithstanding any general or special law to the contrary, the"
+        " comptroller shall reduce any transfers attributable to capital gains tax collections"
+        " required pursuant to section 5G of chapter 29 of the General Laws during fiscal year 2025"
+        " by an amount not to exceed $375,000,000 if the secretary makes a determination.</p>"
+    )
+    assert read_amendments.read_law("2024-140", "gaa", html) == ([], [])
+
+
+def test_unread_transfer_is_listed():
+    # A transfer between funds names no item or appropriation; 2021-22 §3 was once missed silently
+    html = (
+        "<p>SECTION 9. Section 58 of chapter 228 of the acts of 2018 is hereby amended by striking"
+        " out subsection (b) and inserting in place thereof the following subsection:-</p>"
+        "<p>(b) The comptroller shall transfer $5,000,000 to the Massachusetts Tourism Trust"
+        " Fund.</p>"
+    )
+    rows, unread = read_amendments.read_law("2099-1", "supplemental", html)
+    assert rows == []
+    assert [u["reason"] for u in unread] == [
+        "mentions dollars and a transfer by the comptroller but matched no pattern"
+    ]
+
+
+def test_misprinted_citation_is_corrected():
+    # 2024-248 §35 cites "chapter 24 of the acts of 2022" for an item of 2021 ch. 24 (§7.18)
+    html = (
+        "<p>SECTION 35. Item 8200-0200 of section 2 of chapter 24 of the acts of 2022 is hereby"
+        ' amended by striking out the figure "2024", inserted by section 50 of chapter 77 of the'
+        " acts of 2023, and inserting in place thereof the following figure:- 2025.</p>"
+    )
+    assert read_amendments.read_law("2024-248", "supplemental", html)[0][0]["target_law_key"] == (
+        "2022-24"
+    )
+    fixes = read_amendments.citation_fixes(Context(root=ROOT))["2024-248"]
+    rows, _ = read_amendments.read_law("2024-248", "supplemental", html, fixes)
+    assert [
+        (r["target_law_key"], r["target_item"], r["new_date"], r["confidence"]) for r in rows
+    ] == [("2021-24", "8200-0200", "2025", "medium")]
+
+
 def test_misprinted_figure_is_low_confidence():
     # 2022-42 §46 strikes "$15,000,0000", a misprint in 2021 ch. 102, not $150,000,000: the row
     # would otherwise read as a $135,000,000 cut
@@ -303,6 +390,10 @@ def test_run_reports_only_in_scope_laws_and_skips_hand_kept(root, tmp_path, caps
         "1993-52,1993,52,1993-05-21,,,,bond,reference_only,,,,manual,",
     ]
     (config / "law_list.csv").write_text("\n".join([header, *laws]) + "\n", "utf-8")
+    (config / "citation_fixes.csv").write_text(
+        "law_key,section,printed,target_law_key,evidence\n2024-150,5,2020-1,2021-1,a test\n",
+        "utf-8",
+    )
     unmatched = (
         "<p>SECTION 5. The department may make grants of up to $10,000 from the appropriation in"
         " section 2 for supportive services.</p>"
@@ -336,6 +427,7 @@ def test_run_reports_only_in_scope_laws_and_skips_hand_kept(root, tmp_path, caps
     out = capsys.readouterr().out
     assert "1 unread sections in reference-only laws (not reported)" in out
     assert "no cached text" not in out
+    assert "citation fix 2024-150 §5 (2020-1) not used" in out
 
 
 def test_general_laws_named_in_other_ways():
