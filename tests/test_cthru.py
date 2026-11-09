@@ -1,5 +1,7 @@
 """Stage 2 `cthru` (DESIGN §3.4, §7.5), run offline on the committed CTHRU sample."""
 
+import csv
+
 import pytest
 
 from ma_approps import cthru, schemas
@@ -66,6 +68,35 @@ def test_aggregate_sums_departments_and_formats_ids():
     assert (row["line_item"], row["department_code"]) == ("1234-5678", "BBB")
     assert (row["original_enacted"], row["supplemental"], row["total_enacted"]) == ("10", "2", "12")
     assert row["retained_revenue_ceiling"] == "0"
+
+
+def test_fiscal_years_come_from_the_law_list(root):
+    # FY2021 (reference GAA) through FY2026 (2025 ch. 9); FY2019 is a reference-only supplemental
+    assert cthru.fiscal_years(Context(root=root)) == [2021, 2022, 2023, 2024, 2025, 2026]
+
+
+def test_fiscal_years_setting_overrides_the_law_list(root):
+    ctx = Context(root=root)
+    ctx.settings["scope"]["cthru_fiscal_years"] = [2025, 2023]
+    assert cthru.fiscal_years(ctx) == [2023, 2025]
+
+
+def test_fiscal_years_follow_a_new_law(tmp_path):
+    cols = schemas.columns("law_list")
+    rows = [
+        {"law_key": "2026-55", "law_type": "gaa", "role": "in_scope", "primary_fy": "2027"},
+        {"law_key": "2026-60", "law_type": "supplemental", "role": "tbd", "primary_fy": "2028"},
+        {"law_key": "2019-5", "law_type": "supplemental", "role": "reference_only",
+         "primary_fy": "2019"},
+        {"law_key": "2025-17", "law_type": "bond", "role": "in_scope", "primary_fy": ""},
+    ]
+    (tmp_path / "config").mkdir()
+    with open(tmp_path / "config" / "law_list.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols, restval="", lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+    ctx = Context(root=tmp_path, settings={"scope": {}})
+    assert cthru.fiscal_years(ctx) == [2027]
 
 
 def test_aggregate_is_deterministic(samples_dir):

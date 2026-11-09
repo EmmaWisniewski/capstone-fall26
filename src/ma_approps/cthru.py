@@ -1,8 +1,9 @@
 """Stage 2 `cthru`: Comptroller CTHRU budget data to data/interim/cthru_line_items.csv (DESIGN §3.4,
 §7.5).
 
-Owner: workstream E (Annual budgets and checks). For each fiscal year in
-``[scope] cthru_fiscal_years`` it downloads every row of Socrata dataset kv7m-35wn into a dated
+Owner: workstream E (Annual budgets and checks). For each fiscal year in the law list (see
+``fiscal_years``; ``[scope] cthru_fiscal_years`` overrides) it downloads every row of Socrata
+dataset kv7m-35wn into a dated
 snapshot, ``data/raw/cthru/{YYYY-MM-DD}/fy{YYYY}.json``, then aggregates the newest snapshot into
 one row per fiscal year x account. A snapshot already saved today is reused, not re-downloaded.
 ``--offline`` skips the download and reads the newest snapshot under the raw directory.
@@ -26,7 +27,8 @@ Rules for anyone using cthru_line_items.csv:
 Limitations:
 - Authorized amounts only, not actual spending (Q10).
 - Budgeted funds only: no bond-funded capital projects (read_bonds reads those from the law text)
-  and no §2D federal grants.
+  and no §2D federal grants. A GAA item missing here is not a veto if it is in §2D; combine takes
+  those from the law text (see combine.py).
 - Totals per fiscal year, not per law: ``supplemental`` adds up every supplemental budget for that
   year. Which law made each change comes from the law text.
 - No fund splits: each funded account sits in one fund in CTHRU, so splits come from the law text.
@@ -117,13 +119,37 @@ def download_fy(ctx: Context, session: requests.Session, fy: int) -> dict[str, A
     }
 
 
+def fiscal_years(ctx: Context) -> list[int]:
+    """Fiscal years to download.
+
+    ``[scope] cthru_fiscal_years``, if set, is used as written. Otherwise they come from the law
+    list: the ``primary_fy`` of every GAA (reference ones too, which "Previously funded?" needs) and
+    of every other budget law (supplemental, interim) that is in scope. Reference-only
+    supplementals (e.g. FY2019) are skipped. A new year's laws bring their fiscal year with them.
+    """
+    override = ctx.settings["scope"].get("cthru_fiscal_years")
+    if override:
+        return sorted(override)
+    _, rows = schemas.read_csv(ctx.config_dir / "law_list.csv")
+    years = {
+        int(r["primary_fy"])
+        for r in rows
+        if r["primary_fy"]
+        and (
+            r["law_type"] == "gaa"
+            or (r["role"] == "in_scope" and r["law_type"] in ("supplemental", "interim"))
+        )
+    }
+    return sorted(years)
+
+
 def snapshot(ctx: Context, today: date | None = None) -> Path:
-    """Save today's snapshot of every configured fiscal year; reuse files already saved today."""
+    """Save today's snapshot of every fiscal year; reuse files already saved today."""
     folder = ctx.raw_dir / "cthru" / (today or date.today()).isoformat()
     folder.mkdir(parents=True, exist_ok=True)
     session = requests.Session()
     session.headers["User-Agent"] = _user_agent(ctx.settings["http"])
-    for fy in ctx.settings["scope"]["cthru_fiscal_years"]:
+    for fy in fiscal_years(ctx):
         path = folder / f"fy{fy}.json"
         if path.exists():
             print(f"  FY{fy}: already downloaded today, reusing {path.name}")
