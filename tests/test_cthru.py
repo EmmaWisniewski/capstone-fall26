@@ -71,7 +71,8 @@ def test_aggregate_sums_departments_and_formats_ids():
 
 
 def test_fiscal_years_come_from_the_law_list(root):
-    # FY2021 (reference GAA) through FY2026 (2025 ch. 9); FY2019 is a reference-only supplemental
+    # FY2021 (in-scope supplementals) through FY2026 (2025 ch. 9). The reference-only FY2020 budget
+    # and the excluded FY2027 one don't add years.
     assert cthru.fiscal_years(Context(root=root)) == [2021, 2022, 2023, 2024, 2025, 2026]
 
 
@@ -88,6 +89,8 @@ def test_fiscal_years_follow_a_new_law(tmp_path):
         {"law_key": "2026-60", "law_type": "supplemental", "role": "tbd", "primary_fy": "2028"},
         {"law_key": "2019-5", "law_type": "supplemental", "role": "reference_only",
          "primary_fy": "2019"},
+        {"law_key": "2019-41", "law_type": "gaa", "role": "reference_only", "primary_fy": "2020"},
+        {"law_key": "2026-137", "law_type": "gaa", "role": "excluded", "primary_fy": "2027"},
         {"law_key": "2025-17", "law_type": "bond", "role": "in_scope", "primary_fy": ""},
     ]
     (tmp_path / "config").mkdir()
@@ -97,6 +100,12 @@ def test_fiscal_years_follow_a_new_law(tmp_path):
         w.writerows(rows)
     ctx = Context(root=tmp_path, settings={"scope": {}})
     assert cthru.fiscal_years(ctx) == [2027]
+
+
+def test_offline_without_a_snapshot_writes_nothing_and_carries_on(root, tmp_path):
+    ctx = Context(root=root, raw_dir=tmp_path / "raw", interim_dir=tmp_path, offline=True)
+    assert cthru.run(ctx) == 0
+    assert not (tmp_path / "cthru_line_items.csv").exists()
 
 
 def test_aggregate_is_deterministic(samples_dir):

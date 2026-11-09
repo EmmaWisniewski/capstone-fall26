@@ -123,9 +123,9 @@ def fiscal_years(ctx: Context) -> list[int]:
     """Fiscal years to download.
 
     ``[scope] cthru_fiscal_years``, if set, is used as written. Otherwise they come from the law
-    list: the ``primary_fy`` of every GAA (reference ones too, which "Previously funded?" needs) and
-    of every other budget law (supplemental, interim) that is in scope. Reference-only
-    supplementals (e.g. FY2019) are skipped. A new year's laws bring their fiscal year with them.
+    list: the ``primary_fy`` of every in-scope GAA, supplemental and interim budget. Reference-only
+    and excluded laws (e.g. the FY2020 and FY2027 budgets) don't add years, so the list is FY2021
+    to FY2026 today. A new year's laws bring their fiscal year with them.
     """
     override = ctx.settings["scope"].get("cthru_fiscal_years")
     if override:
@@ -135,10 +135,8 @@ def fiscal_years(ctx: Context) -> list[int]:
         int(r["primary_fy"])
         for r in rows
         if r["primary_fy"]
-        and (
-            r["law_type"] == "gaa"
-            or (r["role"] == "in_scope" and r["law_type"] in ("supplemental", "interim"))
-        )
+        and r["role"] == "in_scope"
+        and r["law_type"] in ("gaa", "supplemental", "interim")
     }
     return sorted(years)
 
@@ -255,7 +253,14 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 
 
 def run(ctx: Context) -> int:
-    folder = latest_snapshot(ctx) if ctx.offline else snapshot(ctx)
+    if ctx.offline:
+        try:
+            folder = latest_snapshot(ctx)
+        except FileNotFoundError as e:  # like the other stages: report it, write nothing, carry on
+            print(f"  {e}; nothing read, nothing written")
+            return 0
+    else:
+        folder = snapshot(ctx)
     print(f"  reading snapshot {folder.name}")
     raw = load_snapshot(folder)
     rows = aggregate(raw)
