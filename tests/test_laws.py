@@ -245,6 +245,13 @@ def act(chapter, body, title="AN ACT", approved="Mar 1 2023", resolve=False):
             "borrowing",
         ),
         (
+            # 2021-33: the enacted version of transfers the Governor returned
+            "<p>SECTION 2. The comptroller shall establish a monthly schedule transferring no "
+            "less than: (i) $350,000,000 to the Student Opportunity Act Investment Fund.</p>",
+            "AN ACT RELATIVE TO CERTAIN STATUTORY FUNDS",
+            "transfers money",
+        ),
+        (
             "<p>SECTION 1. Text.</p>",
             "AN ACT MAKING APPROPRIATIONS FOR THE FISCAL YEAR",
             "appropriation title",
@@ -268,6 +275,12 @@ def test_each_signal_flags_a_candidate(body, title, signal):
             "figure "
             '"5" and inserting in place thereof the following figure:- 7.</p>',
             "AN ACT AMENDING THE CHARTER OF THE TOWN OF BOURNE",
+        ),
+        (
+            # 2021-8: municipal aggregators transferring their own money aren't the state
+            "<p>SECTION 9. Municipal aggregators with certified energy plans shall transfer not "
+            "less than $12,000,000 each year.</p>",
+            "AN ACT CREATING A NEXT-GENERATION ROADMAP FOR MASSACHUSETTS CLIMATE POLICY",
         ),
     ],
 )
@@ -334,3 +347,93 @@ def test_run_discovers_from_the_cache_offline_but_not_for_one_law(root, tmp_path
     ctx = Context(root=tmp_path, raw_dir=raw, settings=settings, offline=True)
     laws.run(ctx)
     assert [r["law_key"] for r in schemas.read_csv(config / "law_list.csv")[1]] == ["2023-10"]
+
+
+# --- amendment targets ----------------------------------------------------------------------
+
+
+def amendment(law_key, section, target):
+    return {"law_key": law_key, "section": section, "target_law_key": target}
+
+
+def test_amendment_targets_come_only_from_in_scope_laws():
+    law_list = [
+        entry("2024-150"),
+        entry("2019-41", "reference_only"),
+        entry("2023-28"),
+    ]
+    amendments = [
+        amendment("2024-150", "71", "2004-290"),
+        amendment("2024-150", "72", "2004-290"),
+        amendment("2024-150", "72", "2004-290"),  # two rows from one section: listed once
+        amendment("2024-150", "80", "GL"),  # General Laws: never a law-list row
+        amendment("2024-150", "90", "2023-28"),  # already listed
+        amendment("2019-41", "27", "2018-154"),  # amended only by a reference-only law
+        amendment("2023-28", "67", "2008-182"),
+    ]
+    assert laws.amendment_targets(amendments, law_list) == {
+        "2004-290": ["2024-150 §71", "2024-150 §72"],
+        "2008-182": ["2023-28 §67"],
+    }
+
+
+def test_discover_targets_adds_listed_targets_and_reports_missing_ones():
+    targets = {
+        "2004-290": [f"2024-150 §{n}" for n in range(71, 77)],
+        "1993-77": ["2024-150 §61"],  # older than the API: not in any year list
+    }
+    records = {2004: [act(290, "<p>Housing bonds.</p>", approved="Aug 19 2004")]}
+    rows, problems = laws.discover_targets(targets, records, SCOPE, TODAY)
+    assert [r["law_key"] for r in rows] == ["2004-290"]
+    row = rows[0]
+    assert (row["role"], row["approved_date"]) == ("tbd", "2004-08-19")
+    assert row["include_reason"] == (
+        "Amendment target: amended by 2024-150 §71, 2024-150 §72, 2024-150 §73, 2024-150 §74 "
+        "and 2 more"
+    )
+    assert row["notes"].startswith("Found by discovery (amendment target) on 2026-11-07")
+    assert laws.OUTSIDE_WINDOW_NOTE in row["notes"]
+    assert len(problems) == 1 and "1993-77" in problems[0] and "RUNBOOK" in problems[0]
+
+
+def test_run_adds_amendment_targets_from_read_amendments_output(root, tmp_path, capsys):
+    raw = tmp_path / "raw"
+    (raw / "sessionlaws" / "_lists").mkdir(parents=True)
+    (raw / "sessionlaws" / "_lists" / "2004.json").write_text(
+        json.dumps([act(290, "<p>Housing bonds.</p>", approved="Aug 19 2004")]), "utf-8"
+    )
+    config = tmp_path / "config"
+    config.mkdir()
+    header = ",".join(schemas.columns("law_list"))
+    (config / "law_list.csv").write_text(
+        f"{header}\n2024-150,2024,150,2024-08-06,,,,bond,in_scope,,,,manual,\n", "utf-8"
+    )
+    settings = load_settings(root / "config" / "settings.toml")
+    settings["http"] = HTTP
+    settings["scope"] = settings["scope"] | {"discover_years": []}
+    ctx = Context(
+        root=tmp_path,
+        raw_dir=raw,
+        interim_dir=tmp_path / "interim",
+        settings=settings,
+        offline=True,
+    )
+    laws.run(ctx)  # no amendments file yet: skipped, with a hint
+    assert "run read_amendments" in capsys.readouterr().out
+    interim = tmp_path / "interim"
+    interim.mkdir()
+    cols = schemas.columns("amendments_raw")
+    row = dict.fromkeys(cols, "") | {
+        "law_key": "2024-150",
+        "section": "71",
+        "action_type": "purpose_change",
+        "target_law_key": "2004-290",
+    }
+    (interim / "amendments_raw.csv").write_text(
+        ",".join(cols) + "\n" + ",".join(row[c] for c in cols) + "\n", "utf-8"
+    )
+    laws.run(ctx)
+    keys = [r["law_key"] for r in schemas.read_csv(config / "law_list.csv")[1]]
+    assert keys == ["2024-150", "2004-290"]
+    laws.run(ctx)  # a second run adds nothing
+    assert [r["law_key"] for r in schemas.read_csv(config / "law_list.csv")[1]] == keys

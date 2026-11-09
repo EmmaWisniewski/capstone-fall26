@@ -285,6 +285,14 @@ TEXT_SIGNALS = {
         re.IGNORECASE,
     ),
     "borrowing": re.compile(r"\bissue and sell (?:[\w-]+ ){0,4}?(?:bonds|notes)\b", re.IGNORECASE),
+    # The comptroller moving state money between funds, as in laws that enact a section the
+    # Governor returned (2021-16, 2021-33: "transferring no less than: (i) $350,000,000"). Not
+    # transfers by others, such as municipal energy aggregators (2021-8). Added 2026-11-08.
+    "transfers money": re.compile(
+        r"\b(?:comptroller|secretary of administration and finance)\b[^.;]{0,160}?"
+        r"\btransfer(?:s|red|ring)?\b[^.;]{0,60}?\$\s*\d[\d,]*",
+        re.IGNORECASE,
+    ),
 }
 TITLE_SIGNAL = re.compile(
     r"MAKING APPROPRIATIONS|APPROPRIATIONS? FOR|FINANCING (?:THE|A|AN|IMPROVEMENTS)"
@@ -341,27 +349,97 @@ def discover(
             found = signals(r)
             if not found:
                 continue
-            approved = _approved(r)
-            notes = f"Found by discovery on {today.isoformat()}"
-            if approved and not window[0] <= approved <= window[1]:
-                notes += f"; {OUTSIDE_WINDOW_NOTE}"
-            row = dict.fromkeys(schemas.columns("law_list"), "")
-            row.update(
-                law_key=law_key,
-                acts_year=str(acts_year),
-                chapter=str(r["ChapterNumber"]),
-                approved_date=approved,
-                approval_type=r.get("ApprovalType") or "",
-                api_title=r.get("Title") or "",
-                role="tbd",
-                include_reason="Candidate: " + ", ".join(found),
-                origin_bill=_origin_bill(r),
-                parse_strategy="auto",
-                notes=notes,
-            )
-            out.append(row)
+            reason = "Candidate: " + ", ".join(found)
+            out.append(_candidate(acts_year, r, reason, "discovery", window, today))
             listed.add(law_key)
     return out
+
+
+def _candidate(
+    acts_year: int,
+    record: Mapping[str, Any],
+    reason: str,
+    found_by: str,
+    window: tuple[str, str],
+    today: date,
+) -> dict[str, str]:
+    """A ``role = tbd`` law-list row for one Acts record."""
+    approved = _approved(record)
+    notes = f"Found by {found_by} on {today.isoformat()}"
+    if approved and not window[0] <= approved <= window[1]:
+        notes += f"; {OUTSIDE_WINDOW_NOTE}"
+    row = dict.fromkeys(schemas.columns("law_list"), "")
+    row.update(
+        law_key=schemas.law_key(acts_year, record["ChapterNumber"]),
+        acts_year=str(acts_year),
+        chapter=str(record["ChapterNumber"]),
+        approved_date=approved,
+        approval_type=record.get("ApprovalType") or "",
+        api_title=record.get("Title") or "",
+        role="tbd",
+        include_reason=reason,
+        origin_bill=_origin_bill(record),
+        parse_strategy="auto",
+        notes=notes,
+    )
+    return row
+
+
+AMENDING_SECTIONS_SHOWN = 4
+
+
+def amendment_targets(
+    amendments: list[Mapping[str, str]], law_list: list[Mapping[str, str]]
+) -> dict[str, list[str]]:
+    """Laws that in-scope laws amend but the law list lacks, each with its amending sections
+    ("2024-150 §71"), in source order. Laws amended only by reference-only laws are left out: they
+    matter only for history the dataset doesn't report (Decision Log 2026-11-08)."""
+    listed = {r["law_key"]: r["role"] for r in law_list}
+    out: dict[str, list[str]] = {}
+    for a in amendments:
+        target = a.get("target_law_key") or ""
+        if (
+            not target
+            or target == "GL"
+            or target in listed
+            or listed.get(a["law_key"]) != "in_scope"
+        ):
+            continue
+        where = f"{a['law_key']} §{a['section']}"
+        if where not in out.setdefault(target, []):
+            out[target].append(where)
+    return out
+
+
+def discover_targets(
+    targets: Mapping[str, list[str]],
+    records_by_year: Mapping[int, list[Mapping[str, Any]]],
+    scope: Mapping[str, Any],
+    today: date,
+) -> tuple[list[dict[str, str]], list[str]]:
+    """``role = tbd`` rows for amendment targets, plus problems for targets not in the API."""
+    window = (scope["approved_from"], scope["approved_to"])
+    rows, problems = [], []
+    for target, sections in sorted(targets.items()):
+        acts_year, chapter = (int(x) for x in target.split("-"))
+        found = [
+            r
+            for r in records_by_year.get(acts_year, [])
+            if r.get("Type") == "Acts" and str(r.get("ChapterNumber")) == str(chapter)
+        ]
+        if not found:
+            problems.append(
+                f"amendment target {target} (amended by {sections[0]}) isn't in the Legislature's "
+                "API: add it by hand (see docs/RUNBOOK.md, step 2)"
+            )
+            continue
+        shown = ", ".join(sections[:AMENDING_SECTIONS_SHOWN])
+        more = len(sections) - AMENDING_SECTIONS_SHOWN
+        reason = f"Amendment target: amended by {shown}" + (f" and {more} more" if more > 0 else "")
+        rows.append(
+            _candidate(acts_year, found[0], reason, "discovery (amendment target)", window, today)
+        )
+    return rows, problems
 
 
 def append_to_law_list(path: Path, rows: list[dict[str, str]]) -> None:
@@ -391,6 +469,27 @@ def run_discovery(ctx: Context, cache: RawCache, client: Client) -> tuple[int, l
         except (FetchError, ValueError) as e:
             problems.append(f"discovery, {acts_year}: {e}")
     new = discover(records, law_list, ctx.settings["scope"], date.today())
+
+    # Amendment targets (§6 stage 1), from read_amendments' output of an earlier run
+    amendments_path = ctx.interim_dir / "amendments_raw.csv"
+    if amendments_path.exists():
+        _, amendments = schemas.read_csv(amendments_path)
+        targets = amendment_targets(amendments, law_list + new)
+        for acts_year in sorted({int(t.split("-")[0]) for t in targets} - set(records)):
+            try:
+                records[acts_year] = year_records(
+                    cache, client, ctx.settings["sources"]["api_base"], acts_year
+                )
+            except (FetchError, ValueError) as e:
+                problems.append(f"amendment targets, {acts_year}: {e}")
+        target_rows, target_problems = discover_targets(
+            targets, records, ctx.settings["scope"], date.today()
+        )
+        new += target_rows
+        problems += target_problems
+    else:
+        print("  no amendments_raw.csv yet: run read_amendments, then laws again for its targets")
+
     append_to_law_list(path, new)
     for r in new:
         print(f"  new candidate {r['law_key']} ({r['approved_date']}): {r['include_reason']}")
