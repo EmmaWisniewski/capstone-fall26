@@ -89,6 +89,11 @@ def amendment_amounts(
             text[key] = r["item_text"]
         if r["amount"] and r["fy_stated"]:
             supplement.setdefault((r["law_key"], r["line_item"], r["fy_stated"]), int(r["amount"]))
+    # A law sometimes names the wrong section: 2019-142 §48 strikes 1595-1068 from "section 2"
+    # of the FY2020 GAA, which prints it in §2E. Use the item's only section in that law, if any.
+    sections: dict[tuple[str, str], set[str]] = {}
+    for law_key, section, item in amount:
+        sections.setdefault((law_key, item), set()).add(section)
 
     order = sorted(
         (a for a in amendments if a["action_type"] in AMOUNT_ACTIONS and a["target_item"]),
@@ -101,13 +106,17 @@ def amendment_amounts(
     out = []
     for a in order:
         kind, key = a["action_type"], (a["target_law_key"], a["target_section"], a["target_item"])
+        found = sections.get((key[0], key[2]), set())
+        if key not in amount and len(found) == 1:
+            key = (key[0], next(iter(found)), key[2])
         before = amount.get(key)
         known = before is not None
         old, new = _int(a["old_figure"]), _int(a["new_figure"])
         check, note = "", ""
         if kind == "figure_change":
             if not known:
-                check, after = "target_not_read", new
+                # whether the figure is the item's total is unknown, so its amount stays unknown
+                check, after = "target_not_read", None
             elif before == old:
                 check, after = "match", new
             elif before == new:

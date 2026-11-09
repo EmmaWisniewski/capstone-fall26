@@ -57,10 +57,10 @@ def test_samples(sample_amounts):
     assert {r["check"] for r in sample_amounts.values()} <= {"", *combine.CHECKS}
 
 
-def _item(law, item, amount, text="", fy="2099"):
+def _item(law, item, amount, text="", fy="2099", section="2"):
     return {
         "law_key": law,
-        "section": "2",
+        "section": section,
         "line_item": item,
         "amount": str(amount),
         "retained_revenue_ceiling": "",
@@ -69,12 +69,12 @@ def _item(law, item, amount, text="", fy="2099"):
     }
 
 
-def _amend(law, section, kind, item, old="", new=""):
+def _amend(law, section, kind, item, old="", new="", target="2098-1"):
     return {
         "law_key": law,
         "section": section,
         "action_type": kind,
-        "target_law_key": "2098-1",
+        "target_law_key": target,
         "target_section": "2",
         "target_item": item,
         "old_figure": str(old),
@@ -113,4 +113,29 @@ def test_date_order_text_figures_mismatches_and_strikes():
         ("2099-2", "12", "match", 107, 7, True),
         ("2099-3", "5", "match", 150, 30, False),
         ("2099-3", "6", "", 0, -1000, False),
+    ]
+
+
+def test_wrong_section_named_and_target_not_read():
+    laws = [
+        {"law_key": k, "approved_date": d, "primary_fy": "2099", "parse_strategy": "auto"}
+        for k, d in (("2098-1", "2098-07-01"), ("2099-2", "2099-01-15"))
+    ]
+    # 2019-142 §48 names "section 2" for an item the GAA prints in §2E
+    items = [_item("2098-1", "1595-1068", 100, section="2E")]
+    amendments = [
+        _amend("2099-2", "48", "figure_change", "1595-1068", 100, 120),
+        # 2020-151 §7–§8: two figures of an item in a law no stage read; the first may be an
+        # earmark, so the item's amount stays unknown rather than becoming 37
+        _amend("2099-2", "7", "figure_change", "1102-5700", 20, 37, target="2097-9"),
+        _amend("2099-2", "8", "figure_change", "1102-5700", 760, 777, target="2097-9"),
+    ]
+    found = [
+        (r["section"], r["check"], r["amount_before"], r["amount_after"], r["change"])
+        for r in combine.amendment_amounts(items, amendments, laws)
+    ]
+    assert found == [
+        ("7", "target_not_read", None, None, 17),
+        ("8", "target_not_read", None, None, 17),
+        ("48", "match", 100, 120, 20),
     ]

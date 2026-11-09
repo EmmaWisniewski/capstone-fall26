@@ -338,6 +338,78 @@ def test_run_reports_only_in_scope_laws_and_skips_hand_kept(root, tmp_path, caps
     assert "no cached text" not in out
 
 
+def test_general_laws_named_in_other_ways():
+    # None of these amend an appropriation act, so they give no rows and nothing unread: a bare
+    # "Chapter 40R" (2020-358 §45), "The General Laws" (§56), "as so appearing" (§58), a chapter
+    # with a half and the "Official Edition" (2020-383 §8), and a resolve (2022-126 §105)
+    html = (
+        "<p>SECTION 45. Chapter 40R is hereby amended by striking out section 14 and inserting in"
+        " place thereof the following section:-</p>"
+        "<p>Section 14. The fund may receive $5,000 appropriated in item 1599-0001.</p>"
+        "<p>SECTION 56. The General Laws are hereby amended by inserting after chapter 40W the"
+        " following chapter:-</p><p>Chapter 40X. Any appropriation of $1,000 for this purpose.</p>"
+        "<p>SECTION 58. Section 6I of said chapter 62, as so appearing, is hereby amended by"
+        ' striking out the figure "$20,000,000" and inserting in place thereof the following'
+        " figure:- $40,000,000.</p>"
+        "<p>SECTION 60. Section 1 of chapter 159A1⁄2 of the General Laws, as appearing in the 2018"
+        " Official Edition, is hereby amended by adding the following words:- or an appropriation"
+        " of $6,000,000.</p>"
+        "<p>SECTION 61. Said chapter 159A1⁄2 is hereby further amended by adding the following"
+        " section:-</p><p>Section 13. Item 1599-0002 shall not exceed $10.</p>"
+        "<p>SECTION 105. Chapter 145 of the resolves of 1957 is hereby further amended by"
+        ' inserting after the word "Scott" the following words:- , Elizabeth Johnson, Jr.</p>'
+    )
+    assert read_amendments.read_law("2020-358", "bond", html) == ([], [])
+
+
+def test_item_renumbered():
+    # 2021-102 §46 renumbers an item of a 2018 bond law: no money changes
+    html = (
+        "<p>SECTION 46. Section 2 of chapter 112 of the acts of 2018 is hereby amended by striking"
+        " out the figure “7002-0015” and inserting in place thereof the following figure:-"
+        " 7002-0016.</p>"
+    )
+    rows, unread = read_amendments.read_law("2021-102", "surplus", html)
+    assert [
+        (r["action_type"], r["target_law_key"], r["target_section"], r["target_item"], r["to_item"])
+        for r in rows
+    ] == [("purpose_change", "2018-112", "2", "7002-0015", "7002-0016")]
+    assert unread == []
+
+
+def test_borrowing_sections_of_bond_laws_are_left_to_read_bonds():
+    # 2021-15 §6: a borrowing limit for one item, which read_bonds reads (§7.16)
+    html = (
+        "<p>SECTION 2.</p><p>4000-2026 For a program ...... $10</p>"
+        "<p>SECTION 6. To meet the expenditures necessary in carrying out item 4000-2026 of"
+        " section 2, the state treasurer shall, upon request of the governor, issue and sell"
+        " bonds of the commonwealth in an amount to be specified by the governor from time to time"
+        " but not exceeding, in the aggregate, $10.</p>"
+    )
+    assert read_amendments.read_law("2021-15", "bond", html) == ([], [])
+
+
+def test_section_returned_with_amendment_is_not_law_in_that_chapter():
+    # 2021-24 §102: the Legislature's version became 2021 ch. 33, so this one gives no rows
+    html = (
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 102. Notwithstanding any general or special law to the contrary, the"
+        " comptroller shall, not later than September 1, 2021, transfer $250,000,000 from the"
+        " General Fund to the Commonwealth’s Pension Liability Fund.</s></p>"
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 101A. Section 7 of chapter 62 of the General Laws is hereby amended by"
+        " adding the following words:- or a regulation.</s></p>"
+    )
+    rows, unread = read_amendments.read_law("2021-24", "gaa", html)
+    assert rows == []
+    # listed only when it would have given rows; a wording change to the General Laws isn't
+    assert [(u["section"], u["reason"][:40]) for u in unread] == [
+        ("102", "returned by the Governor with a recommen")
+    ]
+
+
 def test_section_2_heading_in_any_case():
     # The FY2022 GAA (2021-24) prints its Section 2 heading as "Section 2", with no period (issue
     # #12). Its items belong to read_items, so their text must not be read as part of §1B.
@@ -425,6 +497,25 @@ def test_veto_note_belongs_to_the_following_section(samples_dir):
     sections = {s["section"]: s for s in read_amendments._sections(paras)}
     assert not any("Governor disapproved" in t for t in sections["99"]["texts"])
     assert (sections["99"]["vetoed"], sections["100"]["vetoed"]) == (False, True)
+
+
+def test_samples_match_hand_checked_rows(output):
+    # tests/samples/expected/amendments_raw_selected.csv: a row of each action_type the samples
+    # have (none strikes an item; 2022-268 §228 does, tested above)
+    _, rows = schemas.read_csv(output.interim_dir / "amendments_raw.csv")
+    header, expected = schemas.read_csv(
+        ROOT / "tests" / "samples" / "expected" / "amendments_raw_selected.csv"
+    )
+    assert {e["action_type"] for e in expected} == {r["action_type"] for r in rows}
+    for e in expected:
+        key = (e["law_key"], e["section"], e["action_type"], e["target_item"])
+        found = [
+            r
+            for r in rows
+            if (r["law_key"], r["section"], r["action_type"], r["target_item"]) == key
+        ]
+        assert len(found) == 1, key
+        assert {c: found[0][c] for c in header} == e
 
 
 def test_unread_sections_have_explanation_column(output):
