@@ -24,7 +24,11 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
 """
 
 import re
+from collections.abc import Mapping
+from datetime import date
+from typing import Any
 
+from ma_approps import schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = False
@@ -184,6 +188,128 @@ def amendment_amounts(
             }
         )
     return out
+
+
+# -- Bond rows (workstream A; DESIGN §7.7, §7.16, §10; decisions of 2026-11-06) ----------------
+
+# The reader's veto note (§7.3) -> veto_status (§9.9). A whole-item veto is left out instead (a
+# pocket veto has no amount), so "disapproved" only reaches here as a wording note on an item
+# whose amount stands, before read_items labels those wording_vetoed (PR #30): unknown until then.
+BOND_VETO_STATUS = {
+    "none": "none",
+    "reduced": "reduced",
+    "reduced_and_wording": "reduced",
+    "overridden": "overridden",
+    "wording_vetoed": "wording_vetoed",
+    "disapproved": "unknown",
+}
+
+
+def enactment_fy(approved: str) -> int:
+    """The fiscal year containing a date: FY2025 runs July 1, 2024 to June 30, 2025 (§5.4)."""
+    d = date.fromisoformat(approved)
+    return d.year + 1 if d.month >= 7 else d.year
+
+
+def limit_for(row: Mapping[str, str], limits: list[Mapping[str, str]]) -> Mapping[str, str] | None:
+    """The borrowing limit (bond_authorizations_raw row, §7.16) covering a bond item: one that
+    names the item (2021-15 §6 covers only 4000-2026), else one that covers its section."""
+    same_law = [lim for lim in limits if lim["law_key"] == row["law_key"]]
+    for lim in same_law:
+        if row["line_item"] in lim["covers_items"].split(";"):
+            return lim
+    for lim in same_law:
+        if not lim["covers_items"] and row["section"] in lim["covers_sections"].split(";"):
+            return lim
+    return None
+
+
+def bond_rows(
+    bond_items: list[Mapping[str, str]],
+    limits: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    session_law_url: str,
+) -> list[dict[str, Any]]:
+    """Funding-action rows (§7.7) for the bond items of in-scope laws, in source order.
+
+    Each is a capital authorization (``CAP``), never counted in operating totals (Q5). Items that
+    never became law (pocket-vetoed: no amount) and reference-only laws' items are left out. An item
+    under a limit with an identified federal share gets ``federal_share`` = that share over the
+    limit's items (New 1). Restated items (New 2) come through the amendment rows, not here.
+    """
+    laws = {r["law_key"]: r for r in law_list}
+    out = []
+    for item in bond_items:
+        law = laws.get(item["law_key"])
+        if not law or law["role"] != "in_scope" or not item["amount"]:
+            continue
+        limit = limit_for(item, limits) or {}
+        share = ""
+        if limit.get("federal_split") == "identified" and int(limit["items_total"] or 0):
+            share = int(limit["federal_share"]) / int(limit["items_total"])  # exact: no rounding
+        veto = item["veto_kind_inline"] or "none"
+        flags = []
+        if share:
+            flags += ["federal"] + (["federal_mixed"] if share < 1 else [])
+        if veto != "none":
+            flags.append("veto_unverified")  # no CTHRU data for bonds (§5.7)
+        if item["confidence"] == "low":
+            flags.append("low_confidence_parse")
+        out.append(
+            {
+                "law_key": item["law_key"],
+                "section": item["section"],
+                "line_item": item["line_item"],
+                "target_law_key": item["law_key"],
+                "event_date": law["approved_date"],
+                "calendar_year": int(law["approved_date"][:4]),
+                "fiscal_year": enactment_fy(law["approved_date"]),
+                "fy_rule": "enactment_fy",
+                "available_through": limit.get("available_through", ""),
+                "section_type": "capital",
+                "funding_action": "CAP",
+                "amount_kind": "bond_authorization",
+                "amount": int(item["amount"]),
+                "amount_source": "law_text",
+                "amount_printed": int(item["amount_struck"] or item["amount"]),
+                "veto_status": BOND_VETO_STATUS.get(veto, "unknown"),
+                "counts_toward_total": "false",
+                "fund_primary": "",
+                "federal_share": share,
+                "flags": ";".join(flags),
+                "agency_header_raw": item["agency_header_raw"],
+                "item_text": item["item_text"],
+                "source_url": session_law_url.format(
+                    acts_year=law["acts_year"], chapter=law["chapter"]
+                ),
+                "source_para_start": item["para_start"],
+                "reader_version": item["reader_version"],
+            }
+        )
+    prefixes = [
+        schemas.record_id_prefix(
+            int(laws[r["law_key"]]["acts_year"]),
+            laws[r["law_key"]]["chapter"],
+            r["section"],
+            r["line_item"],
+            "CAP",
+        )
+        for r in out
+    ]
+    for r, record_id in zip(out, schemas.assign_record_ids(prefixes), strict=True):
+        r["record_id"] = record_id
+    return [{c: r[c] for c in schemas.columns("funding_actions")} for r in out]
+
+
+def capital_total(rows: list[Mapping[str, Any]]) -> int:
+    """The capital total (New 1): bond amounts minus identified federal shares."""
+    total = 0
+    for r in rows:
+        if r["funding_action"] != "CAP":
+            continue
+        share = float(r["federal_share"] or 0)
+        total += round(int(r["amount"]) * (1 - share))
+    return total
 
 
 def run(ctx: Context) -> int:
