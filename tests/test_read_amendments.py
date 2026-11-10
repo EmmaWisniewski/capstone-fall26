@@ -256,7 +256,54 @@ def test_other_transfer_wordings():
         ("7", 50_000_000, "Commonwealth Care Trust Fund", "low"),
         ("8", 100_000_000, "General Fund", "medium"),
     ]
+    assert [r["to_fund"] for r in rows] == [
+        "federal COVID-19 response fund",
+        "Student Opportunity Act Investment Fund",
+        "Commonwealth's Pension Liability Fund",
+        "Massachusetts Life Sciences Investment Fund",
+        "Massachusetts Community Preservation Trust Fund",
+        "Commonwealth Stabilization Fund",
+        "Health Safety Net Trust Fund",
+        "Unemployment Compensation Fund",
+    ]
     assert unread == []
+
+
+def test_transfer_destination_fund():
+    # `to_fund` (§7.4): the funds named before any item, purpose or proviso (shortened)
+    html = (
+        # 2024-140 §229: "and" inside a fund's name
+        "<p>SECTION 11. The comptroller shall transfer $14,000,000 from the General Fund to the"
+        " Disaster Relief and Resiliency Fund established in section 2HHHHHH of said chapter"
+        " 29.</p>"
+        # 2025-73 §177: the source isn't a fund, so the fund named is the destination
+        "<p>SECTION 12. The comptroller shall transfer $100,000,000 from income surtax revenue, as"
+        " defined by subsection (a) of section 2BBBBBB of chapter 29 of the General Laws, to the"
+        " Student Opportunity Act Investment Fund established in section 35RRR of chapter 10 of the"
+        " General Laws.</p>"
+        # 2008-182 §82: the destination before the source
+        "<p>SECTION 13. The comptroller shall, not later than June 30, 2009, transfer $310,000,000"
+        " to the General Fund from the Commonwealth Stabilization Fund.</p>"
+        # 2025-73 §189: an agency, not a fund
+        "<p>SECTION 14. The comptroller shall transfer $10,000,000 from the General Fund to the"
+        " Massachusetts Life Sciences Center for programming.</p>"
+        # 2021-16 §13: one transfer with a fallback source, so both rows are `low`
+        "<p>SECTION 15. The secretary of administration and finance shall direct the comptroller to"
+        " transfer $75,000,000 to the COVID-19 Massachusetts Emergency Paid Sick Leave Fund"
+        " established in section 9 from amongst federal funds received by the commonwealth;"
+        " provided, however, that if no such funds are available, the secretary shall direct the"
+        " comptroller to transfer $75,000,000 from other funding sources, including the General"
+        " Fund.</p>"
+    )
+    rows, _ = read_amendments.read_law("2099-1", "supplemental", html)
+    assert [(r["section"], r["fund_raw"], r["to_fund"], r["confidence"]) for r in rows] == [
+        ("11", "General Fund", "Disaster Relief and Resiliency Fund", "medium"),
+        ("12", None, "Student Opportunity Act Investment Fund", "medium"),
+        ("13", "Commonwealth Stabilization Fund", "General Fund", "medium"),
+        ("14", "General Fund", None, "medium"),
+        ("15", "General Fund", None, "low"),
+        ("15", None, "COVID-19 Massachusetts Emergency Paid Sick Leave Fund", "low"),
+    ]
 
 
 def test_transfer_figure_must_follow_the_verb():

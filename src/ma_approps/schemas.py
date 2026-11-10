@@ -250,6 +250,7 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "from_item",
         "to_item",
         "fund_raw",
+        "to_fund",
         "source_text",
         *_READER,
     ),
