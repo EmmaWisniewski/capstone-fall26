@@ -118,7 +118,11 @@ def test_repeats_of_one_prefix_are_numbered_in_builder_order():
         ({"funding_action": "PAC", "amount_kind": "prior_appropriation_continued"}, False),
         ({"funding_action": "PURP", "amount_kind": "none", "amount": ""}, False),
         ({"funding_action": "REAUTH", "amount_kind": "none"}, False),
-        ({"flags": "fund_transfer_chain"}, False),
+        ({"flags": "fund_transfer_chain"}, True),  # a marker only (Q24)
+        (
+            {"funding_action": "XFER", "amount_kind": "transfer", "flags": "fund_transfer_chain"},
+            False,
+        ),
         ({"federal_share": 1.0, "flags": "federal"}, False),  # wholly federal
         ({"federal_share": 0.4, "flags": "federal;federal_mixed"}, True),  # partly federal
     ],
