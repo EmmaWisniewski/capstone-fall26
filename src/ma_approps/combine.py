@@ -26,7 +26,7 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
 
 import csv
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -793,7 +793,11 @@ def _gaa_items(
 
 
 def _annual_fy(item: Mapping[str, str], law: Mapping[str, str]) -> str:
-    return item["fy_stated"] or law.get("primary_fy", "")
+    """The fiscal year of a GAA item: every item of a GAA belongs to the law's own year (the law
+    list's ``primary_fy``). The reader's ``fy_stated`` is only the fallback: it says FY2021 for the
+    36 §2B items of 2021-24, whose text says "fiscal year ending June 30, 2022" (Emma's review of
+    PR #48)."""
+    return law.get("primary_fy") or item["fy_stated"]
 
 
 def annual_rows(
@@ -814,6 +818,8 @@ def annual_rows(
     - §2B items take the law's printed amount and are flagged ``isf_chargeback``; an item CTHRU
       books only to fund 0015 is flagged the same wherever it is printed (§10). §2E items are
       flagged ``trust_transfer``. Neither counts toward the total.
+    - A row's fiscal year is the law's own (``primary_fy``), not the reader's ``fy_stated``
+      (``_annual_fy``).
     - CTHRU has one amount per account, so an item printed twice in a law gets it once; both rows
       are flagged ``cthru_mismatch``. A fiscal year with no CTHRU rows at all (not downloaded yet)
       falls back to the printed amount, flagged ``cthru_mismatch``, instead of reading as vetoed.
@@ -834,8 +840,9 @@ def annual_rows(
         )
         row = _items_row(item, law, session_law_url)
         fy = _annual_fy(item, law)
-        if not item["fy_stated"] and fy:
+        if fy:
             row["fiscal_year"], row["fy_rule"] = int(fy), "stated"
+            row["available_through"] = available_through(item["item_text"], int(fy))
         flags = list(section_flags)
         hint = item["veto_kind_inline"] or "none"
         final = int(item["amount"] or 0)
@@ -900,10 +907,18 @@ def annual_gaps(
     items: list[Mapping[str, str]],
     law_list: list[Mapping[str, str]],
     cthru: list[Mapping[str, str]],
+    rows: Iterable[Mapping[str, Any]] = (),
 ) -> list[dict[str, Any]]:
     """Problems (``combine_problems.csv``) for CTHRU money the annual rows can't carry: an account
     with enacted money in an in-scope GAA's fiscal year that has no item in that law's text read.
-    Its money is missing from the totals until the reader finds the item."""
+    Its money is missing from the totals until the reader finds the item, unless another row
+    counts money for the account that year (1599-9817 in FY2022: CTHRU books it as original, but
+    2021-102 §61 adds it). ``rows`` are the funding actions; the problem then names such a row
+    and asks for the amounts to be compared, instead of saying the money is missing."""
+    counted: dict[tuple[str, str], list[str]] = {}
+    for r in rows:
+        if r["counts_toward_total"] == "true" and r["line_item"]:
+            counted.setdefault((str(r["fiscal_year"]), r["line_item"]), []).append(r["record_id"])
     gaa_laws = {
         r["primary_fy"]: r["law_key"]
         for r in law_list
@@ -919,6 +934,14 @@ def annual_gaps(
         amount = int(r["original_enacted"] or 0)
         key = (r["fiscal_year"], r["line_item"])
         if amount and r["fiscal_year"] in gaa_laws and key not in read:
+            elsewhere = counted.get(key)
+            if elsewhere:
+                outcome = (
+                    f"other rows count money for it that year (e.g. {elsewhere[0]}), so check "
+                    "that the amounts agree"
+                )
+            else:
+                outcome = "its money is not in the totals"
             problems.append(
                 {
                     "record_id": "",
@@ -927,7 +950,7 @@ def annual_gaps(
                     "line_item": r["line_item"],
                     "problem": (
                         f"CTHRU FY{r['fiscal_year']} has ${amount:,} for this account but no "
-                        "item was read from the law text: its money is not in the totals"
+                        f"item was read from the law text: {outcome}"
                     ),
                 }
             )
@@ -1255,7 +1278,9 @@ def run(ctx: Context) -> int:
         print(f"  {piece}: {len(pieces[piece])} rows")
     pieces["manual rows"] = manual_rows(inputs["manual_rows"])
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
-    problems += annual_gaps(inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"])
+    problems += annual_gaps(
+        inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"], rows
+    )
     amounts = running_amounts(
         rows,
         amendment_amounts(starting_items(inputs), inputs["amendments_raw"], inputs["law_list"]),

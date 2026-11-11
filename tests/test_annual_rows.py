@@ -229,6 +229,36 @@ def test_the_core_counts_original_rows_but_not_chargebacks():
     assert combine.operating_total(out) == 6000 + 225
 
 
+def test_a_gaa_items_fiscal_year_is_the_laws_not_the_readers():
+    # 2021-24's §2B items say FY2021 in items_raw, though the law is the FY2022 budget (PR #48)
+    wrong = item("1599-0001", 700, section="2B", key="2021-24", fy="2021", item_text="")
+    fy2022 = law("2021-24", approved="2021-07-16", fy="2022")
+    [row] = annual([wrong], [cthru("1599-0001", 0, fy="2022", funds="0015")], laws=[fy2022])
+    assert (row["fiscal_year"], row["fy_rule"]) == (2022, "stated")
+    assert row["amount"] == 700 and flags(row) == ["isf_chargeback"]
+
+
+def test_the_laws_fiscal_year_also_decides_the_spending_end_date():
+    text = "available for the purposes of this item until June 30, 2022"
+    early = item("1599-0001", 700, section="2B", fy="2021", item_text=text)
+    [row] = annual([early], [], laws=[law(fy="2022")])
+    assert row["available_through"] == ""  # June 30, 2022 is the end of FY2022 itself
+
+
+def test_a_gap_another_counted_row_covers_says_so_instead_of_missing():
+    gaa_items = [item("0930-0100", 6000)]
+    cth = [cthru("0930-0100", 6000), cthru("1599-9817", 300000000)]
+    counted = {"record_id": "2021-102-S61-1599-9817-NEW-1", "line_item": "1599-9817",
+               "fiscal_year": 2024, "counts_toward_total": "true"}
+    uncounted = dict(counted, counts_toward_total="false")
+    [with_other] = combine.annual_gaps(gaa_items, [law()], cth, [counted])
+    assert "other rows count money for it that year" in with_other["problem"]
+    assert "2021-102-S61-1599-9817-NEW-1" in with_other["problem"]
+    assert "not in the totals" not in with_other["problem"]
+    [with_uncounted] = combine.annual_gaps(gaa_items, [law()], cth, [uncounted])
+    assert "its money is not in the totals" in with_uncounted["problem"]
+
+
 def test_cthru_money_with_no_item_read_is_reported():
     problems = combine.annual_gaps(
         [item("0930-0100", 6000), item("1599-0001", 700, section="2D")],
