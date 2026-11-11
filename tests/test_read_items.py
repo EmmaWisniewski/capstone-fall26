@@ -153,6 +153,39 @@ def test_override_notes_and_unbolded_notes():
     assert item["veto_kind_inline"] == "overridden"
 
 
+@pytest.mark.parametrize(
+    "note, amount, kind",
+    [
+        # issue #28: wording struck, amount unchanged (2020-383, 2021-24, 2021-102, 2022-176)
+        ("Governor disapproved wording as indicated in the following item.", "$3,000,000,000",
+         "wording_vetoed"),
+        ("The Governor disapproved of certain wording, for message see House, No. 4019.",
+         "$5,000", "wording_vetoed"),
+        ("Governor disapproved of the certain wording, for message see House, No. 4288",
+         "$5,000", "wording_vetoed"),
+        # a wording note on an item whose amount is struck is a whole-item veto
+        ("Governor disapproved certain wording in the following section", "<s>$5,000</s>",
+         "disapproved"),
+        # whole-item vetoes, incl. the misspelling in 2025-9 and pocket vetoes (2020-383)
+        ("Governor dissaproved of the following item, for message see H4250", "$5,000",
+         "disapproved"),
+        ("Governor pocket vetoed the following item.", "$250,000,000", "disapproved"),
+        ("The Governor disapproved of certain wording, for message see House, No. 4019. "
+         "The Legislature overrode the Governor's veto.", "$5,000", "overridden"),
+    ],
+)
+def test_veto_kinds(note, amount, kind):
+    item = one(f"<p>SECTION 2.</p><p><b>{note}</b></p><p>6621-2108 For roads ...... {amount}</p>")
+    assert item["veto_kind_inline"] == kind
+
+
+def test_legislature_header_is_not_a_veto_note():
+    # the bold "LEGISLATURE." header above item 9500-0000 (2021-24)
+    item = one("<p>SECTION 2.</p><p><b>LEGISLATURE.</b></p><p>9500-0000 Senate ...... $5</p>")
+    assert (item["secretariat_header_raw"], item["veto_kind_inline"]) == ("LEGISLATURE.", "none")
+    assert item["veto_annotation_raw"] == ""
+
+
 def test_replacement_amount_on_its_own_line():
     # 2025-9 item 1595-6368: struck amount at the end, new amount on the next line
     item = one(
@@ -190,14 +223,36 @@ def test_fund_split_variants():
     assert items[-1]["amount"] == "17465233"
 
 
+MISPRINTED = (
+    "<p>SECTION 2.</p><p>5911-1002 A ...... $10</p>"
+    "<p>911-1003 For the administration of the department ...... $20</p>"
+)
+
+
 def test_unread_paragraphs():
     # 2024-140 prints "911-1003" for item 5911-1003
-    items, unread = read(
-        "<p>SECTION 2.</p><p>5911-1002 A ...... $10</p>"
-        "<p>911-1003 For the administration of the department ...... $20</p>"
-    )
+    items, unread = read(MISPRINTED)
     assert len(items) == 1
     assert [(u["section"], u["para_idx"], u["explanation"]) for u in unread] == [("2", "3", "")]
+
+
+def test_item_number_fixes():
+    # issue #18: config/item_number_fixes.csv maps a misprinted number to the right one
+    items, unread = read_items.read_law(
+        "2099-1", paragraphs("2099-1", SECTION_1 + MISPRINTED), {"911-1003": "5911-1003"}
+    )
+    assert not unread
+    fixed = items[1]
+    assert (fixed["line_item"], fixed["amount"]) == ("5911-1003", "20")
+    assert fixed["confidence"] == "medium"
+    assert fixed["item_text"] == "For the administration of the department"
+
+
+def test_item_number_fixes_file_is_valid(root):
+    path = root / "config" / "item_number_fixes.csv"
+    assert schemas.validate_file("item_number_fixes", path) == []
+    _, rows = schemas.read_csv(path)
+    assert all(schemas.LINE_ITEM_RE.match(r["line_item"]) for r in rows)
 
 
 # -- samples ------------------------------------------------------------------
@@ -232,7 +287,7 @@ def test_samples_item_counts(sample_run):
     assert counts["2025-3"] == {"2": 1}
     assert counts["2023-77"] == {"2": 12, "2A": 14, "2CI": 57, "2CII": 6}
     assert sum(counts["2023-28"].values()) == 1418
-    assert sum(counts["2024-140"].values()) == 1389
+    assert sum(counts["2024-140"].values()) == 1390  # incl. 5911-1003, printed "911-1003"
     assert "2021-35" not in counts  # policy act: its item is C's (inserted by an outside section)
     assert "2023-15" not in counts  # interim budget: read by read_amendments (C)
 
@@ -249,4 +304,4 @@ def test_samples_expected_rows(sample_run, samples_dir):
 
 def test_samples_unread(sample_run):
     _, unread = schemas.read_csv(sample_run.reports_dir / "unread_paragraphs.csv")
-    assert [(u["law_key"], u["text"][:8]) for u in unread] == [("2024-140", "911-1003")]
+    assert unread == []  # the misprinted "911-1003" is fixed by config/item_number_fixes.csv

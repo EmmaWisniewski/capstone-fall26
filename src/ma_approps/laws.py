@@ -10,8 +10,10 @@ chapter's JSON in ``data/raw/sessionlaws/{acts_year}/{chapter}.json`` and record
 per Acts volume, cached in ``data/raw/sessionlaws/_lists/{year}.json``. In that list the ``Year``
 field is the approval year; the Acts volume is the year requested.
 
-**Not yet: discovery.** Scanning each year's full text for appropriation language and appending
-new candidates with role=tbd (never overwriting human decisions).
+**Done: discovery** (runs first; skipped with ``--law``). For each year in ``[scope]
+discover_years``, every Act not yet on the law list is checked for appropriation signals (see
+``signals``) and, if any match, appended to config/law_list.csv with ``role = tbd`` for a person
+to decide. Existing rows are never changed or re-added, so ``excluded`` decisions stick.
 
 Cache first: a file already in ``data/raw/`` is never re-downloaded (delete it to refresh), and
 unchanged content is never rewritten. Requests are throttled to ~1 per second with a User-Agent
@@ -24,11 +26,13 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import os
+import re
 import time
 from collections.abc import Callable, Mapping
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -37,6 +41,7 @@ import requests
 
 from ma_approps import schemas
 from ma_approps.context import Context
+from ma_approps.paragraphs import ITEM_START_RE, TRAILING_AMOUNT_RE, key, paragraphs
 
 IMPLEMENTED = True
 
@@ -228,21 +233,27 @@ def select_chapter(records: list[Mapping[str, Any]], chapter: str) -> Mapping[st
     return found[0]
 
 
+def year_records(cache: RawCache, client: Client, api_base: str, acts_year: int) -> list[dict]:
+    """Every chapter of one Acts volume, from the cache or one request."""
+    url = f"{api_base}/SessionLaws/{acts_year}"
+    list_rel = year_list_path(acts_year)
+    if cache.exists(list_rel):
+        return cache.read_json(list_rel)
+    records = json.loads(client.get(url))
+    if not isinstance(records, list):
+        raise ValueError(f"{url}: expected a JSON list, got {type(records).__name__}")
+    cache.write(list_rel, serialize(records), url)
+    return records
+
+
 def download_law(
     cache: RawCache, client: Client, api_base: str, acts_year: int, chapter: str
 ) -> None:
     rel = chapter_path(acts_year, chapter)
     if cache.exists(rel):
         return
+    records = year_records(cache, client, api_base, acts_year)
     url = f"{api_base}/SessionLaws/{acts_year}"
-    list_rel = year_list_path(acts_year)
-    if cache.exists(list_rel):
-        records = cache.read_json(list_rel)
-    else:
-        records = json.loads(client.get(url))
-        if not isinstance(records, list):
-            raise ValueError(f"{url}: expected a JSON list, got {type(records).__name__}")
-        cache.write(list_rel, serialize(records), url)
     cache.write(rel, serialize(select_chapter(records, chapter)), f"{url} (chapter {chapter})")
 
 
@@ -259,12 +270,242 @@ def download_all(
     return problems
 
 
+# ---------------------------------------------------------------------------
+# Discovery (§6 stage 1)
+# ---------------------------------------------------------------------------
+
+# Full-text signals that a law may appropriate money. Tightened 2026-11-07 (Decision Log): on
+# 2020-2026 they flag every law on the list plus 16 candidates, where "striking out the figure"
+# and broad title words also flagged town charters and land conveyances.
+TEXT_SIGNALS = {
+    "hereby appropriated": re.compile(r"\bhereby appropriated\b", re.IGNORECASE),
+    "amends a line item": re.compile(
+        r"\bitems? \d{4}-\d{4}\b[^.]{0,400}?\bis hereby (?:further )?amended"
+        r"|\bis hereby (?:further )?amended[^.]{0,200}?\bitems? \d{4}-\d{4}\b",
+        re.IGNORECASE,
+    ),
+    "borrowing": re.compile(r"\bissue and sell (?:[\w-]+ ){0,4}?(?:bonds|notes)\b", re.IGNORECASE),
+    # The comptroller moving state money between funds, as in laws that enact a section the
+    # Governor returned (2021-16, 2021-33: "transferring no less than: (i) $350,000,000"). Not
+    # transfers by others, such as municipal energy aggregators (2021-8). Added 2026-11-08.
+    "transfers money": re.compile(
+        r"\b(?:comptroller|secretary of administration and finance)\b[^.;]{0,160}?"
+        r"\btransfer(?:s|red|ring)?\b[^.;]{0,60}?\$\s*\d[\d,]*",
+        re.IGNORECASE,
+    ),
+}
+TITLE_SIGNAL = re.compile(
+    r"MAKING APPROPRIATIONS|APPROPRIATIONS? FOR|FINANCING (?:THE|A|AN|IMPROVEMENTS)"
+    r"|SUPPLEMENTARY|SUPPLEMENTING",
+    re.IGNORECASE,
+)
+OUTSIDE_WINDOW_NOTE = (
+    "approved outside the window: reference-only if an in-window fiscal year needs it"
+)
+
+
+def signals(record: Mapping[str, Any]) -> list[str]:
+    """Which appropriation signals one Acts record shows (empty: not a candidate)."""
+    texts = [key(p["text"]) for p in paragraphs("discovery", record.get("ChapterText") or "")]
+    found = []
+    if any(ITEM_START_RE.match(t) and TRAILING_AMOUNT_RE.search(t) for t in texts):
+        found.append("line items")
+    text = " ".join(texts)
+    found += [name for name, rx in TEXT_SIGNALS.items() if rx.search(text)]
+    if TITLE_SIGNAL.search(record.get("Title") or ""):
+        found.append("appropriation title")
+    return found
+
+
+def _approved(record: Mapping[str, Any]) -> str:
+    """``"Feb 28 2025"`` (sometimes with a time after it) -> ``2025-02-28``."""
+    raw = " ".join(str(record.get("ApprovedDate") or "").split()[:3])
+    return datetime.strptime(raw, "%b %d %Y").date().isoformat() if raw else ""
+
+
+def _origin_bill(record: Mapping[str, Any]) -> str:
+    bill = record.get("OriginBill") or {}
+    court, number = bill.get("GeneralCourtNumber"), bill.get("BillNumber")
+    return f"{court}/{number}" if court and number else ""
+
+
+def discover(
+    records_by_year: Mapping[int, list[Mapping[str, Any]]],
+    law_list: list[Mapping[str, str]],
+    scope: Mapping[str, Any],
+    today: date,
+) -> list[dict[str, str]]:
+    """New law-list rows (``role = tbd``) for Acts not yet listed that show a signal."""
+    listed = {r["law_key"] for r in law_list}
+    window = (scope["approved_from"], scope["approved_to"])
+    out = []
+    for acts_year, records in sorted(records_by_year.items()):
+        for r in records:
+            if r.get("Type") != "Acts":
+                continue
+            law_key = schemas.law_key(acts_year, r["ChapterNumber"])
+            if law_key in listed:
+                continue
+            found = signals(r)
+            if not found:
+                continue
+            reason = "Candidate: " + ", ".join(found)
+            out.append(_candidate(acts_year, r, reason, "discovery", window, today))
+            listed.add(law_key)
+    return out
+
+
+def _candidate(
+    acts_year: int,
+    record: Mapping[str, Any],
+    reason: str,
+    found_by: str,
+    window: tuple[str, str],
+    today: date,
+) -> dict[str, str]:
+    """A ``role = tbd`` law-list row for one Acts record."""
+    approved = _approved(record)
+    notes = f"Found by {found_by} on {today.isoformat()}"
+    if approved and not window[0] <= approved <= window[1]:
+        notes += f"; {OUTSIDE_WINDOW_NOTE}"
+    row = dict.fromkeys(schemas.columns("law_list"), "")
+    row.update(
+        law_key=schemas.law_key(acts_year, record["ChapterNumber"]),
+        acts_year=str(acts_year),
+        chapter=str(record["ChapterNumber"]),
+        approved_date=approved,
+        approval_type=record.get("ApprovalType") or "",
+        api_title=record.get("Title") or "",
+        role="tbd",
+        include_reason=reason,
+        origin_bill=_origin_bill(record),
+        parse_strategy="auto",
+        notes=notes,
+    )
+    return row
+
+
+AMENDING_SECTIONS_SHOWN = 4
+
+
+def amendment_targets(
+    amendments: list[Mapping[str, str]], law_list: list[Mapping[str, str]]
+) -> dict[str, list[str]]:
+    """Laws that in-scope laws amend but the law list lacks, each with its amending sections
+    ("2024-150 §71"), in source order. Laws amended only by reference-only laws are left out: they
+    matter only for history the dataset doesn't report (Decision Log 2026-11-08)."""
+    listed = {r["law_key"]: r["role"] for r in law_list}
+    out: dict[str, list[str]] = {}
+    for a in amendments:
+        target = a.get("target_law_key") or ""
+        if (
+            not target
+            or target == "GL"
+            or target in listed
+            or listed.get(a["law_key"]) != "in_scope"
+        ):
+            continue
+        where = f"{a['law_key']} §{a['section']}"
+        if where not in out.setdefault(target, []):
+            out[target].append(where)
+    return out
+
+
+def discover_targets(
+    targets: Mapping[str, list[str]],
+    records_by_year: Mapping[int, list[Mapping[str, Any]]],
+    scope: Mapping[str, Any],
+    today: date,
+) -> tuple[list[dict[str, str]], list[str]]:
+    """``role = tbd`` rows for amendment targets, plus problems for targets not in the API."""
+    window = (scope["approved_from"], scope["approved_to"])
+    rows, problems = [], []
+    for target, sections in sorted(targets.items()):
+        acts_year, chapter = (int(x) for x in target.split("-"))
+        found = [
+            r
+            for r in records_by_year.get(acts_year, [])
+            if r.get("Type") == "Acts" and str(r.get("ChapterNumber")) == str(chapter)
+        ]
+        if not found:
+            problems.append(
+                f"amendment target {target} (amended by {sections[0]}) isn't in the Legislature's "
+                "API: add it by hand (see docs/RUNBOOK.md, step 2)"
+            )
+            continue
+        shown = ", ".join(sections[:AMENDING_SECTIONS_SHOWN])
+        more = len(sections) - AMENDING_SECTIONS_SHOWN
+        reason = f"Amendment target: amended by {shown}" + (f" and {more} more" if more > 0 else "")
+        rows.append(
+            _candidate(acts_year, found[0], reason, "discovery (amendment target)", window, today)
+        )
+    return rows, problems
+
+
+def append_to_law_list(path: Path, rows: list[dict[str, str]]) -> None:
+    """Add rows at the end of the law list, leaving every existing byte as it is."""
+    if not rows:
+        return
+    data = path.read_bytes()
+    newline = "\r\n" if b"\r\n" in data else "\n"
+    if data and not data.endswith(newline.encode()):
+        data += newline.encode()
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=schemas.columns("law_list"), lineterminator=newline)
+    w.writerows(rows)
+    path.write_bytes(data + buf.getvalue().encode("utf-8"))
+
+
+def run_discovery(ctx: Context, cache: RawCache, client: Client) -> tuple[int, list[str]]:
+    """Append new candidates to the law list. Returns (how many, problems)."""
+    path = ctx.config_dir / "law_list.csv"
+    _, law_list = schemas.read_csv(path)
+    records, problems = {}, []
+    for acts_year in ctx.settings["scope"]["discover_years"]:
+        try:
+            records[acts_year] = year_records(
+                cache, client, ctx.settings["sources"]["api_base"], acts_year
+            )
+        except (FetchError, ValueError) as e:
+            problems.append(f"discovery, {acts_year}: {e}")
+    new = discover(records, law_list, ctx.settings["scope"], date.today())
+
+    # Amendment targets (§6 stage 1), from read_amendments' output of an earlier run
+    amendments_path = ctx.interim_dir / "amendments_raw.csv"
+    if amendments_path.exists():
+        _, amendments = schemas.read_csv(amendments_path)
+        targets = amendment_targets(amendments, law_list + new)
+        for acts_year in sorted({int(t.split("-")[0]) for t in targets} - set(records)):
+            try:
+                records[acts_year] = year_records(
+                    cache, client, ctx.settings["sources"]["api_base"], acts_year
+                )
+            except (FetchError, ValueError) as e:
+                problems.append(f"amendment targets, {acts_year}: {e}")
+        target_rows, target_problems = discover_targets(
+            targets, records, ctx.settings["scope"], date.today()
+        )
+        new += target_rows
+        problems += target_problems
+    else:
+        print("  no amendments_raw.csv yet: run read_amendments, then laws again for its targets")
+
+    append_to_law_list(path, new)
+    for r in new:
+        print(f"  new candidate {r['law_key']} ({r['approved_date']}): {r['include_reason']}")
+    return len(new), problems
+
+
 def run(ctx: Context) -> int:
-    _, law_list = schemas.read_csv(ctx.config_dir / "law_list.csv")
-    laws, problems = laws_to_download(law_list, ctx.law)
     cache = RawCache(ctx.raw_dir)
     client = Client(ctx.settings["http"], offline=ctx.offline)
+    found, problems = 0, []
     try:
+        if ctx.law is None:
+            found, problems = run_discovery(ctx, cache, client)
+        _, law_list = schemas.read_csv(ctx.config_dir / "law_list.csv")
+        laws, more = laws_to_download(law_list, ctx.law)
+        problems += more
         problems += download_all(laws, cache, client, ctx.settings["sources"]["api_base"])
     except SettingsError as e:
         print(f"  {e}")
@@ -274,8 +515,9 @@ def run(ctx: Context) -> int:
     for p in problems:
         print(f"  {p}")
     print(
-        f"  laws: {len(laws)}; requests: {client.requests_made}; files written: "
-        f"{len(cache.written)}; problems: {len(problems)}"
+        f"  new candidates: {found}; laws: {len(laws)}; requests: {client.requests_made}; "
+        f"files written: {len(cache.written)}; problems: {len(problems)}"
     )
-    print("  (discovery of new candidate laws is not implemented yet)")
+    if found:
+        print("  review the new role=tbd rows in config/law_list.csv")
     return 1 if problems else 0

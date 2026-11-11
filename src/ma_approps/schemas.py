@@ -388,12 +388,29 @@ SCHEMAS["corrections"] = _cols(
     "note",
 )
 
+# §7.18 config/citation_fixes.csv (human-curated; laws misprinted in an amending section's citation)
+SCHEMAS["citation_fixes"] = _cols(
+    Col("law_key", required=True),
+    Col("section", required=True),
+    Col("printed", required=True),
+    Col("target_law_key", required=True),
+    Col("evidence", required=True),
+)
+
 # §7.14 config/funds.csv (human-curated; drives the federal flag, §9.5)
 SCHEMAS["funds"] = _cols(
     Col("fund_name", required=True),
     "fund_number",
     Col("is_federal", "bool", required=True),
     "notes",
+)
+
+# §7.17 config/item_number_fixes.csv (human-curated; item numbers misprinted in a law)
+SCHEMAS["item_number_fixes"] = _cols(
+    Col("law_key", required=True),
+    Col("printed", required=True),
+    Col("line_item", required=True),
+    Col("evidence", required=True),
 )
 
 # §7.15 data/raw/manifest.csv (written by `laws`; one row per cached file)

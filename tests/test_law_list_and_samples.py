@@ -87,6 +87,7 @@ def test_expected_bond_authorizations_against_item_totals(samples_dir):
             for i in items
             if i["law_key"] == a["law_key"] and i["section"] in sections
         )
+        assert int(a["items_total"]) == total
         gaps[(a["law_key"], a["covers_sections"])] = total - int(a["authorized"])
     # Every borrowing section matches its items except 2024-139 §4: its §2A+§2B items total
     # $1,455,000,000 but §4 lets the state borrow only $1,055,000,000.
