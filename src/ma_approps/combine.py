@@ -833,6 +833,9 @@ BUILDERS = {
 }
 
 
+MANUAL_PIECE = "manual rows"  # the escape hatch's name among the pieces (run)
+
+
 def manual_rows(rows: list[Mapping[str, str]]) -> list[dict[str, Any]]:
     """The escape hatch (§7.6) as funding-action rows: ``amount_source = manual``, flagged."""
     out = []
@@ -974,14 +977,18 @@ def combine_rows(
     """Every piece's rows as the funding actions table, with its fund splits and problems.
 
     Rows from laws that aren't ``in_scope`` are left out: reference-only laws are read only to
-    look things up (§1). Returns (funding actions, fund splits, problems), ready to write.
+    look things up (§1). A manual row of a reference-only law is left out without a problem: it's
+    there only to give an item its starting amount (1993-52 item 4000-8200, issue #41).
+    Returns (funding actions, fund splits, problems), ready to write.
     """
     roles = {r["law_key"]: r["role"] for r in law_list}
     rows, problems = [], []
     for piece, piece_rows in pieces.items():
         for r in piece_rows:
-            if roles.get(r["law_key"]) != "in_scope":
-                problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
+            role = roles.get(r["law_key"])
+            if role != "in_scope":
+                if not (piece == MANUAL_PIECE and role == "reference_only"):
+                    problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
                 continue
             rows.append(dict(r))
     rows = assign_ids(rows)
