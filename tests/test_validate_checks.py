@@ -107,15 +107,39 @@ def test_supplementals_add_new_inc_and_red_whether_or_not_they_count():
     assert (matched, report) == (2, [])
 
 
-def test_supplemental_difference_across_several_laws_cannot_be_attributed():
+def test_supplemental_difference_across_several_laws_is_still_unexplained():
+    # CTHRU's supplemental figure is the total of every law, so several laws must still add up
     actions = [
         action(),
         action(funding_action="NEW", law_key="2025-9", amount="40"),
         action(funding_action="INC", law_key="2025-30", amount="10"),
     ]
     _, report = run_cthru(actions, [cthru(original_enacted="100", supplemental="30")])
-    assert by_status(report) == {("supplemental", "1000-0001"): "several_laws"}
+    assert by_status(report) == {("supplemental", "1000-0001"): "unexplained"}
     assert report[0]["laws"] == "2025-30;2025-9"
+
+
+def test_supplementals_to_a_year_whose_gaa_is_not_in_scope_are_compared():
+    # Laws approved in 2021 change FY2021 items. Only items we have rows for are compared, and
+    # a shortfall is earlier_laws: CTHRU's total also holds supplementals approved in 2020.
+    def inc(item, amount):
+        return action(line_item=item, fiscal_year="2021", funding_action="INC",
+                      amount_kind="delta", law_key="2021-29", amount=amount)
+
+    actions = [action(), inc("1000-0002", "30"), inc("1000-0003", "10"), inc("1000-0004", "90")]
+    rows = [
+        cthru(original_enacted="100"),
+        cthru("1000-0002", fy="2021", original_enacted="900", supplemental="30"),
+        cthru("1000-0003", fy="2021", supplemental="25"),  # 15 from a 2020 law
+        cthru("1000-0004", fy="2021", supplemental="60"),
+        cthru("1000-0005", fy="2021", supplemental="70"),  # no row of ours: not compared
+    ]
+    matched, report = run_cthru(actions, rows)
+    assert matched == 2
+    assert by_status(report) == {
+        ("supplemental", "1000-0003"): "earlier_laws",
+        ("supplemental", "1000-0004"): "unexplained",  # ours is above CTHRU's total
+    }
 
 
 def test_retained_revenue_ceilings_are_compared_separately():
