@@ -305,6 +305,7 @@ def amendment_rows(
     limits: list[Mapping[str, str]],
     law_list: list[Mapping[str, str]],
     session_law_url: str,
+    cthru: list[Mapping[str, str]] = (),
 ) -> list[dict[str, Any]]:
     """Funding-action rows (§7.7) for what in-scope laws' outside sections do (amendments_raw),
     in source order (Combine-Export-Work-Split.md, C).
@@ -313,17 +314,25 @@ def amendment_rows(
       the item's running amount (``amendments`` -> ``amounts``, §5.5), so a replaced item counts
       only its change.
     - A change to an existing item takes the fiscal year of the act it amends (§5.4,
-      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``).
+      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``). When
+      that act has no single fiscal year (a surplus law), it takes the amending law's own year
+      (``stated``), else the approval's (Q28).
     - A change to a **bond** item is a capital authorization: ``CAP`` by the change, never counted
       (Q5, issue #41); its wording changes are ``PURP``. Bond-item rows use the amending law's
       fiscal year, like bond rows.
     - Transfers and direct appropriations take the fiscal year of the law's approval; an interim
       budget is ``INT``. A transfer's line item is the item it goes to, else the one it comes from.
     - A date extension's new date, when it is a whole date, is ``available_through``.
+    - Fund: a transfer's is the one fund it comes from. A change to an operating item takes the
+      item's fund as supplemental items do: the law's printed split, else the one fund CTHRU books
+      the item to that year, else the item's section fund (Q33: 2022-42 §47 adds $24,000,000 to
+      1599-2026, which CTHRU books to the federal Fund 2005, so the row is federal).
     - Reference-only laws' amendments are left out: they are read only for items' history (§1).
     """
     laws = {r["law_key"]: r for r in law_list}
     sections = item_sections(items)
+    by_item = {(i["law_key"], i["section"], i["line_item"]): i for i in items}
+    cthru_funds = _cthru_funds(cthru)
     pending: dict[tuple, list[Mapping[str, Any]]] = {}
     for r in amounts:
         pending.setdefault(_amount_key(r), []).append(r)
@@ -369,15 +378,32 @@ def amendment_rows(
             flags += [f for f in section_flags if f not in flags]
         else:
             section_type = "interim" if action == "INT" else "outside"
-        if bond or not has_target or not target.get("primary_fy"):
+        if bond or not has_target:
             fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
             if action == "INT" and law.get("primary_fy"):
                 fy, fy_rule = int(law["primary_fy"]), "stated"
-        else:
+        elif target.get("primary_fy"):
             fy, fy_rule = int(target["primary_fy"]), "target_act"
+        elif law.get("primary_fy"):
+            # the amended act has no single fiscal year (a surplus law): the amending budget's own
+            # year, as CTHRU books it (2023-77 §167 adds $4,000,000 to 2022-268's 1599-6063: FY2023)
+            fy, fy_rule = int(law["primary_fy"]), "stated"
+        else:
+            fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
         if available and "multi_year" not in flags:
             flags.append("multi_year")
         funds = [f for f in (a["fund_raw"] or "").split("; ") if f]
+        # fund splits (shared core): the one fund the money comes from, if the law names one;
+        # else, for an operating item, the item's own fund (Q33)
+        fund = {"section_fund_default": funds[0] if len(funds) == 1 else ""}
+        if line_item and not bond and not funds and kind != "transfer":
+            item = by_item.get((a["target_law_key"] or a["law_key"], section, line_item), {})
+            if item.get("fund_splits_raw"):
+                fund["fund_splits_raw"] = item["fund_splits_raw"]
+            elif (str(fy), line_item) in cthru_funds:
+                fund["fund_numbers"] = cthru_funds[(str(fy), line_item)]
+            else:
+                fund["section_fund_default"] = item.get("section_fund_default", "")
         out.append(
             {
                 "law_key": a["law_key"],
@@ -402,8 +428,7 @@ def amendment_rows(
                     acts_year=law["acts_year"], chapter=law["chapter"]
                 ),
                 "reader_version": a["reader_version"],
-                # fund splits (shared core): the one fund the money comes from, if the law names one
-                "section_fund_default": funds[0] if len(funds) == 1 else "",
+                **fund,
             }
         )
     return out
@@ -1050,6 +1075,7 @@ def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) 
         inputs["bond_authorizations_raw"],
         inputs["law_list"],
         settings["sources"]["session_law_url"],
+        inputs["cthru_line_items"],
     )
 
 
