@@ -329,38 +329,6 @@ def test_a_missing_input_is_reported(root, samples_dir, tmp_path, capsys):
     assert sum("is missing" in p["problem"] for p in problems) == 3
 
 
-def test_amendment_rows_take_cthru_s_fund():
-    # 2022-42 §47 adds $24,000,000 to 1599-2026, which CTHRU books to the Federal COVID-19
-    # Response Fund (2005); a row whose law names its fund, or a bond item, is left alone
-    cthru = [{"fiscal_year": "2022", "line_item": "1599-2026", "fund_numbers": "2005"}]
-    change = row(
-        law_key="2022-42",
-        section="47",
-        line_item="1599-2026",
-        fiscal_year=2022,
-        funding_action="INC",
-        amount_kind="delta",
-        amount=24_000_000,
-    )
-    named = dict(change, section="48", section_fund_default="General Fund")
-    bond = dict(change, section="49", section_type="capital", funding_action="CAP")
-    rows = combine.funds_from_cthru([change, named, bond], cthru)
-    assert [r.get("fund_numbers", "") for r in rows] == ["2005", "", ""]
-    funds = [
-        *FUNDS,
-        {
-            "fund_name": "Federal COVID-19 Response Fund",
-            "fund_number": "2005",
-            "is_federal": "true",
-            "notes": "",
-        },
-    ]
-    out, _, _ = combine.combine_rows(
-        {"amendments": [rows[0]]}, [*LAWS, {"law_key": "2022-42", "role": "in_scope"}], funds
-    )
-    assert (out[0]["federal_share"], out[0]["counts_toward_total"]) == (1.0, "false")
-
-
 def test_two_changes_to_one_item_in_one_section_get_their_own_events():
     rows = combine.assign_ids(
         [

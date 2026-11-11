@@ -1043,7 +1043,7 @@ def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any
 
 def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
     items = starting_items(inputs)
-    rows = amendment_rows(
+    return amendment_rows(
         inputs["amendments_raw"],
         amendment_amounts(items, inputs["amendments_raw"], inputs["law_list"]),
         items,
@@ -1051,27 +1051,6 @@ def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) 
         inputs["law_list"],
         settings["sources"]["session_law_url"],
     )
-    return funds_from_cthru(rows, inputs["cthru_line_items"])
-
-
-def funds_from_cthru(
-    rows: list[dict[str, Any]], cthru: list[Mapping[str, str]]
-) -> list[dict[str, Any]]:
-    """Amendment rows name no fund unless the law does, so the core couldn't flag them federal
-    (Q33): 2022-42 §47 adds $24,000,000 to item 1599-2026, which CTHRU books to the Federal
-    COVID-19 Response Fund. A row with no fund of its own takes the one fund CTHRU books its item
-    to that fiscal year, as supplemental rows do. Bond items aren't in CTHRU and keep the federal
-    share of their borrowing limit."""
-    funds = _cthru_funds(cthru)
-    for r in rows:
-        if r.get("section_fund_default") or r.get("fund_numbers") or not r["line_item"]:
-            continue
-        if r["section_type"] == "capital":
-            continue
-        number = funds.get((str(r["fiscal_year"]), r["line_item"]))
-        if number:
-            r["fund_numbers"] = number
-    return rows
 
 
 def starting_items(inputs: Mapping[str, list]) -> list[dict[str, str]]:
