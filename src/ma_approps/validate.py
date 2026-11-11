@@ -126,9 +126,9 @@ def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
     """§13.6: unread reports must be empty or every row explained.
 
     A row is explained by its own `explanation` column or by a row of
-    ``review/unread_explanations.csv`` with the same report, law and section and a written
-    explanation. One explanation covers every row of that section, which is what a paragraph
-    report needs.
+    ``review/unread_explanations.csv`` with the same report (its file name, e.g.
+    ``unread_sections.csv``, as PR #50 decided), law and section and a written explanation. One
+    explanation covers every row of that section, which is what a paragraph report needs.
     """
     _, explanations = _explanations(ctx)
     explained = {
@@ -137,8 +137,8 @@ def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
         if (e.get("explanation") or "").strip()
     }
     found = []
-    for name in schemas.UNREAD_REPORTS:
-        path = ctx.reports_dir / f"{name}.csv"
+    for name in schemas.UNREAD_REPORTS:  # file names, e.g. "unread_sections.csv"
+        path = ctx.reports_dir / name
         if not path.exists():
             continue
         _, rows = schemas.read_csv(path)
@@ -147,7 +147,8 @@ def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
                 continue
             if (name, r.get("law_key", ""), r.get("section", "")) in explained:
                 continue
-            found.append((path, Problem(name, i, "explanation", "unread row not explained")))
+            table = name.removesuffix(".csv")
+            found.append((path, Problem(table, i, "explanation", "unread row not explained")))
     return found
 
 
@@ -159,7 +160,7 @@ def check_orphaned_explanations(ctx: Context) -> list[tuple[Path, Problem]]:
     keys: set[tuple[str, str, str]] = set()
     any_report = False
     for name in schemas.UNREAD_REPORTS:
-        report = ctx.reports_dir / f"{name}.csv"
+        report = ctx.reports_dir / name
         if report.exists():
             any_report = True
             keys |= {

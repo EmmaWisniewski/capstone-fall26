@@ -18,8 +18,9 @@ def write(path, columns, rows):
 
 
 def explanation(
-    report="unread_sections", law_key="2024-206", section="58", text="a transfer", **kw
+    report="unread_sections.csv", law_key="2024-206", section="58", text="a transfer", **kw
 ):
+    # `report` is the report's file name (PR #50, §7.19)
     row = {
         "report": report,
         "law_key": law_key,
@@ -70,10 +71,21 @@ def test_it_must_match_the_report_law_and_section(root, tmp_path):
     other = [
         explanation(section="59"),
         explanation(law_key="2024-207"),
-        explanation(report="unread_paragraphs"),
+        explanation(report="unread_paragraphs.csv"),
     ]
     ctx = setup(root, tmp_path, unread=[("2024-206", "58", {})], explanations=other)
     assert len(validate.check_unread(ctx)) == 1
+
+
+def test_the_report_is_named_by_its_file_name_not_without_the_extension(root, tmp_path):
+    ctx = setup(
+        root,
+        tmp_path,
+        unread=[("2024-206", "58", {})],
+        explanations=[explanation(report="unread_sections")],
+    )
+    assert len(validate.check_unread(ctx)) == 1
+    assert any(p.column == "report" for _, p in validate.check_schemas(ctx))
 
 
 def test_one_explanation_covers_every_paragraph_of_its_section(root, tmp_path):
@@ -82,7 +94,7 @@ def test_one_explanation_covers_every_paragraph_of_its_section(root, tmp_path):
         root,
         tmp_path,
         unread=rows,
-        explanations=[explanation(report="unread_paragraphs", law_key="2023-28", section="3")],
+        explanations=[explanation(report="unread_paragraphs.csv", law_key="2023-28", section="3")],
         report="unread_paragraphs",
     )
     assert validate.check_unread(ctx) == []

@@ -391,7 +391,8 @@ SCHEMAS["corrections"] = _cols(
 )
 
 # §7.19 review/unread_explanations.csv (human-edited; why an unread row needs no code; Q22)
-UNREAD_REPORTS = ("unread_paragraphs", "unread_paragraphs_bonds", "unread_sections")
+# `report` is the report's file name, as PR #50 decided (e.g. `unread_sections.csv`)
+UNREAD_REPORTS = ("unread_paragraphs.csv", "unread_paragraphs_bonds.csv", "unread_sections.csv")
 SCHEMAS["unread_explanations"] = _cols(
     Col("report", "enum", UNREAD_REPORTS, required=True),
     Col("law_key", required=True),
