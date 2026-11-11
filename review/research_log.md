@@ -76,6 +76,8 @@ as a separate bill, and its version becomes a separate chapter.
 | §74: replaces item 8100-1014 of 2019 ch. 5 (sexual assault evidence kits) | 2021 ch. 24, FY2022 GAA (H4002) | H4013 (with §119): Governor's amendment rejected, re-enacted | **2021 ch. 35** §1, Aug 3, 2021 (already a sample and on the law list) |
 | §102: $250,000,000 to the Pension Liability Fund | 2021 ch. 24 | H4004 (with §7, §103): Governor's amendment rejected, re-enacted | **2021 ch. 33** §2: "no less than" $250,000,000, on a monthly schedule, if FY2022 revenues meet the estimates, Aug 3, 2021 |
 | §103: $350,000,000 to the Student Opportunity Act Investment Fund | 2021 ch. 24 | H4004 | **2021 ch. 33** §2: "no less than" $350,000,000, same condition |
+| §113: $94,000,000 of item 1595-6370 as operating assistance for regional transit authorities (added 2026-11-11) | 2021 ch. 24 | H4014: re-enacted, vetoed, passed over veto 2021-09-30 | **2021 ch. 73**. It only earmarks money already in the item, so it gives no row either way |
+| §174: $20,000,000 to the Massachusetts Community Preservation Trust Fund (added 2026-11-11) | 2022 ch. 126, FY2023 GAA (H5050) | H5131: returned again with a recommendation of amendment; "No further action taken" 2023-01-03 | never |
 | §100: $205,000,000 transfer from the federal COVID-19 response fund or the Transitional Escrow Fund | 2023 ch. 28, FY2024 GAA (H4040) | **Disapproved** (a veto). H4040's history lists override votes on many items but none on §100 | never: the veto stands |
 
 What follows:
@@ -86,6 +88,7 @@ What follows:
   versions of these transfers, so workstream A should consider adding them. All of these are
   transfers into funds, which don't count toward the operating totals (Q2), so the totals don't change.
 - 2023-28 §100 keeps its `low` confidence row; `combine` should leave it out as vetoed.
+- 2026-11-11 (Emily H.): every unread section now has an explanation in `review/unread_explanations.csv` (Q22), including these.
 
 ## Misprint in 2024 ch. 248 §35 (amendment target 2022-24)
 Emma, 2026-11-08.
