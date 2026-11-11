@@ -15,7 +15,9 @@ Owner: workstream D (Labels). No LLM.
 - Policy area (§12): config/line_item_catalog.csv, then config/department_policy_areas.csv
   via the line's CTHRU department (that fiscal year, else another year, else the department
   that owns the line's first four digits, which covers bond items CTHRU doesn't list), else
-  empty, which sends the row to the review queue.
+  empty, which sends the row to the review queue. Rows with no line item get an area by rule
+  (decided by D, 2026-11-11): fund transfers are *Debt service, reserves, and statewide
+  finance* and interim budgets are *Multiple*.
 - Previously funded? (§8 column 14, Q3): ``Yes`` if the line had non-zero enacted authority in
   the fiscal year before the row's, else ``No``.
 - One-time or recurring (§8 column 15, Q3): a GAA row is ``Recurring`` if the line was also in
@@ -38,8 +40,18 @@ from pathlib import Path
 from ma_approps import schemas
 from ma_approps.context import Context
 
-# Off until `combine` and `cthru` write the files this stage reads; run() fails without them.
-IMPLEMENTED = False
+IMPLEMENTED = True
+
+# Files label reads, and the stage that writes each (§6). Missing ones are reported, not fatal,
+# like combine: the rows that need them get fewer labels.
+INPUTS = {
+    "funding_actions": ("interim", "funding_actions.csv", "combine"),
+    "cthru_line_items": ("interim", "cthru_line_items.csv", "cthru"),
+    "items_raw": ("interim", "items_raw.csv", "read_items"),
+    "bond_items_raw": ("interim", "bond_items_raw.csv", "read_bonds"),
+    "line_item_catalog": ("config", "line_item_catalog.csv", None),
+    "department_policy_areas": ("config", "department_policy_areas.csv", None),
+}
 
 # Funding actions that add or remove enacted authority (§9.2). Reauthorizations, transfers,
 # purpose changes and interim budgets don't fund a line on their own.
@@ -47,6 +59,12 @@ AUTHORITY_ACTIONS = frozenset(("ORIG", "NEW", "INC", "RED", "VETO", "OVR", "CAP"
 ONE_TIME_ACTIONS = frozenset(("NEW", "INC", "RED", "CAP"))
 REAPPROPRIATION_ACTIONS = frozenset(("REAUTH", "PAC"))
 TRANSFER_ACTIONS = frozenset(("XFER", "PURP"))
+# Policy area for rows with no line item, by funding action (D, 2026-11-11): a transfer
+# between funds, or a stopgap budget that covers the whole government
+NO_LINE_ITEM_AREAS = {
+    "XFER": "Debt service, reserves, and statewide finance",
+    "INT": "Multiple",
+}
 
 Row = Mapping[str, str]
 
@@ -120,6 +138,7 @@ def title_case(name: str) -> str:
 def first_clause(text: str) -> str:
     """The start of a line's law text, up to its first semicolon, proviso, list or amount."""
     text = re.sub(r"^\d{4}-\d{4}\W*", "", text.strip())
+    text = re.sub(r"^v(?=For\b)", "", text)  # a stray "v" after the item number (2024-140)
     ends = (
         r";|,\s*provided\b|\s+provided\s+(?:further,?\s+)?that\b|,\s+including\b|,?\s+which\s+may\b"
         r"|\.{2,}|\$\d"
@@ -176,6 +195,15 @@ def header_agency(agency_header: str, secretariat_header: str = "") -> str:
     return header
 
 
+def name_key(name: str) -> str:
+    """A loose key for matching department names between the laws and CTHRU: "Department of
+    Elementary and Secondary Education" = "DEPARTMENT OF ELEMENTARY & SECONDARY EDUCATION",
+    "Massachusetts Emergency Management Agency" = "EMERGENCY MANAGEMENT AGENCY"."""
+    key = re.sub(r"^the\s+", "", name.lower().replace("&", " and "))
+    key = re.sub(r"\bmassachusetts\s+", "", key)
+    return " ".join(re.sub(r"[^a-z ]", " ", key).split())
+
+
 class Departments:
     """CTHRU departments by display name and by line-item prefix (the first four digits)."""
 
@@ -184,17 +212,19 @@ class Departments:
         by_prefix: dict[str, Counter] = defaultdict(Counter)  # prefix -> department counts
         codes_by_prefix: dict[str, Counter] = defaultdict(Counter)  # prefix -> department codes
         self.line_codes: dict[str, dict[int, str]] = defaultdict(dict)  # line -> {year: code}
-        self.name_code: dict[str, str] = {}  # display name -> department code
+        self.line_names: dict[str, dict[int, str]] = defaultdict(dict)  # line -> {year: name}
+        self.name_code: dict[str, str] = {}  # name_key(display name) -> department code
         for r in cthru_rows:
             name = department_display_name(r["department_name"])
             if name:
                 self.prefixes[name].add(r["line_item"][:4])
                 by_prefix[r["line_item"][:4]][name] += 1
+                self.line_names[r["line_item"]][int(r["fiscal_year"])] = name
             if r["department_code"]:
                 self.line_codes[r["line_item"]][int(r["fiscal_year"])] = r["department_code"]
                 codes_by_prefix[r["line_item"][:4]][r["department_code"]] += 1
                 if name:
-                    self.name_code.setdefault(name, r["department_code"])
+                    self.name_code.setdefault(name_key(name), r["department_code"])
         self.owner = {p: c.most_common(1)[0][0] for p, c in by_prefix.items()}
         self.owner_code = {p: c.most_common(1)[0][0] for p, c in codes_by_prefix.items()}
 
@@ -207,7 +237,16 @@ class Departments:
             return years.get(fiscal_year) or years[max(years)]
         if line_item[:4] in self.owner_code:
             return self.owner_code[line_item[:4]]
-        return next((self.name_code[n] for n in names if n in self.name_code), "")
+        keys = [name_key(n) for n in names if n]
+        return next((self.name_code[k] for k in keys if k in self.name_code), "")
+
+    def name_for(self, line_item: str, fiscal_year: int) -> str:
+        """The line's CTHRU department name that year, else in its latest year, else the name of
+        the department that owns its first four digits."""
+        years = self.line_names.get(line_item)
+        if years:
+            return years.get(fiscal_year) or years[max(years)]
+        return self.owner.get(line_item[:4], "")
 
     def fix_inherited(self, agency: str, line_item: str) -> str:
         """A bond item with no heading of its own inherits the one above it, which can belong to
@@ -236,13 +275,32 @@ def agency_office(
     if found:
         return found
     agency = header_agency(row["agency_header_raw"], secretariat_header)
-    return departments.fix_inherited(agency, row["line_item"]) if departments else agency
+    if not departments:
+        return agency
+    if agency:
+        return departments.fix_inherited(agency, row["line_item"])
+    # An amendment's own text names no office: the line's department in CTHRU
+    if not row["line_item"]:
+        return ""
+    return departments.name_for(row["line_item"], int(row["fiscal_year"]))
 
 
-def program_purpose(row: Row, account: Row | None) -> tuple[str, str]:
-    """§8 column 10: ``(program_purpose, program_purpose_method)``."""
-    if row["item_text"].strip():
+def is_legal_text(text: str) -> bool:
+    """An amending section's wording ("SECTION 178. Said item 2330-0100 … is hereby amended …")
+    rather than a description of what the line pays for."""
+    return bool(re.match(r"\s*(?:section\s+\d|said\s+item|item\s+\d{4}-\d{4})", text, re.I))
+
+
+def program_purpose(row: Row, account: Row | None, known: str = "") -> tuple[str, str]:
+    """§8 column 10: ``(program_purpose, program_purpose_method)``.
+
+    For an amendment row, whose text is the amending section, ``known`` is the line's own
+    purpose from its other rows; the CTHRU account name comes next.
+    """
+    if row["item_text"].strip() and not is_legal_text(row["item_text"]):
         text = _drop_lead(first_clause(row["item_text"]))
+    elif known:
+        return known, "rule"
     elif account and account["account_name"].strip():
         text = account["account_name"].strip()
         text = text.lower() if text.isupper() else text
@@ -384,18 +442,45 @@ def label_rows(
         (r["law_key"], r["section"], r["line_item"]): r["secretariat_header_raw"] for r in item_rows
     }
     cthru_departments = Departments(cthru_rows)
+    latest_account = {r["line_item"]: r for r in sorted(cthru_rows, key=lambda r: r["fiscal_year"])}
     funded, gaa_funded = funded_years(cthru_rows, funding_rows)
+    def agency_for(r: Row) -> str:
+        account = cthru.get((r["line_item"], int(r["fiscal_year"])))
+        secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
+        return agency_office(r, account, secretariat, cthru_departments)
+
+    # Each line's own agency and purpose, from rows whose text describes it, so an amendment
+    # row (whose text is the amending section) matches the line it changes
+    known: dict[tuple[str, int], tuple[str, str]] = {}
+    for r in sorted(funding_rows, key=lambda r: r["funding_action"] != "ORIG"):
+        if r["line_item"] and r["item_text"].strip() and not is_legal_text(r["item_text"]):
+            key = (r["line_item"], int(r["fiscal_year"]))
+            if key not in known:
+                known[key] = (agency_for(r), program_purpose(r, None)[0])
+    by_line: dict[str, tuple[str, str]] = {}
+    for (line, _fy), pair in sorted(known.items(), key=lambda kv: -kv[0][1]):
+        by_line.setdefault(line, pair)  # latest year first
     out = []
     for r in funding_rows:
         fy = int(r["fiscal_year"])
         account = cthru.get((r["line_item"], fy))
         secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
-        agency = agency_office(r, account, secretariat, cthru_departments)
-        purpose, purpose_method = program_purpose(r, account)
-        printed = (department_display_name(secretariat), agency)
-        area, method = policy_area(
-            r["line_item"], fy, catalog, departments, cthru, cthru_departments, printed
+        known_agency, known_purpose = ("", "")
+        if is_legal_text(r["item_text"]) or not r["item_text"].strip():
+            known_agency, known_purpose = known.get((r["line_item"], fy)) or by_line.get(
+                r["line_item"], ("", "")
+            )
+        agency = known_agency or agency_for(r)
+        purpose, purpose_method = program_purpose(
+            r, account or latest_account.get(r["line_item"]), known_purpose
         )
+        printed = (agency, department_display_name(secretariat))  # the narrower name first
+        if not r["line_item"] and r["funding_action"] in NO_LINE_ITEM_AREAS:
+            area, method = NO_LINE_ITEM_AREAS[r["funding_action"]], "rule"
+        else:
+            area, method = policy_area(
+                r["line_item"], fy, catalog, departments, cthru, cthru_departments, printed
+            )
         label = dict.fromkeys(schemas.columns("labels"), "")
         label.update(
             record_id=r["record_id"],
@@ -421,29 +506,27 @@ def write_labels(path: Path, rows: list[dict[str, str]]) -> None:
 
 
 def run(ctx: Context) -> int:
-    inputs = {
-        "funding_actions": ctx.interim_dir / "funding_actions.csv",
-        "cthru_line_items": ctx.interim_dir / "cthru_line_items.csv",
-        "line_item_catalog": ctx.config_dir / "line_item_catalog.csv",
-        "department_policy_areas": ctx.config_dir / "department_policy_areas.csv",
-    }
-    missing = [str(p) for p in inputs.values() if not p.exists()]
-    if missing:
-        print(f"  missing input: {', '.join(missing)}")
-        return 1
-    rows = {name: schemas.read_csv(path)[1] for name, path in inputs.items()}
-    item_rows = []  # optional: only for secretariat headers
-    for name in ("items_raw.csv", "bond_items_raw.csv"):
-        if (ctx.interim_dir / name).exists():
-            item_rows += schemas.read_csv(ctx.interim_dir / name)[1]
+    dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
+    rows: dict[str, list[dict[str, str]]] = {}
+    for name, (where, filename, stage) in INPUTS.items():
+        path = dirs[where] / filename
+        if path.exists():
+            rows[name] = schemas.read_csv(path)[1]
+        else:
+            rows[name] = []
+            hint = f" (run the {stage} stage first)" if stage else ""
+            print(f"  WARNING: {filename} is missing{hint}: rows that need it get fewer labels")
     labels = label_rows(
         rows["funding_actions"],
         rows["cthru_line_items"],
         rows["line_item_catalog"],
         rows["department_policy_areas"],
-        item_rows,
+        rows["items_raw"] + rows["bond_items_raw"],
     )
-    write_labels(ctx.interim_dir / "labels.csv", labels)
+    path = ctx.interim_dir / "labels.csv"
+    write_labels(path, labels)
+    bad = len(schemas.validate_file("labels", path))
     waiting = sum(1 for r in labels if not r["policy_area"])
-    print(f"  labels: {len(labels)} rows; {waiting} waiting for a policy-area review")
-    return 0
+    print(f"  labels: {len(labels)} rows; {waiting} waiting for a policy-area review; "
+          f"format problems: {bad}")
+    return 1 if bad else 0
