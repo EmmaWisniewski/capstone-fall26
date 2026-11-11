@@ -405,6 +405,14 @@ SCHEMAS["funds"] = _cols(
     "notes",
 )
 
+# §7.17 config/item_number_fixes.csv (human-curated; item numbers misprinted in a law)
+SCHEMAS["item_number_fixes"] = _cols(
+    Col("law_key", required=True),
+    Col("printed", required=True),
+    Col("line_item", required=True),
+    Col("evidence", required=True),
+)
+
 # §7.15 data/raw/manifest.csv (written by `laws`; one row per cached file)
 SCHEMAS["raw_manifest"] = _cols(
     Col("path", required=True),

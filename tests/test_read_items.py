@@ -223,14 +223,36 @@ def test_fund_split_variants():
     assert items[-1]["amount"] == "17465233"
 
 
+MISPRINTED = (
+    "<p>SECTION 2.</p><p>5911-1002 A ...... $10</p>"
+    "<p>911-1003 For the administration of the department ...... $20</p>"
+)
+
+
 def test_unread_paragraphs():
     # 2024-140 prints "911-1003" for item 5911-1003
-    items, unread = read(
-        "<p>SECTION 2.</p><p>5911-1002 A ...... $10</p>"
-        "<p>911-1003 For the administration of the department ...... $20</p>"
-    )
+    items, unread = read(MISPRINTED)
     assert len(items) == 1
     assert [(u["section"], u["para_idx"], u["explanation"]) for u in unread] == [("2", "3", "")]
+
+
+def test_item_number_fixes():
+    # issue #18: config/item_number_fixes.csv maps a misprinted number to the right one
+    items, unread = read_items.read_law(
+        "2099-1", paragraphs("2099-1", SECTION_1 + MISPRINTED), {"911-1003": "5911-1003"}
+    )
+    assert not unread
+    fixed = items[1]
+    assert (fixed["line_item"], fixed["amount"]) == ("5911-1003", "20")
+    assert fixed["confidence"] == "medium"
+    assert fixed["item_text"] == "For the administration of the department"
+
+
+def test_item_number_fixes_file_is_valid(root):
+    path = root / "config" / "item_number_fixes.csv"
+    assert schemas.validate_file("item_number_fixes", path) == []
+    _, rows = schemas.read_csv(path)
+    assert all(schemas.LINE_ITEM_RE.match(r["line_item"]) for r in rows)
 
 
 # -- samples ------------------------------------------------------------------
@@ -265,7 +287,7 @@ def test_samples_item_counts(sample_run):
     assert counts["2025-3"] == {"2": 1}
     assert counts["2023-77"] == {"2": 12, "2A": 14, "2CI": 57, "2CII": 6}
     assert sum(counts["2023-28"].values()) == 1418
-    assert sum(counts["2024-140"].values()) == 1389
+    assert sum(counts["2024-140"].values()) == 1390  # incl. 5911-1003, printed "911-1003"
     assert "2021-35" not in counts  # policy act: its item is C's (inserted by an outside section)
     assert "2023-15" not in counts  # interim budget: read by read_amendments (C)
 
@@ -282,4 +304,4 @@ def test_samples_expected_rows(sample_run, samples_dir):
 
 def test_samples_unread(sample_run):
     _, unread = schemas.read_csv(sample_run.reports_dir / "unread_paragraphs.csv")
-    assert [(u["law_key"], u["text"][:8]) for u in unread] == [("2024-140", "911-1003")]
+    assert unread == []  # the misprinted "911-1003" is fixed by config/item_number_fixes.csv

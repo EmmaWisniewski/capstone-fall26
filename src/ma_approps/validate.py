@@ -30,6 +30,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("funds", ctx.config_dir / "funds.csv"),
         ("line_item_catalog", ctx.config_dir / "line_item_catalog.csv"),
         ("department_policy_areas", ctx.config_dir / "department_policy_areas.csv"),
+        ("item_number_fixes", ctx.config_dir / "item_number_fixes.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
         ("citation_fixes", ctx.config_dir / "citation_fixes.csv"),
         ("raw_manifest", ctx.raw_dir / "manifest.csv"),
@@ -102,6 +103,12 @@ def check_schemas(ctx: Context) -> list[tuple[Path, Problem]]:
                 problems += check_law_list(rows, ctx.settings["scope"])
             if table == "funding_actions":
                 problems += check_record_ids(table, rows)
+            if table == "item_number_fixes":
+                problems += [
+                    Problem(table, i, "line_item", f"not NNNN-NNNN: {r['line_item']!r}")
+                    for i, r in enumerate(rows, start=1)
+                    if not schemas.LINE_ITEM_RE.match(r["line_item"])
+                ]
         found += [(path, p) for p in problems]
     return found
 
