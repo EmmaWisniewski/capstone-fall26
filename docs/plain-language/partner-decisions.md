@@ -26,7 +26,7 @@ totals. Items paid for by fees an agency collects count, and are marked as fee-b
 and our partner decided this, keeping the design's counting rules (DESIGN §10). Recorded in the
 [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-01.
 
-### 3. What do three of the columns mean exactly? (§19 Q3) **Partly decided**
+### 3. What do three of the columns mean exactly? (§19 Q3) **Decided**
 **Decided:** **"Previously funded?"** means funded **in the year before only**. An item counts as
 previously funded if it had money in the immediately preceding budget year, and not otherwise,
 even if it was funded in some earlier year. Our partner decided this. Recorded in the
@@ -43,14 +43,11 @@ So the example row that said "Unknown" for a program funded the year before shou
 Our partner decided this. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on
 2026-11-06.
 
-**Still open:**
-- **"New money or re-using existing money?"**
-- **Is money a supplemental budget adds to a recurring item recurring or one-time?**
+**Decided:** **"New money or re-using existing money?"** follows the kind of action: new appropriations, increases, reductions and bond projects are "New"; carried-over or reauthorized money is "Re-appropriation"; transfers and changes of purpose are "Transfer of existing authority". **Money a supplemental budget or a bond law adds is "One-time".** The group decided these itself, since they follow from the partner's earlier answers. Recorded in the [Decision Log](../DESIGN.md#20-decision-log) on 2026-11-11.
 
 **Why it matters:** these columns appear on every row.
 
-**For now:** we use temporary rules for the open parts (the group chose to keep them on
-2026-11-06) and mark them as provisional.
+The temporary rules used since 2026-11-06 are now the final ones.
 
 ### 4. Should vetoes appear as their own rows? (Q4) **Decided**
 **The answer:** No. Each item has one row showing its final amount, after any veto or
@@ -138,9 +135,9 @@ law, for each borrowing limit, or for each bond sale? And should bond spending b
 
 ---
 
-**Not for the partner (the group decides these itself), still open:** how to date veto overrides
-that happen in 2026 for laws passed in 2025 (§19 Q6); how to label a bond row that adds no new
-money because a law only restated an old project (§19 Q26); and several technical questions about
-how amendments are read (§19 Q19–Q24). The group has decided the others it used to list here:
+**Not for the partner (the group decided these itself, 2026-11-11):** veto overrides in 2026 of
+laws passed in 2025 go in the extended file, and a law passed over a veto is dated by the override
+(Q6); a row that adds no new money because a law only restated an old budget item is a change of
+purpose, while a restated bond project stays in the bond spreadsheet at $0 (Q26); and the technical questions about how amendments are read (Q19–Q24, Q27). Earlier it decided
 the two borderline laws (Q7), where bond borrowing limits are stored (Q11), partly restored vetoes
 (Q13), the veto column (Q14), and money moved into trusts (Q15, which keeps the default).
