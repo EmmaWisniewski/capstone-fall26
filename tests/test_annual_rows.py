@@ -102,10 +102,21 @@ def test_cthru_above_the_printed_amount_is_unexplained():
 
 
 def test_an_override_cthru_disagrees_with_is_flagged_1231_1000():
-    overridden = item("1231-1000", 10000000, amount_struck="1500000", veto_kind_inline="overridden")
+    overridden = item("1231-1000", 10000000, veto_kind_inline="overridden")
     [row] = annual([overridden], [cthru("1231-1000", 1500000)])
     assert (row["amount"], row["veto_status"]) == (1500000, "overridden")
     assert "cthru_mismatch" in flags(row)
+
+
+def test_an_override_restoring_money_above_the_printed_figure_is_explained_3000_5000():
+    overridden = item("3000-5000", 16500000, veto_kind_inline="overridden")
+    [row] = annual([overridden], [cthru("3000-5000", 17500000)])
+    assert (row["amount"], row["amount_printed"], row["veto_status"]) == (
+        17500000,
+        16500000,
+        "overridden",
+    )
+    assert "cthru_mismatch" not in flags(row)
 
 
 def test_an_item_cthru_does_not_list_was_vetoed_to_zero():
@@ -147,6 +158,19 @@ def test_surtax_items_come_from_cthru():
     assert row["amount"] == 1000
     row = annual([item("7066-0050", 1, section="2F")], [cthru("7066-0050", 1000, funds="2017")])[0]
     assert (row["section_type"], row["amount"]) == ("surtax", 1000)
+
+
+def test_trust_transfers_come_from_cthru_but_are_not_counted():
+    rows = annual([item("1595-0035", 5000000, section="2E")], [cthru("1595-0035", 5000000)])
+    [row] = rows
+    assert (row["section_type"], row["amount"], row["amount_source"]) == (
+        "trust_transfer",
+        5000000,
+        "cthru",
+    )
+    assert flags(row) == ["trust_transfer"]
+    out, _, _ = combine.combine_rows({"annual": rows}, [law()], [])
+    assert out[0]["counts_toward_total"] == "false"
 
 
 def test_federal_grants_are_left_to_the_federal_grant_rows():

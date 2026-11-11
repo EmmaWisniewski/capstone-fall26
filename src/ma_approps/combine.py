@@ -17,9 +17,9 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
   Use the law's printed amount: amount_source = law_text, flag federal (Q1), counts_toward_total =
   false until Q1 is decided. CTHRU can't confirm vetoes here: veto_status = unknown, flag
   veto_unverified (a veto marked inline in the law text is still only a hint, §11.4).
-- Any other GAA item in a section CTHRU covers (approp_main, surtax) with no CTHRU amount was
-  vetoed to $0 (veto_status = vetoed); don't fall back to the printed amount. FY2025's law text
-  doesn't mark its vetoes. Apply this only after the two cases above, never to §2D.
+- Any other GAA item in a section CTHRU covers (approp_main, trust_transfer, surtax) with no CTHRU
+  amount was vetoed to $0 (veto_status = vetoed); don't fall back to the printed amount. FY2025's
+  law text doesn't mark its vetoes. Apply this only after the two cases above, never to §2D.
 - CTHRU fund 0015 is §2B ISF chargebacks: counts_toward_total = false, even though CTHRU gives
   them non-zero fee-revenue caps ($632–704M a year).
 """
@@ -738,12 +738,13 @@ def federal_grant_rows(
 # -- Annual budget rows (workstream E; DESIGN §3.4, §5.7, §10; Mario's rules at the top) ---------
 
 # What each GAA section is (§9.4): section -> (section_type, flags, CTHRU covers its amounts).
-# §2D is left to federal_grant_rows. CTHRU shows §2B at $0 (§3.4) and has no §2E, so those two
-# take the law's printed amount.
+# §2D is left to federal_grant_rows. CTHRU shows §2B at $0 (§3.4), so those take the law's printed
+# amount. It does carry §2E (trust transfers, e.g. 1595-0035; $2.06B in FY2024), which is flagged
+# and not counted (§10).
 ANNUAL_SECTIONS = {
     "2": ("approp_main", (), True),
     "2B": ("isf", ("isf_chargeback",), False),
-    "2E": ("trust_transfer", ("trust_transfer",), False),
+    "2E": ("trust_transfer", ("trust_transfer",), True),
     "2F": ("surtax", (), True),
 }
 ANNUAL_OTHER_SECTION = ("approp_new", ("low_confidence_parse",), False)
@@ -757,7 +758,8 @@ def _annual_veto_status(hint: str, final: int, printed: int, cthru_amount: int) 
     ``final`` is the law's last printed amount (after any veto note), ``printed`` the first
     (before it). CTHRU agreeing with the final amount confirms what the markup says. CTHRU below
     the printed amount with no markup is a veto the law text doesn't show (FY2025's doesn't
-    mark them), so it is read from CTHRU. Any other difference, such as 1231-1000 (override
+    mark them), so it is read from CTHRU. An override with CTHRU above the printed (reduced)
+    figure is the Legislature restoring money. Any other difference, such as 1231-1000 (override
     printed at $10M, CTHRU $1.5M), is unexplained and goes to review.
     """
     marked = SUPPLEMENTAL_VETO_STATUS.get(hint, "unknown")
@@ -765,6 +767,12 @@ def _annual_veto_status(hint: str, final: int, printed: int, cthru_amount: int) 
         return marked, False
     if hint == "none" and cthru_amount < printed:
         return "reduced", False
+    if hint == "overridden" and cthru_amount > final:
+        # The law text prints the Governor's reduced figure and CTHRU the amount after the
+        # Legislature restored money (3000-5000: printed $16.5M, CTHRU $17.5M). Whether all of the
+        # cut came back (overridden) or part of it (partial_override, Q13) needs the pre-veto
+        # figure, which items_raw doesn't keep for these items.
+        return "overridden", False
     return marked, True
 
 
@@ -797,14 +805,15 @@ def annual_rows(
     """Original-appropriation rows (``ORIG``, §7.7) for the items of in-scope GAAs, in source
     order (Combine-Export-Work-Split.md, E; Mario's rules at the top of this file).
 
-    - In a section CTHRU covers (§2, §2F), the amount is CTHRU's ``original_enacted`` for that
+    - In a section CTHRU covers (§2, §2E, §2F), the amount is CTHRU's ``original_enacted`` for that
       fiscal year and item (``amount_source = cthru``), which already reflects vetoes; the law's
       printed amount stays in ``amount_printed``. ``veto_status`` comes from comparing the two,
       with the inline markup as a hint (``_annual_veto_status``).
     - No CTHRU amount, and the item lets an agency spend fees it collects: the law's printed ceiling
       (``retained_revenue_ceiling``, flag ``retained_revenue``). Otherwise it was vetoed to $0.
-    - §2B and §2E items take the law's printed amount. §2B is flagged ``isf_chargeback``, and an
-      item CTHRU books only to fund 0015 is flagged the same wherever it is printed (§10).
+    - §2B items take the law's printed amount and are flagged ``isf_chargeback``; an item CTHRU
+      books only to fund 0015 is flagged the same wherever it is printed (§10). §2E items are
+      flagged ``trust_transfer``. Neither counts toward the total.
     - CTHRU has one amount per account, so an item printed twice in a law gets it once; both rows
       are flagged ``cthru_mismatch``. A fiscal year with no CTHRU rows at all (not downloaded yet)
       falls back to the printed amount, flagged ``cthru_mismatch``, instead of reading as vetoed.
@@ -814,8 +823,9 @@ def annual_rows(
     gaa_items = _gaa_items(items, law_list)
     copies: dict[tuple[str, str, str], int] = {}
     for item, law in gaa_items:
-        key = (item["law_key"], _annual_fy(item, law), item["line_item"])
-        copies[key] = copies.get(key, 0) + 1
+        if ANNUAL_SECTIONS.get(item["section"], ANNUAL_OTHER_SECTION)[2]:  # CTHRU's one amount
+            key = (item["law_key"], _annual_fy(item, law), item["line_item"])
+            copies[key] = copies.get(key, 0) + 1
     used: set[tuple[str, str, str]] = set()
     out = []
     for item, law in gaa_items:
@@ -835,7 +845,7 @@ def annual_rows(
         source, kind = "law_text", "appropriation"
         match = by_cthru.get((fy, item["line_item"]))
         key = (item["law_key"], fy, item["line_item"])
-        if copies[key] > 1 and covered:
+        if covered and copies[key] > 1:
             flags.append("cthru_mismatch")
         if covered and fy in cthru_years:
             original = int(match["original_enacted"] or 0) if match else 0
