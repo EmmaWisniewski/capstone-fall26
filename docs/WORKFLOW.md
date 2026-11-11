@@ -20,6 +20,8 @@ group.**
 
 ## 2. What to actually do
 
+> **Shortcut:** type **`/start-task`** in the prompt box to have Claude do Steps 1–6 with you (add your task after it, if you have one, e.g. `/start-task bond policy areas`). When you're done, type **`/finish-task`** for Steps 7–8: it runs the checks, updates the handoff notes, commits and opens the pull request. The steps below explain what those commands do.
+
 ### Step 1: Work locally, and start from the latest `main`
 When you start a session in the desktop app, choose **Local**, not a cloud environment. (A cloud
 session runs on another computer with its own copy of the project, and your files (like the downloaded laws in `data/raw/`) aren't there

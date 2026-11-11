@@ -1008,7 +1008,7 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 
 ## 21. Status board
 
-Update this table in the same commit as the work it describes. Edit only your own rows.
+Update this table in the same commit as the work it describes. Anyone may edit any row.
 
 | Item | Started by | Status | Notes |
 |---|---|---|---|

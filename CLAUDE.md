@@ -20,9 +20,9 @@ This repo builds a line-item dataset of Massachusetts state appropriations from 
 Process built for large companies (required reviews, sign-offs, code owners) slows this group down and confuses it. Instead:
 - **Everyone owns everything equally.** Workstream letters (A–E, DESIGN §16) only show where each person started. Anyone may change, fix, merge or decide anything.
 - **No sign-offs.** The student you're working with can decide for the group. Record decisions as decided, never "pending X's sign-off". Only questions for the partner (DESIGN §19) wait on someone else.
-- **Instead of sign-offs, two habits.** Before starting a task, check open branches and pull requests for the same work. When work affects something a teammate will pick up, leave notes on what was done, what's left and why (Status Board §21, DESIGN, the PR description).
+- **Instead of sign-offs, two habits.** Before starting a task, check open branches and pull requests for the same work. When work affects something a teammate will pick up, leave notes on what was done, what's left and why (Status Board §21, DESIGN, the PR description). The `/start-task` and `/finish-task` commands (`.claude/skills/`) walk through both. Follow the same steps when a student asks in other words.
 - **Reviews are optional.** If a pull request has a problem, fix it and merge it rather than sending it back.
-- Work in a local session, not the cloud (`data/raw/` exists only locally). Before saving a snapshot, list the files you'll include. Nothing from `data/`, `reports/` or `review/review_queue.csv`, and no keys. Docs-only fixes may go straight to `main` once the user has seen them and said yes.
+- Work in a local session, not the cloud (`data/raw/` exists only locally). Before committing, list the files you'll include. Nothing from `data/`, `reports/` or `review/review_queue.csv`, and no keys. Docs-only fixes may go straight to `main` once the user has seen them and said yes.
 
 ## Data rules
 `docs/DESIGN.md` is the source of truth. Read §1–§6 and the sections for your task before changing code. `docs/RUNBOOK.md` tells future groups how to add a year. If it disagrees with DESIGN, fix the runbook.
