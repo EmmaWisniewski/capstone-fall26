@@ -105,6 +105,18 @@ Corrected on the reading side by Emily H., 2026-11-09: `config/citation_fixes.cs
 2024-248 §35's citation of 2022-24 to 2021-24, so reader 0.10.0 attaches the date extension to
 2021-24 with `medium` confidence.
 
+## No paying fund named in 2024 ch. 139 §4–§6 (FutureTech Act)
+Emma, 2026-11-10.
+
+In the capital file, the 12 items of 2024 ch. 139 (the FutureTech IT bond, one of the two bond samples)
+have an empty "Fund paying the bonds". Their three borrowing-limit sections, §4 ($1,055,000,000 for §2A
+and §2B), §5 ($175,000,000 for §2C) and §6 ($26,989,000 for §2D), give the bond name ("FutureTech Act
+of 2024"), the maximum term and the final payable date, but **don't say which fund pays the bonds**, as
+most bond laws do ("payable from the General Fund…"). Nothing else in the law names one either: the
+only mentions of debt service are agencies' project savings sent to the treasurer. Emma read the whole
+law and confirmed this. So `read_bonds` is right to leave `paying_fund` empty, and the blank follows the
+rule of not assuming the General Fund when a law doesn't name the fund.
+
 ## Amendment increases CTHRU doesn't show (Q28)
 Emily H., 2026-11-11. The CTHRU comparison in `validate` (§13 check 4, PR #51) lists three FY2024
 increases made by outside sections that CTHRU doesn't carry:

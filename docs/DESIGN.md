@@ -784,7 +784,7 @@ Each workstream owner works the review items for their own area (§16).
 capstone-fall26/
 ├── CLAUDE.md                     # pointer + rules for Claude sessions
 ├── README.md                     # quickstart
-├── docs/                         # OVERVIEW, WORKFLOW, DESIGN (this file), RUNBOOK (to write)
+├── docs/                         # OVERVIEW, WORKFLOW, DESIGN (this file), RUNBOOK (first draft)
 ├── exampledata.csv  policyareas.csv  URLs.csv   # reference inputs (keep at root)
 ├── pyproject.toml                # deps, ruff, pytest config
 ├── config/
@@ -1028,10 +1028,11 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
 | Q18: `laws` contact email | group | ☑ resolved | Emma's Northeastern address, in `config/settings.toml` (recorded 2026-11-04) |
 | Shared core of `combine` (IDs, `counts_toward_total`, fund splits, writing `funding_actions.csv`) | A | ◐ in review | branch `a/combine-core` (stacked on #38 and #42): `combine.BUILDERS`, `combine_rows`, `assign_ids`, `counts_toward_total`, `fund_splits`, `running_amounts`, `run`; `IMPLEMENTED = True`. Pieces not yet built are skipped with a note. On all downloaded laws: 189 rows (bond rows only so far), 0 format problems, capital total $47,265,279,195. 95 of 11,359 `items_raw` rows name a fund missing from `config/funds.csv` (12 names, e.g. Education Fund, Highway Fund) |
+| A: capital file (`export.capital_rows`, `write_capital_file`, §7.13) | A | ◐ in review | branch `a/capital-file` (stacked on #43): the 31 decided columns (Q16), one row per `CAP` row sorted by Record ID; `export.main_columns` fills the 20 main columns for both files. Until labels exist: printed header as agency, policy area `Not classified`, `Unknown`, `One-time`, `Pending`, `Not human reviewed`, "Total not yet checked." (Emma, 2026-11-10). On all downloaded laws: 189 rows, all under a borrowing limit; 21 with a limit difference note (8 limits); 6 rows with no printed agency header and 12 under 3 limits with no paying fund |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ◐ in progress | annual rows built for FY2022 to FY2026 (PR #48, in review); left: explain the 3 CTHRU mismatches and the items read as vetoed to $0, and the CTHRU comparison in `validate` |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
 | M4: bond bills | A | ◐ in progress | `read_bonds` reads every capital item and borrowing limit (in review, #23 and step 2); left: check 7 and the capital file |
 | M5: labels, review, release | D, all | ☐ todo | |
-| M6: runbook and 2026 re-run test | A | ☐ todo | |
+| M6: runbook and 2026 re-run test | A | ◐ in progress | `docs/RUNBOOK.md` first draft (2026-11-07): steps 0–4 and 7–8 written, 5–6 placeholders until `cthru`, `combine`, `label` and `export` exist. The re-run test waits on the finished program |
 | Q1: federal treatment (OSA partner) | group | ☑ resolved | keep federal money in the data, flagged, out of totals; only federal-source money is flagged (recorded 2026-11-02) |
