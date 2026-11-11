@@ -171,6 +171,11 @@ def test_limit_that_names_its_items_covers_only_those():
     assert report[0]["line_items"] == "1000-0002"
 
 
+def test_limits_of_laws_that_are_not_in_scope_are_skipped():
+    laws = [{"law_key": "2024-139", "role": "reference_only"}]
+    assert validate.check_bond_totals([], [limit()], laws) == (0, [])
+
+
 def test_limit_with_no_items_and_other_laws_cap_rows():
     restated = cap("1000-0001", "40", law_key="2025-17", target_law_key="2024-139")
     matched, report = validate.check_bond_totals([restated], [limit()])

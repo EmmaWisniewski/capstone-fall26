@@ -322,13 +322,20 @@ BOND_COLUMNS = (
 
 
 def check_bond_totals(
-    actions: list[dict[str, str]], limits: list[dict[str, str]]
+    actions: list[dict[str, str]],
+    limits: list[dict[str, str]],
+    law_list: list[dict[str, str]] | None = None,
 ) -> tuple[int, list[dict[str, str | int]]]:
     """§13 check 7 (Q11, decided 2026-11-06): for each borrowing limit (§7.16), the total of the
     ``CAP`` items it covers (`combine.limit_for`) against what it authorizes. A difference isn't a
     reader error: it is reported, with a note naming the limit and the gap. A ``CAP`` item that no
     limit covers is reported too (``no_limit``). Restated items (other laws' ``CAP`` rows) aren't
-    part of a limit. Returns (limits that match, report rows)."""
+    part of a limit. With ``law_list``, limits of laws that aren't ``in_scope`` are skipped: their
+    items are left out of the data on purpose, so they could never match. Returns (limits that
+    match, report rows)."""
+    if law_list is not None:
+        in_scope = {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+        limits = [lim for lim in limits if lim["law_key"] in in_scope]
     bond = [
         r
         for r in actions
@@ -439,10 +446,15 @@ def run(ctx: Context) -> int:
         )
     limits = _read_rows(ctx.interim_dir / "bond_authorizations_raw.csv")
     if actions and limits:
-        matched, gaps = check_bond_totals(actions, limits)
+        law_list = _read_rows(ctx.config_dir / "law_list.csv")
+        matched, gaps = check_bond_totals(actions, limits, law_list)
+        in_scope_limits = sum(
+            lim["law_key"] in {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+            for lim in limits
+        )
         _write_report(out / "bond_totals.csv", BOND_COLUMNS, gaps)
         print(
-            f"  bond totals: {matched} of {len(limits)} limits match their items, "
+            f"  bond totals: {matched} of {in_scope_limits} in-scope limits match their items, "
             f"{len(gaps)} reported in bond_totals.csv (reported, not a failure: Q11)"
         )
     return 1 if schema_problems or unread else 0
