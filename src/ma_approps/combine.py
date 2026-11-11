@@ -993,8 +993,27 @@ NOT_COUNTED_KINDS = (
 NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer", "fund_transfer_chain")
 
 
+# The stage that writes each interim input, for the message when one is missing (Q33)
+INPUT_STAGES = {
+    "items_raw": "read_items",
+    "bond_items_raw": "read_bonds",
+    "bond_authorizations_raw": "read_bonds",
+    "amendments_raw": "read_amendments",
+    "cthru_line_items": "cthru",
+}
+
+
+def missing_inputs(ctx: Context) -> list[str]:
+    """The input files that don't exist yet (Q33): their rows would be silently missing."""
+    dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
+    return [
+        name for name, (where, filename) in INPUTS.items() if not (dirs[where] / filename).exists()
+    ]
+
+
 def load_inputs(ctx: Context) -> dict[str, list[dict[str, str]]]:
-    """Every input table as rows; a file that doesn't exist yet gives no rows."""
+    """Every input table as rows; a file that doesn't exist yet gives no rows (see
+    ``missing_inputs``, which ``run`` reports)."""
     dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
     out = {}
     for name, (where, filename) in INPUTS.items():
@@ -1241,18 +1260,35 @@ def _problem(row: Mapping[str, Any], problem: str) -> dict[str, Any]:
     return {c: row.get(c, "") for c in PROBLEM_COLUMNS[:-1]} | {"problem": problem}
 
 
+# Funding actions an amount action (AMOUNT_ACTIONS) can become (§11.3, ``_change``)
+AMOUNT_FUNDING_ACTIONS = ("INC", "RED", "NEW", "CAP", "PURP")
+
+
 def running_amounts(
     rows: list[Mapping[str, Any]], amounts: list[Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
     """``running_amounts.csv`` (§7.8): each amount from ``amendment_amounts`` (C), tied to the
-    funding action that made it. Amendments with no funding-action row yet are left out."""
-    by_key: dict[tuple, str] = {}
-    for r in rows:
+    funding action that made it. Amendments with no funding-action row yet are left out.
+
+    When one section changes an item more than once, each change has its own row (in source
+    order, like the amounts), so each amount gets its own Record ID (Q33). Rows that don't change
+    an amount (wording changes, date extensions, transfers) aren't events here."""
+    by_key: dict[tuple, list[str]] = {}
+    for r in rows:  # in Record ID order, which keeps each builder's source order
+        if r["funding_action"] not in AMOUNT_FUNDING_ACTIONS:
+            continue
+        if r["funding_action"] == "PURP" and r["amount"] in ("", None):
+            continue  # a wording change; a replaced item at the same amount is PURP $0
         key = (r["law_key"], r["section"], r["line_item"], r["target_law_key"])
-        by_key.setdefault(key, r["record_id"])
+        by_key.setdefault(key, []).append(r["record_id"])
+    used: dict[tuple, int] = {}
     out = []
     for a in amounts:
-        record_id = by_key.get((a["law_key"], a["section"], a["target_item"], a["target_law_key"]))
+        key = (a["law_key"], a["section"], a["target_item"], a["target_law_key"])
+        ids = by_key.get(key, [])
+        n = used.get(key, 0)
+        used[key] = n + 1
+        record_id = ids[n] if n < len(ids) else ""
         if record_id and a["amount_after"] not in ("", None):
             out.append(
                 {
@@ -1276,6 +1312,11 @@ def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[Mapping]
 
 def run(ctx: Context) -> int:
     inputs = load_inputs(ctx)
+    missing = missing_inputs(ctx)
+    for name in missing:
+        stage = INPUT_STAGES.get(name)
+        hint = f" (run the {stage} stage first)" if stage else ""
+        print(f"  WARNING: {INPUTS[name][1]} is missing{hint}: rows that need it are left out")
     pieces = {}
     for piece, builder in BUILDERS.items():
         if builder is None:
@@ -1285,6 +1326,16 @@ def run(ctx: Context) -> int:
         print(f"  {piece}: {len(pieces[piece])} rows")
     pieces["manual rows"] = manual_rows(inputs["manual_rows"])
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
+    problems += [
+        {
+            "record_id": "",
+            "law_key": "",
+            "section": "",
+            "line_item": "",
+            "problem": f"input {INPUTS[name][1]} is missing: rows that need it are left out",
+        }
+        for name in missing
+    ]
     problems += annual_gaps(
         inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"], rows
     )
