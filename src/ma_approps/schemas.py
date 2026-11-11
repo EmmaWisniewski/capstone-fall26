@@ -332,7 +332,7 @@ SCHEMAS["fund_splits"] = _cols(
     Col("record_id", required=True),
     Col("fund_name", required=True),
     "fund_number",
-    Col("share", "float", required=True),
+    Col("share", "float"),  # empty: shares unknown (§7.8)
     Col("is_federal", "bool", required=True),
 )
 SCHEMAS["running_amounts"] = _cols(

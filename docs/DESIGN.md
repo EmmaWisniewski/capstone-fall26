@@ -330,7 +330,7 @@ flowchart LR
    - **GAAs:** item text, printed amount, struck amount and inline veto markup only. A missed GAA item costs only a blank description (the amount comes from CTHRU) and is reported.
 4. **read_bonds.** The same state machine, applied to capital sections (§2–§2I) of bond laws and Chapter 90 bills. It shares `items_raw` columns.
 5. **read_amendments.** Grammar for outside sections (§11.3), including **direct appropriations**. Interim budgets are read here, not typed by hand.
-6. **combine.** Builds GAA `ORIG` rows from `cthru_line_items.csv` (each FY has exactly one GAA in the law list). It adds rows from the readers, assigns Record IDs (§9.6), computes `counts_toward_total`, fiscal year and fund splits, maintains the running amounts table, and sets `veto_status` from the CTHRU comparison.
+6. **combine.** Builds GAA `ORIG` rows from `cthru_line_items.csv` (each FY has exactly one GAA in the law list). It adds rows from the readers, assigns Record IDs (§9.6), computes `counts_toward_total`, fiscal year and fund splits, maintains the running amounts table, and sets `veto_status` from the CTHRU comparison. **How the pieces plug in** (2026-11-10): each piece of the work split is one row builder in `combine.BUILDERS`, returning rows in this format in source order; the shared core (A) keeps in-scope laws, assigns Record IDs, sets `counts_toward_total` (§10) and builds the fund splits (§5.6), then writes the three files and `reports/combine_problems.csv`.
 7. **label.** Agency/office from CTHRU, Program/purpose by rule, policy area from the catalog or department table (§12), and the three yes/no-style columns (§8).
 8. **export.** Applies human corrections (§14) and writes the exact `exampledata.csv` columns and order, plus an extended file, a data dictionary, and the review queue.
 
@@ -427,7 +427,7 @@ The same columns as `funding_actions.csv` (§7.7), except `record_id`, which com
 | `reader_version` | |
 
 ### 7.8 Side tables
-- **`fund_splits.csv`**: `record_id`, `fund_name`, `fund_number` (if known), `share`, `is_federal`.
+- **`fund_splits.csv`**: `record_id`, `fund_name`, `fund_number` (if known), `share`, `is_federal`. `share` is empty when CTHRU lists several funds for an item whose law prints no split (2026-11-10).
 - **`running_amounts.csv`**: `target_law_key`, `section`, `line_item`, `as_of_event` (`record_id`), `amount_after`. Owned by C.
 
 ### 7.9 `data/interim/labels.csv`
@@ -974,6 +974,7 @@ Keep this list current. When one is resolved, move it to the Decision Log, and u
 | 2026-11-09 | **Proposed, pending E's sign-off (new file format):** `config/citation_fixes.csv` (§7.18) corrects a law misprinted in an amending section's citation, the way `config/item_number_fixes.csv` (§7.17, PR #31) corrects item numbers. First row: 2024-248 §35 cites 2022 ch. 24 for item 8200-0200, which is in 2021 ch. 24 (found by Emma in PR #34). Also in reader 0.10.0: transfers by the comptroller or the secretary of administration and finance are read in more wordings, and one no pattern reads is listed as unread, so every section the `laws` stage's "transfers money" signal flags is read or listed (§11.3). | Emily H. (workstream C). The law can't be read as printed, and a one-row table with evidence is simpler to check than an automatic guess. |
 | 2026-11-10 | **M0 signed off.** The group signed off the v0.2 redesign, the file formats in §7 and §9 (now frozen; change them only through this log) and every item marked "pending group sign-off": the two 2026-10-21 proposals, the `data/raw/manifest.csv` format (2026-10-28) and the catalog rule that automatically generated rows don't count as human reviewed (2026-11-02). Items pending only E's sign-off are unchanged. | Group decision; reported by Emma, 2026-11-10. |
 | 2026-11-10 | **The shared core of `combine` is owned by A (Emma).** It gives each row its Record ID, decides `counts_toward_total`, splits rows by fund and writes `funding_actions.csv`, calling each piece's row builder from the work split (`docs/Combine-Export-Work-Split.md`). The other pieces keep the owners in the work split. | Assigned by Mario (coordinator), reported by Emma, 2026-11-10; the work split had left it to "everyone". |
+| 2026-11-10 | **Proposed, pending E's sign-off (format change):** `fund_splits.csv` `share` may be empty. CTHRU gives an item's fund numbers but no shares, so an annual-budget item with several CTHRU funds and no split printed in the law gets its funds with empty shares, and is reported in `reports/combine_problems.csv`, rather than split evenly. **Also decided:** a row paid partly from a federal fund counts toward the operating total, and the total leaves out its federal share; a wholly federal row doesn't count (§10). | Emma (A, shared core), 2026-11-10. An even split would invent numbers; dropping a mixed row would lose its state share. |
 
 ---
 
@@ -1003,7 +1004,7 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | E: explain 1231-1000 CTHRU mismatch | E | ☐ todo | printed $10,000,000 (overridden) vs CTHRU $1,500,000 |
 | Q10: spending-scope decision | E + group | ☑ resolved | appropriations only; set by the partner at the proposal stage (recorded 2026-11-01) |
 | Q18: `laws` contact email | group | ☑ resolved | Emma's Northeastern address, in `config/settings.toml` (recorded 2026-11-04) |
-| Shared core of `combine` (IDs, `counts_toward_total`, fund splits, writing `funding_actions.csv`) | A | ☐ todo | assigned to Emma by Mario, 2026-11-10; calls each piece's row builder (e.g. `combine.bond_rows`, #38) |
+| Shared core of `combine` (IDs, `counts_toward_total`, fund splits, writing `funding_actions.csv`) | A | ◐ in review | branch `a/combine-core` (stacked on #38 and #42): `combine.BUILDERS`, `combine_rows`, `assign_ids`, `counts_toward_total`, `fund_splits`, `running_amounts`, `run`; `IMPLEMENTED = True`. Pieces not yet built are skipped with a note. On all downloaded laws: 189 rows (bond rows only so far), 0 format problems, capital total $47,265,279,195. 95 of 11,359 `items_raw` rows name a fund missing from `config/funds.csv` (12 names, e.g. Education Fund, Highway Fund) |
 | M1: vertical slice and example-rows test | all | ☐ todo | |
 | M2: all GAAs | E, B | ☐ todo | |
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
