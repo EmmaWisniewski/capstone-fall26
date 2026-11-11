@@ -307,3 +307,103 @@ def test_a_reference_only_manual_row_is_left_out_quietly():
     # any other piece's row from a law that isn't in scope is still reported
     _, _, problems = combine.combine_rows({"annual": manual}, laws, FUNDS)
     assert len(problems) == 1
+
+
+# -- Q33 (2026-11-11) ---------------------------------------------------------------------------
+
+
+def test_a_missing_input_is_reported(root, samples_dir, tmp_path, capsys):
+    ctx = Context(
+        root=root,
+        raw_dir=samples_dir,
+        interim_dir=tmp_path / "interim",
+        reports_dir=tmp_path / "reports",
+        offline=True,
+    )
+    assert read_bonds.run(ctx) == 0  # bond files only: no items_raw, amendments or CTHRU
+    assert combine.missing_inputs(ctx) == ["items_raw", "amendments_raw", "cthru_line_items"]
+    combine.run(ctx)
+    out = capsys.readouterr().out
+    assert "WARNING: items_raw.csv is missing (run the read_items stage first)" in out
+    _, problems = schemas.read_csv(ctx.reports_dir / "combine_problems.csv")
+    assert sum("is missing" in p["problem"] for p in problems) == 3
+
+
+def test_amendment_rows_take_cthru_s_fund():
+    # 2022-42 §47 adds $24,000,000 to 1599-2026, which CTHRU books to the Federal COVID-19
+    # Response Fund (2005); a row whose law names its fund, or a bond item, is left alone
+    cthru = [{"fiscal_year": "2022", "line_item": "1599-2026", "fund_numbers": "2005"}]
+    change = row(
+        law_key="2022-42",
+        section="47",
+        line_item="1599-2026",
+        fiscal_year=2022,
+        funding_action="INC",
+        amount_kind="delta",
+        amount=24_000_000,
+    )
+    named = dict(change, section="48", section_fund_default="General Fund")
+    bond = dict(change, section="49", section_type="capital", funding_action="CAP")
+    rows = combine.funds_from_cthru([change, named, bond], cthru)
+    assert [r.get("fund_numbers", "") for r in rows] == ["2005", "", ""]
+    funds = [
+        *FUNDS,
+        {
+            "fund_name": "Federal COVID-19 Response Fund",
+            "fund_number": "2005",
+            "is_federal": "true",
+            "notes": "",
+        },
+    ]
+    out, _, _ = combine.combine_rows(
+        {"amendments": [rows[0]]}, [*LAWS, {"law_key": "2022-42", "role": "in_scope"}], funds
+    )
+    assert (out[0]["federal_share"], out[0]["counts_toward_total"]) == (1.0, "false")
+
+
+def test_two_changes_to_one_item_in_one_section_get_their_own_events():
+    rows = combine.assign_ids(
+        [
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="INC",
+                amount_kind="delta",
+                amount=100,
+            ),
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="PURP",
+                amount_kind="none",
+                amount="",
+            ),  # wording: not an event
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="INC",
+                amount_kind="delta",
+                amount=50,
+            ),
+        ]
+    )
+    amount = {
+        "law_key": "2023-77",
+        "section": "178",
+        "target_law_key": "2023-28",
+        "target_section": "2",
+        "target_item": "2330-0100",
+    }
+    got = combine.running_amounts(
+        rows, [dict(amount, amount_after=1100), dict(amount, amount_after=1150)]
+    )
+    assert [(a["as_of_event"], a["amount_after"]) for a in got] == [
+        ("2023-077-S178-2330-0100-INC-1", 1100),
+        ("2023-077-S178-2330-0100-INC-2", 1150),
+    ]
