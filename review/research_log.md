@@ -101,3 +101,13 @@ target needs correcting on that side. 2022-24 is excluded from the law list.
 Corrected on the reading side by Emily H., 2026-11-09: `config/citation_fixes.csv` (DESIGN §7.18) maps
 2024-248 §35's citation of 2022-24 to 2021-24, so reader 0.10.0 attaches the date extension to
 2021-24 with `medium` confidence.
+
+## Manual row: 1993 ch. 52 item 4000-8200 (starting amount for 2024 ch. 150 §60)
+Emma, 2026-11-11.
+
+`config/manual_rows.csv` holds one row: 1993 ch. 52 §2 item 4000-8200 at $50,000,000, as a `CAP`
+row. 1993 ch. 52 predates the Legislature's API, so no reader can read it (its text is in
+`review/sources/1993-52.txt`, checked against the State Archives PDF). The row exists only to give the
+item its starting amount: `combine` leaves it out of the funding actions because 1993-52 is
+reference-only, and uses it in the running amounts, so 2024 ch. 150 §60, which replaces the item at
+the same $50,000,000, becomes a `CAP` row of $0 (2026-11-06 decision; its label waits on Q26).
