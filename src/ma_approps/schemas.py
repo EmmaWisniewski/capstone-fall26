@@ -407,6 +407,17 @@ SCHEMAS["funds"] = _cols(
     "notes",
 )
 
+# §7.19 review/unread_explanations.csv (human-edited; why an unread-report row needs no reading,
+# Q22, decided 2026-11-11)
+SCHEMAS["unread_explanations"] = _cols(
+    Col("report", required=True),
+    Col("law_key", required=True),
+    Col("section", required=True),
+    Col("explanation", required=True),
+    Col("explained_by", required=True),
+    Col("date", "date", required=True),
+)
+
 # §7.17 config/item_number_fixes.csv (human-curated; item numbers misprinted in a law)
 SCHEMAS["item_number_fixes"] = _cols(
     Col("law_key", required=True),

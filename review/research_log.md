@@ -76,6 +76,8 @@ as a separate bill, and its version becomes a separate chapter.
 | §74: replaces item 8100-1014 of 2019 ch. 5 (sexual assault evidence kits) | 2021 ch. 24, FY2022 GAA (H4002) | H4013 (with §119): Governor's amendment rejected, re-enacted | **2021 ch. 35** §1, Aug 3, 2021 (already a sample and on the law list) |
 | §102: $250,000,000 to the Pension Liability Fund | 2021 ch. 24 | H4004 (with §7, §103): Governor's amendment rejected, re-enacted | **2021 ch. 33** §2: "no less than" $250,000,000, on a monthly schedule, if FY2022 revenues meet the estimates, Aug 3, 2021 |
 | §103: $350,000,000 to the Student Opportunity Act Investment Fund | 2021 ch. 24 | H4004 | **2021 ch. 33** §2: "no less than" $350,000,000, same condition |
+| §113: $94,000,000 of item 1595-6370 as operating assistance for regional transit authorities (added 2026-11-11) | 2021 ch. 24 | H4014: re-enacted, vetoed, passed over veto 2021-09-30 | **2021 ch. 73**. It only earmarks money already in the item, so it gives no row either way |
+| §174: $20,000,000 to the Massachusetts Community Preservation Trust Fund (added 2026-11-11) | 2022 ch. 126, FY2023 GAA (H5050) | H5131: returned again with a recommendation of amendment; "No further action taken" 2023-01-03 | never |
 | §100: $205,000,000 transfer from the federal COVID-19 response fund or the Transitional Escrow Fund | 2023 ch. 28, FY2024 GAA (H4040) | **Disapproved** (a veto). H4040's history lists override votes on many items but none on §100 | never: the veto stands |
 
 What follows:
@@ -86,6 +88,7 @@ What follows:
   versions of these transfers, so workstream A should consider adding them. All of these are
   transfers into funds, which don't count toward the operating totals (Q2), so the totals don't change.
 - 2023-28 §100 keeps its `low` confidence row; `combine` should leave it out as vetoed.
+- 2026-11-11 (Emily H.): every unread section now has an explanation in `review/unread_explanations.csv` (Q22), including these.
 
 ## Misprint in 2024 ch. 248 §35 (amendment target 2022-24)
 Emma, 2026-11-08.
@@ -101,3 +104,50 @@ target needs correcting on that side. 2022-24 is excluded from the law list.
 Corrected on the reading side by Emily H., 2026-11-09: `config/citation_fixes.csv` (DESIGN §7.18) maps
 2024-248 §35's citation of 2022-24 to 2021-24, so reader 0.10.0 attaches the date extension to
 2021-24 with `medium` confidence.
+
+## No paying fund named in 2024 ch. 139 §4–§6 (FutureTech Act)
+Emma, 2026-11-10.
+
+In the capital file, the 12 items of 2024 ch. 139 (the FutureTech IT bond, one of the two bond samples)
+have an empty "Fund paying the bonds". Their three borrowing-limit sections, §4 ($1,055,000,000 for §2A
+and §2B), §5 ($175,000,000 for §2C) and §6 ($26,989,000 for §2D), give the bond name ("FutureTech Act
+of 2024"), the maximum term and the final payable date, but **don't say which fund pays the bonds**, as
+most bond laws do ("payable from the General Fund…"). Nothing else in the law names one either: the
+only mentions of debt service are agencies' project savings sent to the treasurer. Emma read the whole
+law and confirmed this. So `read_bonds` is right to leave `paying_fund` empty, and the blank follows the
+rule of not assuming the General Fund when a law doesn't name the fund.
+
+## Amendment increases CTHRU doesn't show (Q28)
+Emily H., 2026-11-11. The CTHRU comparison in `validate` (§13 check 4, PR #51) lists three FY2024
+increases made by outside sections that CTHRU doesn't carry:
+
+| Row | The law | CTHRU, FY2024 |
+|---|---|---|
+| `2023-077-S182-4512-0205-INC-1` (+$100,000) | 2023 ch. 77 §182 raises item 4512-0205 of the FY2024 GAA (2023-28) from $5,295,000 to $5,395,000; §181 raises the item's earmark for One Life at a Time, Inc. from $100,000 to $200,000 to match | original $5,295,000, no supplemental |
+| `2023-077-S191-8324-0050-INC-1` (+$1,750,000) | 2023 ch. 77 §191 raises item 8324-0050 from $3,316,700 to $5,066,700 | original $3,316,700, no supplemental (and a $1,658,350 9C cut) |
+| `2024-248-S60-1599-0026-INC-1` (+$25,000) | 2024 ch. 248 §60 raises item 1599-0026 from $16,300,000 to $16,325,000 | original $16,300,000 plus 2024-248 §2's $12,673,961, but not the $25,000 |
+
+What was checked:
+- Each struck figure equals the item's printed amount (§13 check 3: `match`), so the reader is right.
+- Both bills were signed without vetoes (H4204 and H5077 histories: "Signed by the Governor"), and
+  neither law's text has veto markup.
+- No CTHRU account shows a supplemental of these amounts in FY2023 to FY2026 (CTHRU snapshot of
+  2026-11-11), so the money wasn't booked to another account or year.
+- CTHRU does carry other changes of the same kind: 2023-77 §178 (EX-004, +$350,000 to 2330-0100) is in
+  its FY2024 supplemental, and so are the other outside-section changes of these two laws, apart from
+  2024-248 §126 (a §2B chargeback, which CTHRU shows only as a ceiling; issue #36).
+
+Conclusion: the rows keep the law's amounts. For an amendment the amount is the law's
+(`amount_source = law_text`, DESIGN §5.7), and the law is in force. They add $1,875,000 to the FY2024
+total that CTHRU doesn't show, so check 4 keeps listing them; this entry is the explanation. If the
+group wants CTHRU's figure instead, that is a §5.7 change.
+
+## Manual row: 1993 ch. 52 item 4000-8200 (starting amount for 2024 ch. 150 §60)
+Emma, 2026-11-11.
+
+`config/manual_rows.csv` holds one row: 1993 ch. 52 §2 item 4000-8200 at $50,000,000, as a `CAP`
+row. 1993 ch. 52 predates the Legislature's API, so no reader can read it (its text is in
+`review/sources/1993-52.txt`, checked against the State Archives PDF). The row exists only to give the
+item its starting amount: `combine` leaves it out of the funding actions because 1993-52 is
+reference-only, and uses it in the running amounts, so 2024 ch. 150 §60, which replaces the item at
+the same $50,000,000, becomes a `CAP` row of $0 (2026-11-06 decision; Q26, decided 2026-11-11, keeps a restated bond item as `CAP` $0, labeled "New" and "One-time").

@@ -307,3 +307,71 @@ def test_a_reference_only_manual_row_is_left_out_quietly():
     # any other piece's row from a law that isn't in scope is still reported
     _, _, problems = combine.combine_rows({"annual": manual}, laws, FUNDS)
     assert len(problems) == 1
+
+
+# -- Q33 (2026-11-11) ---------------------------------------------------------------------------
+
+
+def test_a_missing_input_is_reported(root, samples_dir, tmp_path, capsys):
+    ctx = Context(
+        root=root,
+        raw_dir=samples_dir,
+        interim_dir=tmp_path / "interim",
+        reports_dir=tmp_path / "reports",
+        offline=True,
+    )
+    assert read_bonds.run(ctx) == 0  # bond files only: no items_raw, amendments or CTHRU
+    assert combine.missing_inputs(ctx) == ["items_raw", "amendments_raw", "cthru_line_items"]
+    combine.run(ctx)
+    out = capsys.readouterr().out
+    assert "WARNING: items_raw.csv is missing (run the read_items stage first)" in out
+    _, problems = schemas.read_csv(ctx.reports_dir / "combine_problems.csv")
+    assert sum("is missing" in p["problem"] for p in problems) == 3
+
+
+def test_two_changes_to_one_item_in_one_section_get_their_own_events():
+    rows = combine.assign_ids(
+        [
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="INC",
+                amount_kind="delta",
+                amount=100,
+            ),
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="PURP",
+                amount_kind="none",
+                amount="",
+            ),  # wording: not an event
+            row(
+                law_key="2023-77",
+                section="178",
+                line_item="2330-0100",
+                target_law_key="2023-28",
+                funding_action="INC",
+                amount_kind="delta",
+                amount=50,
+            ),
+        ]
+    )
+    amount = {
+        "law_key": "2023-77",
+        "section": "178",
+        "target_law_key": "2023-28",
+        "target_section": "2",
+        "target_item": "2330-0100",
+    }
+    got = combine.running_amounts(
+        rows, [dict(amount, amount_after=1100), dict(amount, amount_after=1150)]
+    )
+    assert [(a["as_of_event"], a["amount_after"]) for a in got] == [
+        ("2023-077-S178-2330-0100-INC-1", 1100),
+        ("2023-077-S178-2330-0100-INC-2", 1150),
+    ]
