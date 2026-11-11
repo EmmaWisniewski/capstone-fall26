@@ -296,3 +296,14 @@ def test_the_stage_on_the_bond_samples(root, samples_dir, tmp_path):
     assert len({r["record_id"] for r in rows}) == len(rows)
     assert {r["counts_toward_total"] for r in rows} == {"false"}
     assert combine.capital_total(rows) == 1_656_989_000 + 1_185_000_000
+
+
+def test_a_reference_only_manual_row_is_left_out_quietly():
+    # 1993-52 is kept by hand only to give item 4000-8200 its starting amount (issue #41)
+    laws = [*LAWS, {"law_key": "1993-52", "role": "reference_only"}]
+    manual = combine.manual_rows([row(law_key="1993-52", target_law_key="1993-52")])
+    rows, _, problems = combine.combine_rows({combine.MANUAL_PIECE: manual}, laws, FUNDS)
+    assert rows == [] and problems == []
+    # any other piece's row from a law that isn't in scope is still reported
+    _, _, problems = combine.combine_rows({"annual": manual}, laws, FUNDS)
+    assert len(problems) == 1
