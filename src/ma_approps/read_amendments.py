@@ -1,23 +1,30 @@
 """Stage 5 `read_amendments`: outside sections to data/interim/amendments_raw.csv (DESIGN §7.4,
 §11.3).
 
-Owner: workstream C (Amendments). Reads every cached law on the law list and, in each outside
-section (any section other than the §2… appropriation sections), recognises the §11.3 patterns:
-figure changes, date extensions, item insertions, replacements and strikes, text-only changes,
+Owner: workstream C (Amendments). Reads every cached law on the law list (hand-kept laws, with
+`parse_strategy = manual`, have no cached text and are skipped) and, in each outside section (any
+section other than the §2… appropriation sections, and the capital sections and borrowing limits
+that read_bonds reads, such as 2023-2 §3–§3B), recognises the §11.3 patterns: figure changes,
+date extensions, item insertions, replacements, strikes and renumberings, text-only changes,
 transfers and direct appropriations. Interim ("1/12th") budgets are direct appropriations, so they
 are read here rather than typed by hand. "Said item … of said section 2 of said chapter 28" is
 resolved by carrying the last named law, section and item forward.
 
 These go to reports/unread_sections.csv for a human to explain (§13.6): an outside section that
-mentions dollars and an item or appropriation but matches no pattern; an amendment whose text
-names a line item but produces no row; and an outside section that lists line items itself, which
-no stage reads. A row whose section has a misprinted dollar figure ("$15,000,0000") gets `low`
-confidence.
+mentions dollars and an item or appropriation, or a transfer by the comptroller, but matches no
+pattern; an amendment whose text names a line item but produces no row; and an outside section
+that lists line items itself, which no stage reads. Only in-scope laws are reported: a
+reference-only law is read for its items' history, but it adds no rows to the dataset, so its
+unread sections are only counted. A row whose section has a misprinted dollar figure
+("$15,000,0000") gets `low` confidence. A law misprinted in a citation is corrected through
+config/citation_fixes.csv (§7.18).
 
-An outside section that looks vetoed (struck-through text, or a "Governor disapproved of the
-following section" note) is still read, but its rows get `low` confidence and it is listed in
-reports/unread_sections.csv so a human checks whether the Legislature overrode the veto. Inline
-veto markup is a hint, not truth (§11.4).
+A section the Governor returned with a recommendation of amendment isn't law in that chapter (the
+Legislature's version, if any, is a later chapter), so it gives no rows and is listed in
+reports/unread_sections.csv. An outside section that looks vetoed (struck-through text, or a
+"Governor disapproved of the following section" note) is still read, but its rows get `low`
+confidence and it is listed in reports/unread_sections.csv so a human checks whether the
+Legislature overrode the veto. Inline veto markup is a hint, not truth (§11.4).
 
 This stage only records what each law says. The running amounts table and the struck-figure check
 (§5.5) need dates and CTHRU amounts, so they belong in `combine` and `validate`.
@@ -32,11 +39,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ma_approps import paragraphs, read_items, schemas
+from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.6.0"
+READER_VERSION = "0.10.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -61,10 +68,19 @@ AMENDED_RE = re.compile(
 AS_AMENDED_RE = re.compile(
     r",\s*as (?:most recently |so |further )?(?:amended|appearing|inserted)\b[^,]*,"
 )
+# Chapter numbers can carry a half: "chapter 159A1⁄2 of the General Laws" (2020-383 §8). A
+# chapter of the resolves isn't an appropriation act, so it is treated like the General Laws.
 CHAPTER_RE = re.compile(
-    r"\b(said\s+)?chapter\s+(\d+[A-Z]*)"
-    r"(?:\s+of\s+the\s+acts\s+of\s+(\d{4})|\s+of\s+the\s+(General\s+Laws))?",
+    r"\b(said\s+)?chapter\s+(\d+[A-Z]*(?:1⁄2|½|1/2)?)"
+    r"(?:\s+of\s+the\s+acts\s+of\s+(\d{4})|\s+of\s+the\s+(General\s+Laws|resolves\s+of\s+\d{4}))?",
     re.I,
+)
+# Only the General Laws have an "Official Edition", and "as so appearing" refers back to one
+# (2024-238 §101: "Section 29K of said chapter 29, as appearing in the 2022 Official Edition").
+OFFICIAL_EDITION_RE = re.compile(r"Official Edition|as so appearing", re.I)
+RENUMBER_RE = re.compile(
+    rf'striking out the (?:figure|item number) "(?P<old>{ITEM})" and inserting in place'
+    rf" thereof the following (?:figure|item number):-\s*(?P<new>{ITEM})"
 )
 ITEMS_RE = re.compile(rf"items?\s+({ITEM}(?:(?:,\s*|,?\s+and\s+){ITEM})*)")
 # An amendment's subject that is an item, or a clause of one: "Clause (2) of item 3722-8899 of
@@ -116,11 +132,39 @@ TRANSFER_FROM_RE = re.compile(
     r"(?P<qual>the greater of |the lesser of |up to |not more than |not less than )?"
     r"\$\s*(?P<amount>[\d,]+)"
 )
+# Other wordings of a transfer by the comptroller or the secretary of administration and finance
+# (the actors of the `laws` stage's "transfers money" signal): a list, "transfer: (i) an amount not
+# to exceed $10,000,000 from … to …; and (ii) …" (2021-102 §84) or "transferring no less than:
+# (i) $350,000,000 to …" (2021-33 §2); no source, "transfer $1,399,699,283, or such amount as may
+# be required, to …" (2022-126 §163); words between the figure and "from", "transfer
+# $4,891,987,249.40 allocated to the commonwealth from …" (2021-22 §3, read as whole dollars).
+TRANSFER_ACTOR_RE = re.compile(
+    r"\b(?:comptroller|secretary of administration and finance)\b[^.;]{0,160}?"
+    r"\btransfer(?:s|red|ring)?\b",
+    re.I,
+)
+# The figure must come soon after the verb, as in the `laws` signal: not "reduce any transfers …
+# by an amount not to exceed $375,000,000" (2024-140 §224) or "transfer funds in excess of …
+# after the exhaustion of the $75,000,000" (2021-16 §11)
+FIGURE_WINDOW = 60
+TRANSFER_MONEY_RE = re.compile(
+    TRANSFER_ACTOR_RE.pattern + rf"[^.;]{{0,{FIGURE_WINDOW}}}?\$\s*\d", re.I
+)
+# The clause ends at a semicolon, unless a list goes on ("; and (ii)"), or at a new sentence or
+# subsection (". (b)")
+TRANSFER_CLAUSE_END_RE = re.compile(r";(?!\s*(?:and|or)\s+\([ivx]+\))|(?<=\.)\s+(?=[A-Z(])")
+LIST_ITEM_RE = re.compile(r"\((?:i{1,3}|iv|vi{0,3}|ix|x)\)\s*")
+AMOUNT_RE = re.compile(r"\$\s*(?P<amount>\d[\d,]*)(?:\.\d\d)?")
+# The figure isn't the amount moved: an estimate, or a figure for each of several years
+# (2025-73 §191: "$50,000,000 each such fiscal year")
+ESTIMATE_RE = re.compile(r",?\s*(?:or such (?:other )?amount|each\b)")
 FUND_RE = re.compile(r"\bfrom the ((?:[A-Z][\w’'&.-]*\s+)+?Fund)\b")
-# A fund named as a transfer's source, even in lowercase: "the federal COVID-19 response fund"
+# A fund named as a transfer's source, even in lowercase: "the federal COVID-19 response fund".
+# Not "the undesignated fund balance in the General Fund" (2022-268 §265): that money is the
+# General Fund's.
 FUND_NAME_RE = re.compile(
     r"\bthe ((?:(?!(?:the|of|in|or|and|to|from|by|for|established|section|chapter|item)\b)"
-    r"[\w’'&.-]+ ){0,6}?[Ff]und)\b"
+    r"[\w’'&.-]+ ){0,6}?[Ff]und)\b(?!\s+balance)"
 )
 MONEY_RE = re.compile(r"\$\s*\d")
 ITEM_OR_APPROP_RE = re.compile(rf"\bitems?\s+{ITEM}|appropriat", re.I)
@@ -141,7 +185,8 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     A Governor's note comes just before what it is about, so it is held back: before a new
     section it only marks that section, and anywhere else it stays in place in the text. A section
-    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved.
+    is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved,
+    and ``returned`` if a note says the Governor returned it with a recommendation of amendment.
     """
     out: list[dict[str, Any]] = []
     notes: list[str] = []
@@ -150,7 +195,10 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
             notes.append(p["text"])
             continue
         if m := SECTION_START_RE.match(p["text"]) or SECTION2_HEADING_RE.match(p["text"]):
-            out.append({"section": m[1].upper(), "texts": [], "vetoed": False})
+            returned = any("returned" in n and "amendment" in n for n in notes)
+            out.append(
+                {"section": m[1].upper(), "texts": [], "vetoed": False, "returned": returned}
+            )
         elif out:
             out[-1]["texts"] += notes
         if out:
@@ -178,17 +226,15 @@ def _chapter_law(m: re.Match, chapters: dict[str, str]) -> str | None:
     """Law key for a chapter mention; "GL" for the General Laws; None if unknown."""
     if m[3]:
         return schemas.law_key(m[3], m[2])
-    if m[4]:
-        return "GL"
     if m[1]:
         return chapters.get(m[2])
-    return None
+    return "GL"  # "of the General Laws", a resolve, or a bare "chapter 40R"
 
 
 def _remember_chapters(text: str, chapters: dict[str, str]) -> None:
-    """Record every explicit chapter mention so a later "said chapter N" can be resolved."""
+    """Record every chapter mention so a later "said chapter N" can be resolved."""
     for m in CHAPTER_RE.finditer(text):
-        if m[3] or m[4]:
+        if not m[1]:
             chapters[m[2]] = _chapter_law(m, chapters)
 
 
@@ -203,6 +249,8 @@ def _resolve(
         law = law_key
     elif ch:
         law = _chapter_law(ch, chapters)
+    elif "General Laws" in subject:  # "The General Laws are hereby amended by inserting …"
+        law = "GL"
     elif "said" in subject.lower():
         law = last["law"]
     else:
@@ -281,6 +329,10 @@ def _amendment_actions(
             {"action_type": "item_insert", "target_item": i, "new_figure": amount}
             for i, amount in _inserted_items(rest).items()
         ]
+    # An item renumbered in an earlier law (2021-102 §46: 'striking out the figure "7002-0015"
+    # and inserting in place thereof the following figure:- 7002-0016'): no money changes
+    if m := RENUMBER_RE.search(predicate):
+        return [{"action_type": "purpose_change", "target_item": m["old"], "to_item": m["new"]}]
     if not items:
         return []
 
@@ -367,64 +419,105 @@ def _sentence_actions(
                     "fund_raw": fund[1] if fund else None,
                 }
             )
+        transfers = len(actions)
         for m in TRANSFER_RE.finditer(sentence):
-            # The source runs to the first "to" after the source's first fund or item: "the
-            # prescription advantage program in line-item 9110-1455 … and the Health Safety Net
-            # Trust Fund … to support". A "to" before that is part of its description ("the
-            # startup costs for Revolution 250 related to the planning … established in item
-            # 1599-6077 … to the Massachusetts Tourism Trust Fund", 2023-2 §76). The destination is
-            # the first item after the split, however it is named: "to item …" or "to the reserve
-            # established in item 1599-0514 of section 2A of chapter 77 …" (2024-88 §25).
-            anchor = re.search(rf"{ITEM}|\b[Ff]und\b", m["tail"])
-            cut = re.compile(r"\bto\b").search(m["tail"], anchor.end() if anchor else 0)
-            source = m["tail"][: cut.start()] if cut else m["tail"]
-            dest = m["tail"][cut.end() :] if cut else ""
-            from_item = re.search(rf"\bitems?\s+({ITEM})", source)
-            to_item = re.search(rf"\bitems?\s+({ITEM})", dest)
-            funds = list(dict.fromkeys(FUND_NAME_RE.findall(source)))
-            actions.append(
-                {
-                    "action_type": "transfer",
-                    "amount": _int(m["amount"]),
-                    "from_item": from_item[1] if from_item else None,
-                    "to_item": to_item[1] if to_item else None,
-                    "fund_raw": "; ".join(funds) or None,
-                    # fund-to-fund transfers carry no items; a human should confirm them
-                    "confidence": "high" if from_item and to_item else "medium",
-                }
-            )
+            actions.append(_transfer(m["amount"], *_source_and_destination(m["tail"])))
         for m in TRANSFER_FROM_RE.finditer(sentence):
-            from_item = re.search(rf"\bitems?\s+({ITEM})", m["source"])
-            to_item = re.search(rf"\bitems?\s+({ITEM})", m["dest"])
-            funds = list(dict.fromkeys(FUND_NAME_RE.findall(m["source"])))
             # "the greater of $45,000,000 or 1/12 of …": the stated figure is only a bound
             bound = m["qual"] in ("the greater of ", "the lesser of ")
+            actions.append(_transfer(m["amount"], m["source"], m["dest"], bound))
+        if len(actions) == transfers:
+            actions += _other_transfers(sentence)
+    return actions
+
+
+def _source_and_destination(tail: str) -> tuple[str, str]:
+    """Split the words after "from" into a transfer's source and destination.
+
+    The source runs to the first "to" (or "into") after its first fund or item: "the prescription
+    advantage program in line-item 9110-1455 … and the Health Safety Net Trust Fund … to support".
+    A "to" before that is part of its description ("the startup costs for Revolution 250 related
+    to the planning … established in item 1599-6077 … to the Massachusetts Tourism Trust Fund",
+    2023-2 §76). The destination is the first item after the split, however it is named: "to item
+    …" or "to the reserve established in item 1599-0514 of section 2A of chapter 77 …"
+    (2024-88 §25).
+    """
+    anchor = re.search(rf"{ITEM}|\b[Ff]und\b", tail)
+    cut = re.compile(r"\b(?:in)?to\b").search(tail, anchor.end() if anchor else 0)
+    return (tail[: cut.start()], tail[cut.end() :]) if cut else (tail, "")
+
+
+def _transfer(amount: str, source: str, dest: str, low: bool = False) -> dict[str, Any]:
+    from_item = re.search(rf"\bitems?\s+({ITEM})", source)
+    to_item = re.search(rf"\bitems?\s+({ITEM})", dest)
+    funds = list(dict.fromkeys(FUND_NAME_RE.findall(source)))
+    return {
+        "action_type": "transfer",
+        "amount": _int(amount),
+        "from_item": from_item[1] if from_item else None,
+        "to_item": to_item[1] if to_item else None,
+        "fund_raw": "; ".join(funds) or None,
+        # fund-to-fund transfers carry no items; a human should confirm them
+        "confidence": "low" if low else ("high" if from_item and to_item else "medium"),
+    }
+
+
+def _other_transfers(sentence: str) -> list[dict[str, Any]]:
+    """Transfers by the comptroller or the secretary of administration and finance in the other
+    wordings (TRANSFER_ACTOR_RE): one per figure, or per "(i)", "(ii)" … in a list."""
+    actions: list[dict[str, Any]] = []
+    end = 0
+    for m in TRANSFER_ACTOR_RE.finditer(sentence):
+        if m.start() < end:
+            continue  # "said transfers" inside a clause already read
+        rest = sentence[m.end() :]
+        stop = TRANSFER_CLAUSE_END_RE.search(rest)
+        clause = rest[: stop.start()] if stop else rest
+        end = m.end() + len(clause)
+        parts = LIST_ITEM_RE.split(clause)[1:] if re.search(r":\s*\(i\)", clause) else [clause]
+        for part in parts:
+            figure = AMOUNT_RE.search(part)
+            if not figure or figure.start() > FIGURE_WINDOW:
+                continue
+            after = part[figure.end() :]
+            source = re.search(r"\bfrom\s+", after)
+            if source:
+                source_text, dest = _source_and_destination(after[source.end() :])
+            else:  # "transfer $20,000,000 to the …", "… of the General Fund to the …"
+                cut = re.search(r"\b(?:in)?to\b", after)
+                source_text, dest = (after[: cut.start()], after[cut.end() :]) if cut else ("", "")
             actions.append(
-                {
-                    "action_type": "transfer",
-                    "amount": _int(m["amount"]),
-                    "from_item": from_item[1] if from_item else None,
-                    "to_item": to_item[1] if to_item else None,
-                    "fund_raw": "; ".join(funds) or None,
-                    "confidence": "low"
-                    if bound
-                    else ("high" if from_item and to_item else "medium"),
-                }
+                _transfer(figure["amount"], source_text, dest, bool(ESTIMATE_RE.match(after)))
             )
     return actions
 
 
-def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[dict]]:
-    """amendments_raw rows and unread_sections rows for one law, in source order."""
+def read_law(
+    law_key: str, law_type: str, html: str, fixes: dict[tuple[str, str], str] | None = None
+) -> tuple[list[dict], list[dict]]:
+    """amendments_raw rows and unread_sections rows for one law, in source order.
+
+    ``fixes`` maps (section, law cited) to the law meant, for citations misprinted in this law
+    (config/citation_fixes.csv, e.g. ("35", "2022-24") -> "2021-24" in 2024-248).
+    """
+    fixes = fixes or {}
     rows: list[dict] = []
     unread: list[dict] = []
     chapters: dict[str, str] = {}
     last: dict[str, Any] = {"law": None, "section": None}
-    for s in _sections(paragraphs.paragraphs(law_key, html)):
+    paras = paragraphs.paragraphs(law_key, html)
+    capital = read_bonds.capital_sections(paras)  # read_bonds reads these sections' items
+    # ... and, in laws with capital items, the borrowing limits ("issue and sell bonds", §7.16)
+    borrows = law_type in read_bonds.LAW_TYPES or bool(capital)
+    for s in _sections(paras):
         section, texts = s["section"], s["texts"]
         keyed = [paragraphs.key(t) for t in texts]
         full = "\n".join(keyed)
-        if law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section):
+        if (
+            (law_type in APPROP_LAW_TYPES and APPROP_SECTION_RE.match(section))
+            or section in capital
+            or (borrows and read_bonds.BORROW_RE.search(texts[0]))
+        ):
             _remember_chapters(full, chapters)
             continue
 
@@ -445,6 +538,8 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                 m, rest, nested = inner_m, rest[1:], True
         if m:
             target = _resolve(AS_AMENDED_RE.sub("", m["subject"]), law_key, chapters, last)
+            if target is None and OFFICIAL_EDITION_RE.search(m["subject"]):
+                target = ("GL", None, [])
             if target is None:
                 reason = "could not tell which law this section amends"
             elif target[0] != "GL":
@@ -478,14 +573,27 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                 reason = "amends text that names a line item but matched no pattern"
             elif MONEY_RE.search(full) and ITEM_OR_APPROP_RE.search(full):
                 reason = "mentions dollars and an item or appropriation but matched no pattern"
+            elif TRANSFER_MONEY_RE.search(full):
+                # a transfer between funds names no item: 2021-22 §3 was missed this way
+                reason = "mentions dollars and a transfer by the comptroller but matched no pattern"
         if actions and s["vetoed"]:
             reason = "looks vetoed (struck text or a veto note); check whether it was overridden"
+        if s["returned"] and (actions or reason):
+            # Not law in this chapter: the Legislature acts on the Governor's amendment in a
+            # separate bill, which becomes its own chapter (2021-24 §102–§103 became 2021 ch. 33).
+            # Listed only when it would have given rows or been unread anyway.
+            actions = []
+            reason = (
+                "returned by the Governor with a recommendation of amendment, so it isn't law in"
+                " this chapter; the Legislature's version, if any, is a later chapter"
+            )
         if reason:
             unread.append(
                 {"law_key": law_key, "section": section, "reason": reason, "text": texts[0][:500]}
             )
         low = s["vetoed"] or _misprinted_figure(full)
         for a in actions:
+            fixed = fixes.get((section, a.get("target_law_key") or ""))
             rows.append(
                 {
                     "law_key": law_key,
@@ -494,6 +602,8 @@ def read_law(law_key: str, law_type: str, html: str) -> tuple[list[dict], list[d
                     "reader_version": READER_VERSION,
                     "confidence": "high",
                     **a,
+                    # a corrected citation: the law named isn't the one meant (§7.18)
+                    **({"target_law_key": fixed, "confidence": "medium"} if fixed else {}),
                     **({"confidence": "low"} if low else {}),
                 }
             )
@@ -510,27 +620,51 @@ def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[dict]) -
             w.writerow({c: "" if r.get(c) is None else r[c] for c in columns})
 
 
+def citation_fixes(ctx: Context) -> dict[str, dict[tuple[str, str], str]]:
+    """config/citation_fixes.csv as {law_key: {(section, printed): target_law_key}} (§7.18)."""
+    path = ctx.config_dir / "citation_fixes.csv"
+    fixes: dict[str, dict[tuple[str, str], str]] = {}
+    if path.exists():
+        for r in schemas.read_csv(path)[1]:
+            fixes.setdefault(r["law_key"], {})[r["section"], r["printed"]] = r["target_law_key"]
+    return fixes
+
+
 def run(ctx: Context) -> int:
+    all_fixes = citation_fixes(ctx)
     _, laws = schemas.read_csv(ctx.config_dir / "law_list.csv")
-    laws = [r for r in laws if r["role"] in ("in_scope", "reference_only")]
+    laws = [
+        r
+        for r in laws
+        if r["role"] in ("in_scope", "reference_only") and r["parse_strategy"] != "manual"
+    ]
     if ctx.law:
         laws = [r for r in laws if r["law_key"] == ctx.law]
     rows: list[dict] = []
     unread: list[dict] = []
-    read, missing = 0, 0
+    read, missing, reference_unread = 0, 0, 0
     for law in sorted(laws, key=lambda r: (int(r["acts_year"]), int(r["chapter"]))):
         path = ctx.raw_dir / "sessionlaws" / law["acts_year"] / f"{law['chapter']}.json"
         if not path.exists():
             missing += 1
             continue
         html = json.loads(path.read_text("utf-8"))["ChapterText"]
-        law_rows, law_unread = read_law(law["law_key"], law["law_type"], html)
+        fixes = all_fixes.get(law["law_key"], {})
+        law_rows, law_unread = read_law(law["law_key"], law["law_type"], html, fixes)
+        for (section, printed), target in fixes.items():
+            if not any(r["section"] == section and r["target_law_key"] == target for r in law_rows):
+                print(f"  warning: citation fix {law['law_key']} §{section} ({printed}) not used")
         rows += law_rows
-        unread += law_unread
+        if law["role"] == "in_scope":
+            unread += law_unread
+        else:
+            reference_unread += len(law_unread)
         read += 1
     _write(ctx.interim_dir / "amendments_raw.csv", schemas.columns("amendments_raw"), rows)
     _write(ctx.reports_dir / "unread_sections.csv", UNREAD_COLUMNS, unread)
     print(f"  read {read} laws: {len(rows)} amendment rows, {len(unread)} unread sections")
+    if reference_unread:
+        print(f"  {reference_unread} unread sections in reference-only laws (not reported)")
     if missing:
         print(f"  {missing} laws on the law list have no cached text yet (run the laws stage)")
     return 0

@@ -12,7 +12,7 @@ import csv
 from datetime import date
 from pathlib import Path
 
-from ma_approps import schemas
+from ma_approps import combine, schemas
 from ma_approps.context import Context
 from ma_approps.schemas import Problem
 
@@ -32,6 +32,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("department_policy_areas", ctx.config_dir / "department_policy_areas.csv"),
         ("item_number_fixes", ctx.config_dir / "item_number_fixes.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
+        ("citation_fixes", ctx.config_dir / "citation_fixes.csv"),
         ("raw_manifest", ctx.raw_dir / "manifest.csv"),
         *(
             (name, interim / f"{name}.csv")
@@ -126,6 +127,23 @@ def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
     return found
 
 
+def check_amendment_amounts(ctx: Context) -> list[dict] | None:
+    """§13 check 3 (workstream C): every amendment that changes an item's amount, with the item's
+    running amount before and after and the struck-figure check (combine.amendment_amounts).
+    None when read_amendments hasn't run. Reported only, not a failure, until Q21 and Q27 decide
+    what the flagged rows mean."""
+    if not (ctx.interim_dir / "amendments_raw.csv").exists():
+        return None
+
+    def rows(path: Path) -> list[dict[str, str]]:
+        return schemas.read_csv(path)[1] if path.exists() else []
+
+    items = rows(ctx.interim_dir / "items_raw.csv") + rows(ctx.interim_dir / "bond_items_raw.csv")
+    return combine.amendment_amounts(
+        items, rows(ctx.interim_dir / "amendments_raw.csv"), rows(ctx.config_dir / "law_list.csv")
+    )
+
+
 def write_problems(path: Path, problems: list[tuple[Path, Problem]], root: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -147,4 +165,16 @@ def run(ctx: Context) -> int:
     print(
         f"  schema problems: {len(schema_problems)}; unexplained unread rows: {len(unread)}"
     )
+    amounts = check_amendment_amounts(ctx)
+    if amounts is not None:
+        path = out / "amendment_amounts.csv"
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=combine.AMOUNT_COLUMNS, lineterminator="\n")
+            w.writeheader()
+            w.writerows({k: "" if v is None else v for k, v in r.items()} for r in amounts)
+        review = sum(r["review"] == "true" for r in amounts)
+        print(
+            f"  amendment amounts: {len(amounts)} changes, {review} to review in {path.name}"
+            " (reported, not yet a failure: Q21, Q27)"
+        )
     return 1 if schema_problems or unread else 0
