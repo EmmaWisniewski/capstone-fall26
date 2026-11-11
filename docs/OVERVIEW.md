@@ -119,7 +119,7 @@ for their own area.
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` and `read_items` merged; supplemental and §2D rows for `combine` in review) |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ (`read_amendments` and the running-amounts check merged; amendment rows for `combine` and `running_amounts.csv` in review; unread sections left for Q22) |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list, line-item catalog and funds list done; `label.py` session 1 merged, session 2 in review) |
-| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ◐ (CTHRU download merged; annual rows for `combine` in review; the CTHRU comparison in `validate` next) |
+| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ◐ (CTHRU download and annual rows merged; the CTHRU and bond checks and the unread explanations in `validate` in review) |
 | — | **Emma (core) + everyone** | **Putting it together:** combining the pieces into the final dataset; Emma owns the shared core of `combine` | Waits on the above (milestone M1) | ☐ |
 
 **Scope decided:** the project covers appropriations (what laws authorized), not what the
@@ -132,7 +132,7 @@ state actually *spent*. Our partner set this at the proposal stage
 |---|---|---|
 | **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ☑ (signed off by the group, 2026-11-10) |
 | **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
-| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ◐ (annual rows built for FY2022–FY2026, in review; 3 mismatches and the items read as vetoed still to explain) |
+| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ◐ (annual rows built and merged for FY2022–FY2026; the CTHRU comparison now lists the differences, and they and the items read as vetoed are still to explain) |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
 | **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ◐ (items and borrowing limits read by code; check 7 and the capital file next) |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |

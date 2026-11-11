@@ -390,6 +390,17 @@ SCHEMAS["corrections"] = _cols(
     "note",
 )
 
+# §7.19 review/unread_explanations.csv (human-edited; why an unread row needs no code; Q22)
+UNREAD_REPORTS = ("unread_paragraphs", "unread_paragraphs_bonds", "unread_sections")
+SCHEMAS["unread_explanations"] = _cols(
+    Col("report", "enum", UNREAD_REPORTS, required=True),
+    Col("law_key", required=True),
+    Col("section", required=True),
+    Col("explanation", required=True),
+    Col("explained_by", required=True),
+    Col("date", "date", required=True),
+)
+
 # §7.18 config/citation_fixes.csv (human-curated; laws misprinted in an amending section's citation)
 SCHEMAS["citation_fixes"] = _cols(
     Col("law_key", required=True),

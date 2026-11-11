@@ -1,9 +1,10 @@
 """`validate`: the validation suite (DESIGN §13). Owner: workstream E.
 
-M0 implements check 1 (file formats and allowed values) and the coverage check on the
-``unread_*`` reports. The remaining checks land with their milestones:
-example rows (M1), CTHRU comparison (M2/M3), struck-figure (M3), bond totals (M4),
-law status and orphaned corrections (M5).
+Implemented: check 1 (file formats and allowed values), the coverage check on the ``unread_*``
+reports (a row is explained in the report's own column or in review/unread_explanations.csv,
+§7.19, Q22), check 3 (struck figures), check 4 (CTHRU comparison) and check 7 (bond totals).
+Checks 3, 4 and 7 are reported, not failures. Still to come: example rows (M1), law status and
+orphaned corrections (M5).
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("department_policy_areas", ctx.config_dir / "department_policy_areas.csv"),
         ("item_number_fixes", ctx.config_dir / "item_number_fixes.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
+        ("unread_explanations", ctx.review_dir / "unread_explanations.csv"),
         ("citation_fixes", ctx.config_dir / "citation_fixes.csv"),
         ("raw_manifest", ctx.raw_dir / "manifest.csv"),
         *(
@@ -113,18 +115,64 @@ def check_schemas(ctx: Context) -> list[tuple[Path, Problem]]:
     return found
 
 
+def _explanations(ctx: Context) -> tuple[Path, list[dict[str, str]]]:
+    """``review/unread_explanations.csv`` (§7.19, Q22): where a person says why an unread row needs
+    no code. The reports themselves are generated and are never hand-edited."""
+    path = ctx.review_dir / "unread_explanations.csv"
+    return path, (schemas.read_csv(path)[1] if path.exists() else [])
+
+
 def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
-    """§13.6: unread reports must be empty or every row explained (an `explanation` column)."""
+    """§13.6: unread reports must be empty or every row explained.
+
+    A row is explained by its own `explanation` column or by a row of
+    ``review/unread_explanations.csv`` with the same report, law and section and a written
+    explanation. One explanation covers every row of that section, which is what a paragraph
+    report needs.
+    """
+    _, explanations = _explanations(ctx)
+    explained = {
+        (e.get("report", ""), e.get("law_key", ""), e.get("section", ""))
+        for e in explanations
+        if (e.get("explanation") or "").strip()
+    }
     found = []
-    for name in ("unread_paragraphs", "unread_paragraphs_bonds", "unread_sections"):
+    for name in schemas.UNREAD_REPORTS:
         path = ctx.reports_dir / f"{name}.csv"
         if not path.exists():
             continue
         _, rows = schemas.read_csv(path)
         for i, r in enumerate(rows, start=1):
-            if not (r.get("explanation") or "").strip():
-                found.append((path, Problem(name, i, "explanation", "unread row not explained")))
+            if (r.get("explanation") or "").strip():
+                continue
+            if (name, r.get("law_key", ""), r.get("section", "")) in explained:
+                continue
+            found.append((path, Problem(name, i, "explanation", "unread row not explained")))
     return found
+
+
+def check_orphaned_explanations(ctx: Context) -> list[tuple[Path, Problem]]:
+    """An explanation that matches no unread row, for example after a reader fix removed the row.
+    Reported, not a failure. Nothing is reported while the unread reports haven't been written,
+    because a missing report says nothing about the explanations."""
+    path, explanations = _explanations(ctx)
+    keys: set[tuple[str, str, str]] = set()
+    any_report = False
+    for name in schemas.UNREAD_REPORTS:
+        report = ctx.reports_dir / f"{name}.csv"
+        if report.exists():
+            any_report = True
+            keys |= {
+                (name, r.get("law_key", ""), r.get("section", ""))
+                for r in schemas.read_csv(report)[1]
+            }
+    if not any_report:
+        return []
+    return [
+        (path, Problem("unread_explanations", i, "section", "matches no unread row"))
+        for i, e in enumerate(explanations, start=1)
+        if (e.get("report", ""), e.get("law_key", ""), e.get("section", "")) not in keys
+    ]
 
 
 def check_amendment_amounts(ctx: Context) -> list[dict] | None:
@@ -238,8 +286,12 @@ def check_cthru(
     years whose budget law is outside the window (FY2021) don't show as missing money.
 
     - ``gaa``: ORIG appropriations vs CTHRU ``original_enacted``.
-    - ``supplemental``: counted NEW + INC + RED amounts vs ``supplemental``.
-    - ``retained_revenue``: ORIG fee-revenue ceilings vs ``retained_revenue_ceiling``.
+    - ``supplemental``: NEW + INC + RED amounts vs ``supplemental``. Every row counts, whether or
+      not it counts toward the operating total: CTHRU carries federal and ARPA money too.
+    - ``retained_revenue``: fee-revenue ceilings vs ``retained_revenue_ceiling``. CTHRU shows §2B
+      chargebacks only as ceilings, so those rows go here, not to ``gaa``. A same-year increase
+      to such an item (a supplement, or an amendment of the GAA's figure) is added to its
+      ceiling, because CTHRU folds it in (8100-0102 FY2024: $45M printed + $7M = $52M).
     §2D federal grant rows are left out: CTHRU doesn't carry them (§10). Known non-law differences
     (9C cuts) aren't annotated yet. Returns (matches, mismatch rows)."""
     orig = [
@@ -249,6 +301,22 @@ def check_cthru(
         and r["line_item"]
         and r["section_type"] != "federal_grants"
     ]
+    deltas = [
+        r
+        for r in actions
+        if r["funding_action"] in SUPPLEMENTAL_ACTIONS
+        and r["amount_kind"] in ("appropriation", "delta")  # INC and RED are deltas
+        and r["line_item"]
+        and r["section_type"] != "federal_grants"
+    ]
+
+    def is_ceiling(r: dict[str, str]) -> bool:
+        return r["amount_kind"] == "retained_revenue_ceiling" or r["section_type"] == "isf"
+
+    ceiling_keys = {(r["fiscal_year"], r["line_item"]) for r in orig if is_ceiling(r)}
+    ceiling_keys |= {
+        (r["fiscal_year"], r["line_item"]) for r in deltas if r["section_type"] == "isf"
+    }
     years = {
         r["primary_fy"]
         for r in law_list
@@ -273,31 +341,25 @@ def check_cthru(
     def amount(r: dict[str, str]) -> int:
         return _int(r["amount"])
 
+    def in_ceiling_group(r: dict[str, str]) -> bool:
+        return (r["fiscal_year"], r["line_item"]) in ceiling_keys
+
     parts = [
         _compare(
             "gaa",
-            group([r for r in orig if r["amount_kind"] == "appropriation"]),
+            group([r for r in orig if r["amount_kind"] == "appropriation" and not is_ceiling(r)]),
             theirs("original_enacted"),
             amount,
         ),
         _compare(
             "supplemental",
-            group(
-                [
-                    r
-                    for r in actions
-                    if r["funding_action"] in SUPPLEMENTAL_ACTIONS
-                    and r["amount_kind"] in ("appropriation", "delta")  # INC and RED are deltas
-                    and r["counts_toward_total"] == "true"
-                    and r["line_item"]
-                ]
-            ),
+            group([r for r in deltas if not in_ceiling_group(r)]),
             theirs("supplemental"),
             amount,
         ),
         _compare(
             "retained_revenue",
-            group([r for r in orig if r["amount_kind"] == "retained_revenue_ceiling"]),
+            group([r for r in orig if is_ceiling(r)] + [r for r in deltas if in_ceiling_group(r)]),
             theirs("retained_revenue_ceiling"),
             amount,
         ),
@@ -415,11 +477,18 @@ def run(ctx: Context) -> int:
     unread = check_unread(ctx)
     write_problems(out / "schema_problems.csv", schema_problems, ctx.root)
     write_problems(out / "unread_unexplained.csv", unread, ctx.root)
+    orphaned = check_orphaned_explanations(ctx)
+    write_problems(out / "unread_explanations_orphaned.csv", orphaned, ctx.root)
     for path, p in schema_problems + unread:
         print(f"  {path.name}:{p.row} {p.column}: {p.message}")
     print(
         f"  schema problems: {len(schema_problems)}; unexplained unread rows: {len(unread)}"
     )
+    if orphaned:
+        print(
+            f"  explanations matching no unread row: {len(orphaned)} in "
+            "unread_explanations_orphaned.csv (reported, not a failure)"
+        )
     amounts = check_amendment_amounts(ctx)
     if amounts is not None:
         path = out / "amendment_amounts.csv"

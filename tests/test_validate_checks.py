@@ -92,12 +92,14 @@ def test_supplemental_increases_are_deltas_and_still_count():
     assert (matched, report) == (2, [])
 
 
-def test_supplementals_add_new_inc_and_red_and_leave_out_uncounted_rows():
+def test_supplementals_add_new_inc_and_red_whether_or_not_they_count():
+    # CTHRU carries federal and ARPA money too, so a row that doesn't count toward the operating
+    # total still belongs in the comparison
     actions = [
         action(),
         action(funding_action="NEW", law_key="2025-9", amount="40"),
-        action(funding_action="RED", law_key="2025-9", amount="-10"),
-        action(funding_action="INC", law_key="2025-9", amount="999", counts_toward_total="false"),
+        action(funding_action="RED", law_key="2025-9", amount="-15"),
+        action(funding_action="INC", law_key="2025-9", amount="5", counts_toward_total="false"),
     ]
     matched, report = run_cthru(
         actions, [cthru(original_enacted="100", supplemental="30")]
@@ -122,6 +124,41 @@ def test_retained_revenue_ceilings_are_compared_separately():
         actions, [cthru(original_enacted="", retained_revenue_ceiling="60")]
     )
     assert by_status(report) == {("retained_revenue", "1000-0001"): "unexplained"}
+
+
+def test_chargebacks_are_compared_with_cthrus_ceiling_not_its_original_amount():
+    # CTHRU shows §2B accounts at $0 enacted with a retained-revenue ceiling
+    actions = [action(section_type="isf", amount="70", flags="isf_chargeback")]
+    rows = [cthru(original_enacted="", retained_revenue_ceiling="70")]
+    assert run_cthru(actions, rows) == (1, [])
+
+
+def test_chargebacks_cthru_lacks_are_reported_once_as_ceilings():
+    # FY2025 lists only 12 chargeback accounts (issue #36): ours with no CTHRU ceiling show here
+    actions = [action(section_type="isf", amount="70")]
+    _, report = run_cthru(actions, [cthru("1000-0009", retained_revenue_ceiling="5")])
+    assert by_status(report) == {
+        ("retained_revenue", "1000-0001"): "not_in_cthru",
+        ("retained_revenue", "1000-0009"): "missing_in_data",
+    }
+
+
+def test_an_increase_to_a_fee_revenue_item_is_added_to_its_ceiling_cthru_folds_it_in():
+    actions = [
+        action(amount_kind="retained_revenue_ceiling", amount="45", flags="retained_revenue"),
+        action(funding_action="INC", amount_kind="delta", law_key="2024-206", amount="7"),
+        action(funding_action="INC", amount_kind="delta", law_key="2024-206", amount="0"),
+    ]
+    rows = [cthru(retained_revenue_ceiling="52")]  # no CTHRU supplemental for the item
+    assert run_cthru(actions, rows) == (1, [])
+
+
+def test_a_chargeback_increase_is_added_to_the_chargeback_ceiling():
+    actions = [
+        action(section_type="isf", amount="100"),
+        action(section_type="isf", funding_action="INC", amount_kind="delta", amount="21"),
+    ]
+    assert run_cthru(actions, [cthru(retained_revenue_ceiling="121")]) == (1, [])
 
 
 # -- Bond totals ---------------------------------------------------------------------------
