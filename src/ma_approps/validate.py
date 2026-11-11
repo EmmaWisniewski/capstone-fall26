@@ -230,19 +230,29 @@ def _compare(
 
 
 def check_cthru(
-    actions: list[dict[str, str]], cthru_rows: list[dict[str, str]]
+    actions: list[dict[str, str]],
+    cthru_rows: list[dict[str, str]],
+    law_list: list[dict[str, str]],
 ) -> tuple[int, list[dict[str, str | int]]]:
-    """§13 check 4 (workstream E). Only fiscal years with a GAA row are compared, so CTHRU years
-    outside the laws read (e.g. FY2026 before its law is in scope) don't show as missing money.
+    """§13 check 4 (workstream E). Only the fiscal years of an in-scope GAA are compared, so CTHRU
+    years whose budget law is outside the window (FY2021) don't show as missing money.
 
     - ``gaa``: ORIG appropriations vs CTHRU ``original_enacted``.
-    - ``supplemental``: counted NEW + INC + RED appropriations vs ``supplemental``.
+    - ``supplemental``: counted NEW + INC + RED amounts vs ``supplemental``.
     - ``retained_revenue``: ORIG fee-revenue ceilings vs ``retained_revenue_ceiling``.
-    Known non-law differences (9C cuts) aren't annotated yet. Returns (matches, mismatch rows)."""
-    orig = [r for r in actions if r["funding_action"] == "ORIG" and r["line_item"]]
-    years = {r["fiscal_year"] for r in orig}
-    cthru_years = {r["fiscal_year"] for r in cthru_rows}
-    years &= cthru_years
+    §2D federal grant rows are left out: CTHRU doesn't carry them (§10). Known non-law differences
+    (9C cuts) aren't annotated yet. Returns (matches, mismatch rows)."""
+    orig = [
+        r
+        for r in actions
+        if r["funding_action"] == "ORIG" and r["line_item"] and r["section_type"] != "federal_grants"
+    ]
+    years = {
+        r["primary_fy"]
+        for r in law_list
+        if r["role"] == "in_scope" and r["law_type"] == "gaa" and r.get("primary_fy")
+    }
+    years &= {r["fiscal_year"] for r in cthru_rows}
 
     def group(rows: list[dict[str, str]]) -> dict[tuple[str, str], list[dict[str, str]]]:
         out: dict[tuple[str, str], list[dict[str, str]]] = {}
@@ -275,7 +285,7 @@ def check_cthru(
                     r
                     for r in actions
                     if r["funding_action"] in SUPPLEMENTAL_ACTIONS
-                    and r["amount_kind"] == "appropriation"
+                    and r["amount_kind"] in ("appropriation", "delta")  # INC and RED are deltas
                     and r["counts_toward_total"] == "true"
                     and r["line_item"]
                 ]
@@ -416,7 +426,8 @@ def run(ctx: Context) -> int:
     actions = _read_rows(ctx.interim_dir / "funding_actions.csv")
     cthru_rows = _read_rows(ctx.interim_dir / "cthru_line_items.csv")
     if actions and cthru_rows:
-        matched, mismatches = check_cthru(actions, cthru_rows)
+        law_list = _read_rows(ctx.config_dir / "law_list.csv")
+        matched, mismatches = check_cthru(actions, cthru_rows, law_list)
         _write_report(out / "cthru_mismatches.csv", CTHRU_COLUMNS, mismatches)
         unexplained = sum(m["status"] in ("unexplained", "missing_in_data", "not_in_cthru")
                           for m in mismatches)
