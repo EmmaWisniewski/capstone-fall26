@@ -86,7 +86,6 @@ SECTION_TYPES = (
     "capital",
     "outside",
     "interim",
-    "prior_approp",  # §2CI/§2CII prior appropriations continued (proposed 2026-11-11, B)
 )
 
 # §9.5

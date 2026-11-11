@@ -27,7 +27,7 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
 import csv
 import re
 from collections.abc import Mapping
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -303,198 +303,6 @@ def capital_total(rows: list[Mapping[str, Any]]) -> int:
     return total
 
 
-# -- Supplemental rows and §2D federal grant rows (workstream B; DESIGN §7.7, §10) -------------
-
-SUPPLEMENTAL_LAW_TYPES = ("supplemental", "surplus", "other")
-
-# What each section of a supplemental budget is, from its own preamble (2021-29, 2023-77, …):
-# section -> (section_type, funding_action, amount_kind, flags)
-SUPPLEMENTAL_SECTIONS = {
-    # "To provide for supplementing certain items in the general appropriation act …"
-    "2": ("approp_main", "INC", "delta", ()),
-    # "To provide for certain unanticipated obligations of the commonwealth …"
-    "2A": ("approp_new", "NEW", "appropriation", ()),
-    # "To provide for supplementing certain intragovernmental chargeback authorizations …"
-    "2B": ("isf", "INC", "delta", ("isf_chargeback",)),
-    # "… balances of appropriations which otherwise would revert … are hereby re-appropriated"
-    "2CI": ("prior_approp", "PAC", "prior_appropriation_continued", ()),
-    # "… balances of retained revenue and intragovernmental chargeback authorizations … are
-    # hereby re-authorized"
-    "2CII": ("prior_approp", "REAUTH", "prior_appropriation_continued", ()),
-    "2D": ("federal_grants", "NEW", "appropriation", ()),
-    # "… hereby appropriated for transfer from the General Fund to the trust funds …" (Q2)
-    "2E": ("trust_transfer", "NEW", "appropriation", ("trust_transfer",)),
-    "2F": ("surtax", "INC", "delta", ()),
-}
-# Any other section: read as new money, flagged for review
-OTHER_SECTION = ("approp_new", "NEW", "appropriation", ("low_confidence_parse",))
-
-# The reader's veto note (§7.3) -> veto_status (§9.9). Vetoes in supplementals can't be checked
-# against CTHRU (it has no per-law amounts), so any veto is also flagged veto_unverified (§5.7).
-SUPPLEMENTAL_VETO_STATUS = {
-    "none": "none",
-    "reduced": "reduced",
-    "reduced_and_wording": "reduced",
-    "overridden": "overridden",
-    "wording_vetoed": "wording_vetoed",
-    "disapproved": "vetoed",
-}
-
-MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
-# "… shall be made available for the purposes of this item until June 30, 2025"
-AVAILABLE_UNTIL_RE = re.compile(
-    rf"\bavailable\b[^.;]{{0,200}}?\b(?:until|through) ((?:{MONTHS}) \d{{1,2}}, \d{{4}})"
-)
-
-
-def available_through(item_text: str, fiscal_year: int) -> str:
-    """The date an item's money stays available until, if the text gives one past the fiscal
-    year's end (§5.4); else ""."""
-    dates = [
-        datetime.strptime(d, "%B %d, %Y").date() for d in AVAILABLE_UNTIL_RE.findall(item_text)
-    ]
-    later = [d for d in dates if d > date(fiscal_year, 6, 30)]
-    return max(later).isoformat() if later else ""
-
-
-def _cthru_funds(cthru: list[Mapping[str, str]]) -> dict[tuple[str, str], str]:
-    """(fiscal year, line item) -> CTHRU's fund number, where CTHRU books the item to one fund."""
-    out = {}
-    for r in cthru:
-        numbers = [n for n in r["fund_numbers"].split(";") if n]
-        if len(numbers) == 1:
-            out[(r["fiscal_year"], r["line_item"])] = numbers[0]
-    return out
-
-
-def _items_row(
-    item: Mapping[str, str], law: Mapping[str, str], session_law_url: str
-) -> dict[str, Any]:
-    """The fields every row built from an items_raw row shares (§7.3 -> §7.7)."""
-    fy = int(item["fy_stated"]) if item["fy_stated"] else enactment_fy(law["approved_date"])
-    return {
-        "law_key": item["law_key"],
-        "section": item["section"],
-        "line_item": item["line_item"],
-        "target_law_key": item["law_key"],
-        "event_date": law["approved_date"],
-        "calendar_year": int(law["approved_date"][:4]),
-        "fiscal_year": fy,
-        "fy_rule": "stated" if item["fy_stated"] else "enactment_fy",
-        "available_through": available_through(item["item_text"], fy),
-        "amount_source": "law_text",
-        "amount_printed": int(item["amount_struck"] or item["amount"] or 0),
-        "agency_header_raw": item["agency_header_raw"],
-        "item_text": item["item_text"],
-        "source_url": session_law_url.format(acts_year=law["acts_year"], chapter=law["chapter"]),
-        "source_para_start": item["para_start"],
-        "reader_version": item["reader_version"],
-        # fund splits (shared core): the law's printed split, else the section's fund
-        "fund_splits_raw": item["fund_splits_raw"],
-        "section_fund_default": item["section_fund_default"],
-    }
-
-
-def supplemental_rows(
-    items: list[Mapping[str, str]],
-    law_list: list[Mapping[str, str]],
-    cthru: list[Mapping[str, str]],
-    session_law_url: str,
-) -> list[dict[str, Any]]:
-    """Funding-action rows (§7.7) for the items of in-scope supplemental, surplus and other laws,
-    in source order (Combine-Export-Work-Split.md, B).
-
-    - Each section's action comes from its preamble (``SUPPLEMENTAL_SECTIONS``). A §2 item that
-      isn't in that fiscal year's GAA (read_items) or CTHRU is new money: ``NEW``, not ``INC``.
-    - Amounts are the law's (``amount_source = law_text``); a whole-item veto gives $0.
-    - Fund: the law's printed split; else the one fund CTHRU books the item to that year (2021-102
-      §2A names two funds, ARPA and the Transitional Escrow Fund, without saying which item uses
-      which); else the section's fund.
-    - Reference-only laws' items are left out (§1).
-    """
-    laws = {r["law_key"]: r for r in law_list}
-    budgeted = {(r["fy_stated"], r["line_item"]) for r in items if _law_type(laws, r) == "gaa"}
-    budgeted |= {
-        (r["fiscal_year"], r["line_item"]) for r in cthru if int(r["original_enacted"] or 0)
-    }
-    budget_years = {fy for fy, _ in budgeted}
-    funds = _cthru_funds(cthru)
-    out = []
-    for item in items:
-        law = laws.get(item["law_key"])
-        if not law or law["role"] != "in_scope" or law["law_type"] not in SUPPLEMENTAL_LAW_TYPES:
-            continue
-        section_type, action, kind, section_flags = SUPPLEMENTAL_SECTIONS.get(
-            item["section"], OTHER_SECTION
-        )
-        row = _items_row(item, law, session_law_url)
-        fy = str(row["fiscal_year"])
-        if action == "INC" and fy in budget_years and (fy, item["line_item"]) not in budgeted:
-            action, kind = "NEW", "appropriation"  # not in that year's budget: a new item
-        veto = item["veto_kind_inline"] or "none"
-        amount = int(item["amount"] or 0)  # "": the whole amount is struck (vetoed)
-        flags = list(section_flags)
-        if row["available_through"]:
-            flags.append("multi_year")
-        if veto != "none":
-            flags.append("veto_unverified")
-        if item["confidence"] == "low" and "low_confidence_parse" not in flags:
-            flags.append("low_confidence_parse")
-        if not item["fund_splits_raw"] and (fy, item["line_item"]) in funds:
-            row["fund_numbers"] = funds[(fy, item["line_item"])]
-        row.update(
-            section_type=section_type,
-            funding_action=action,
-            amount_kind=kind,
-            amount=amount,
-            veto_status=SUPPLEMENTAL_VETO_STATUS.get(veto, "unknown"),
-            flags=";".join(flags),
-        )
-        out.append(row)
-    return out
-
-
-def federal_grant_rows(
-    items: list[Mapping[str, str]], law_list: list[Mapping[str, str]], session_law_url: str
-) -> list[dict[str, Any]]:
-    """Funding-action rows (§7.7) for the §2D federal grant items of in-scope GAAs, in source
-    order (Combine-Export-Work-Split.md, B; Mario's rules at the top of this file).
-
-    CTHRU has no §2D items, so the amount is the law's printed one (``amount_source = law_text``).
-    The money is federal (Q1): ``federal_share`` 1, flagged ``federal``, never counted. CTHRU can't
-    confirm vetoes here, so ``veto_status = unknown`` and ``veto_unverified``.
-    """
-    laws = {r["law_key"]: r for r in law_list}
-    out = []
-    for item in items:
-        law = laws.get(item["law_key"])
-        if not law or law["role"] != "in_scope" or law["law_type"] != "gaa":
-            continue
-        if item["section"] != "2D":
-            continue
-        row = _items_row(item, law, session_law_url)
-        flags = ["federal", "veto_unverified"]
-        if row["available_through"]:
-            flags.append("multi_year")
-        if item["confidence"] == "low":
-            flags.append("low_confidence_parse")
-        row.update(
-            section_type="federal_grants",
-            funding_action="ORIG",
-            amount_kind="appropriation",
-            amount=int(item["amount"] or 0),
-            veto_status="unknown",
-            federal_share=1.0,
-            flags=";".join(flags),
-        )
-        out.append(row)
-    return out
-
-
-def _law_type(laws: Mapping[str, Mapping[str, str]], item: Mapping[str, str]) -> str:
-    return laws.get(item["law_key"], {}).get("law_type", "")
-
-
 # -- Shared core (workstream A; DESIGN §5, §7.6–§7.8, §9.6, §10) ------------------------------
 #
 # Each piece of the work split (docs/Combine-Export-Work-Split.md) is one row builder: a function
@@ -547,27 +355,10 @@ def _bond_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> li
 
 
 # One entry per piece of the work split; ``None`` until its owner adds the builder.
-def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
-    return supplemental_rows(
-        inputs["items_raw"],
-        inputs["law_list"],
-        inputs["cthru_line_items"],
-        settings["sources"]["session_law_url"],
-    )
-
-
-def _federal_grant_builder(
-    inputs: Mapping[str, list], settings: Mapping[str, Any]
-) -> list[dict]:
-    return federal_grant_rows(
-        inputs["items_raw"], inputs["law_list"], settings["sources"]["session_law_url"]
-    )
-
-
 BUILDERS = {
     "annual budget rows (E)": None,
-    "supplemental rows (B)": _supplemental_builder,
-    "§2D federal grant rows (B)": _federal_grant_builder,
+    "supplemental rows (B)": None,
+    "§2D federal grant rows (B)": None,
     "amendment rows (C)": None,
     "bond rows (A)": _bond_builder,
 }
