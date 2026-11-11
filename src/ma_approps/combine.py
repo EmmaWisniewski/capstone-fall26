@@ -322,6 +322,8 @@ def amendment_rows(
       fiscal year, like bond rows.
     - Transfers and direct appropriations take the fiscal year of the law's approval; an interim
       budget is ``INT``. A transfer's line item is the item it goes to, else the one it comes from.
+      Money moved from a fund into an item is an ``INC`` to that item, flagged
+      ``fund_transfer_chain``, and counts: it is the appropriation out of the fund (Q24).
     - A date extension's new date, when it is a whole date, is ``available_through``.
     - Fund: a transfer's is the one fund it comes from. A change to an operating item takes the
       item's fund as supplemental items do: the law's printed split, else the one fund CTHRU books
@@ -364,6 +366,11 @@ def amendment_rows(
                 available = a["new_date"]
             if kind == "transfer":
                 line_item = a["to_item"] or a["from_item"]
+                if a["to_item"] and not a["from_item"] and a["fund_raw"]:
+                    # money moved from a fund into a line item is the appropriation out of that
+                    # fund, so it counts (Q24: 2024-88 §25, Transitional Escrow Fund to 1599-0514)
+                    action, amount_kind = "INC", "delta"
+                    flags.append("fund_transfer_chain")
         if kind == "direct_appropriation" and law["law_type"] == "interim":
             action, amount_kind = "INT", "interim"
         if bond:
@@ -1015,7 +1022,9 @@ NOT_COUNTED_KINDS = (
     "prior_appropriation_continued",
     "none",
 )
-NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer", "fund_transfer_chain")
+# fund_transfer_chain is a marker only (Q24): a move into a fund already doesn't count, by its
+# amount_kind (transfer), and the move out of the fund into an item does
+NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer")
 
 
 # The stage that writes each interim input, for the message when one is missing (Q33)

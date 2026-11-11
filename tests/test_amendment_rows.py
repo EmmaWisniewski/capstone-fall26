@@ -329,3 +329,27 @@ def test_a_change_to_a_surplus_law_takes_the_amending_budgets_year():
     ]  # fmt: skip
     found = [(r["fiscal_year"], r["fy_rule"], r["amount"]) for r in _rows(amendments, items)]
     assert found == [(2099, "stated", 4_000_000), (2100, "enactment_fy", 146_000)]
+
+
+def test_money_moved_from_a_fund_into_an_item_counts():
+    # Q24: 2024-88 §25 lets the comptroller move up to $175,000,000 from the Transitional Escrow
+    # Fund into item 1599-0514. That is the appropriation out of the fund, so it counts, as an
+    # increase to the item; moves into a fund, or out of an item, stay uncounted transfers
+    def transfer(section, **kw):
+        return _amend(section, "transfer", target="", target_section="", amount="175", **kw)
+
+    amendments = [
+        transfer("25", to_item="1599-0514", fund_raw="Transitional Escrow Fund"),
+        transfer("26", fund_raw="General Fund", to_fund="Transitional Escrow Fund"),
+        transfer("27", from_item="9110-1455", fund_raw="Health Safety Net Trust Fund"),
+    ]
+    found = [
+        (r["section"], r["line_item"], r["funding_action"], r["amount_kind"], r["flags"],
+         r["counts_toward_total"], r["fiscal_year"], r["fy_rule"])
+        for r in _rows(amendments, [])
+    ]  # fmt: skip
+    assert found == [
+        ("25", "1599-0514", "INC", "delta", "fund_transfer_chain", "true", 2100, "enactment_fy"),
+        ("26", "", "XFER", "transfer", "", "false", 2100, "enactment_fy"),
+        ("27", "9110-1455", "XFER", "transfer", "", "false", 2100, "enactment_fy"),
+    ]
