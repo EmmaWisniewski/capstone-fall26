@@ -36,7 +36,6 @@ import csv
 import json
 import re
 from datetime import datetime
-from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -430,17 +429,43 @@ def _sentence_actions(
             transfers.append(_transfer(m["amount"], m["source"], m["dest"], bound))
             read.append(m.span())
         transfers += _other_transfers(sentence, read)
-        # The same figure twice, with no different destinations, is one transfer with a fallback
-        # source: "transfer $75,000,000 to the COVID-19 … Fund … from amongst federal funds …;
-        # provided, however, that if … no such funds are available, … transfer $75,000,000 from
-        # other funding sources" (2021-16 §13). A person picks the row; separate transfers of the
-        # same figure to different funds (2021-102 §84) are kept as they are.
-        for a, b in combinations(transfers, 2):
-            to_a, to_b = (a["to_item"], a["to_fund"]), (b["to_item"], b["to_fund"])
-            if a["amount"] == b["amount"] and (to_a == to_b or not any(to_a) or not any(to_b)):
-                a["confidence"] = b["confidence"] = "low"
-        actions += transfers
+        actions += _one_per_transfer(transfers)
     return actions
+
+
+def _one_per_transfer(transfers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The same figure twice in a sentence, with no different destinations, is one transfer with
+    a fallback source: "transfer $75,000,000 to the COVID-19 … Fund … from amongst federal funds
+    …; provided, however, that if … no such funds are available, … transfer $75,000,000 from other
+    funding sources, including the General Fund" (2021-16 §13). It becomes one `low` row with both
+    rows' items and funds, so nobody reads $150,000,000 (Emma's review of PR #39). Separate
+    transfers of the same figure to different funds (2021-102 §84) stay separate."""
+    out: list[dict[str, Any]] = []
+    for t in transfers:
+        dest = (t["to_item"], t["to_fund"])
+        same = next(
+            (
+                o
+                for o in out
+                if o["amount"] == t["amount"]
+                and (
+                    (o["to_item"], o["to_fund"]) == dest
+                    or not any(dest)
+                    or not o["to_item"]
+                    and not o["to_fund"]
+                )
+            ),
+            None,
+        )
+        if same is None:
+            out.append(t)
+            continue
+        for k in ("from_item", "to_item", "to_fund"):
+            same[k] = same[k] or t[k]
+        funds = [f for r in (same, t) for f in (r["fund_raw"] or "").split("; ") if f]
+        same["fund_raw"] = "; ".join(dict.fromkeys(funds)) or None
+        same["confidence"] = "low"
+    return out
 
 
 def _source_and_destination(tail: str) -> tuple[str, str]:

@@ -287,7 +287,7 @@ def test_transfer_destination_fund():
         # 2025-73 §189: an agency, not a fund
         "<p>SECTION 14. The comptroller shall transfer $10,000,000 from the General Fund to the"
         " Massachusetts Life Sciences Center for programming.</p>"
-        # 2021-16 §13: one transfer with a fallback source, so both rows are `low`
+        # 2021-16 §13: one transfer with a fallback source, so one `low` row (Emma, PR #39)
         "<p>SECTION 15. The secretary of administration and finance shall direct the comptroller to"
         " transfer $75,000,000 to the COVID-19 Massachusetts Emergency Paid Sick Leave Fund"
         " established in section 9 from amongst federal funds received by the commonwealth;"
@@ -301,8 +301,7 @@ def test_transfer_destination_fund():
         ("12", None, "Student Opportunity Act Investment Fund", "medium"),
         ("13", "Commonwealth Stabilization Fund", "General Fund", "medium"),
         ("14", "General Fund", None, "medium"),
-        ("15", "General Fund", None, "low"),
-        ("15", None, "COVID-19 Massachusetts Emergency Paid Sick Leave Fund", "low"),
+        ("15", "General Fund", "COVID-19 Massachusetts Emergency Paid Sick Leave Fund", "low"),
     ]
 
 
