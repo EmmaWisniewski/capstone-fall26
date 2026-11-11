@@ -23,8 +23,9 @@ $350,000**, and it counts toward **fiscal year 2024** because the item it change
 FY2024 budget.
 
 **Just as important: a program that future researchers can re-run every year.** When the 2026
-laws are all signed, a future cohort should be able to run one command and work through a short
-review checklist to add them. So the program has to be automatic, sturdy, and simple enough for
+laws are all signed, a future cohort or someone at the State Auditor's office should be able to
+run one command in the terminal (no Claude Code needed) and work through a short review checklist
+to add them. So the program has to be automatic, sturdy, and simple enough for
 non-programmers to maintain.
 
 ---

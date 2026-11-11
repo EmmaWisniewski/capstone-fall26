@@ -1,5 +1,10 @@
 # Runbook: adding a new year of laws
 
+*To do (Decision Log, 2026-11-11): future users, such as staff at the State Auditor's office, won't have
+Claude Code. They'll run one command in the terminal. This runbook must be rewritten so it doesn't rely
+on Claude Code or the **Say:** lines below. The full list of re-run to-dos is on the M6 row of the
+Status Board (DESIGN §21).*
+
 *For a future group that wants to add the next year's laws to the dataset. Written in plain
 language for readers who are new to programming. You'll work through Claude Code, as the
 fall 2026 group did; the **Say:** lines are things you can type to it. If this runbook and

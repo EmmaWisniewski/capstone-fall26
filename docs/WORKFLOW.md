@@ -20,7 +20,26 @@ group.**
 
 ## 2. What to actually do
 
-> **Shortcut:** type **`/start-task`** in the prompt box to have Claude do Steps 1–6 with you (add your task after it, if you have one, e.g. `/start-task bond policy areas`). When you're done, type **`/finish-task`** for Steps 7–8: it runs the checks, updates the handoff notes, commits and opens the pull request. The steps below explain what those commands do.
+### The quick way: two commands
+The project has two **commands** (Claude Code calls them "skills"). Each one is a saved set of instructions that tells Claude to work through several of the steps below, in order, so you don't have to type each "Say:" line yourself. They live in the repo (`.claude/skills/`), so everyone gets them once they have the latest `main`.
+
+**How to use one:** in the prompt box, type `/`. A menu of commands appears. Pick one, or keep typing its name, then press Return.
+
+| Command | When | What Claude does with you |
+|---|---|---|
+| **`/start-task`** | When you want to begin a task, or ask what to work on | Steps 1–6: gets the latest `main`, or picks your unfinished branch back up; offers to merge finished pull requests; checks `main`'s docs are up to date and offers to fix them there; finds the most important unfinished task (or checks the one you name); checks nobody is already doing it; makes a branch and proposes a plan |
+| **`/finish-task`** | When the task is done | Steps 7 and 8: shows what changed; checks it doesn't add a yearly hand step for future re-runners; writes handoff notes for teammates and checks every doc your change affects is updated; runs the automatic checks; commits; pushes; opens the pull request |
+
+Good to know:
+- **You can name your task after the command,** e.g. `/start-task bond policy areas`. Without one, Claude recommends a task.
+- **Claude still asks before anything important.** It waits for your yes before merging a pull request, before starting to edit, and before committing. Each command reports in a few plain sentences at each step, so you can stop it or change direction.
+- **`/start-task` may start on its own** if you just ask "what should I work on?". **`/finish-task` only runs when you type it**, so Claude never commits or opens a pull request unless you asked.
+- **Two docs checks, one at each end.** `/start-task` makes sure `main`'s docs describe what's actually on `main`, and fixes them there after your yes. `/finish-task` makes sure your change updated every doc it affects. Those updates go in your pull request, so the docs and the work they describe arrive on `main` together.
+- **One task per session.** After `/finish-task`, start a fresh session and type `/start-task` again. If you stopped partway through a task, `/start-task` offers to pick your branch back up.
+- **If a command isn't in the menu,** you probably don't have the latest `main` yet. Ask Claude to get it, then start a new session.
+- **To change what a command does,** ask Claude to edit its instructions in `.claude/skills/start-task/SKILL.md` or `.claude/skills/finish-task/SKILL.md`. They're plain text, like these docs. Share the change the usual way, so everyone gets it.
+
+The steps below explain what the commands do, and how to do each step by hand.
 
 ### Step 1: Work locally, and start from the latest `main`
 When you start a session in the desktop app, choose **Local**, not a cloud environment. (A cloud
@@ -36,9 +55,9 @@ When your classmates have finished something, pulling it in to the "main" codeba
 > **Say:** "Are there any open Pull Requests? I want to work through closing all of them."
 
 Then, for each PR:
-- **Approved and green:** merge it.
-- **Not reviewed yet:** review it, then merge it if it's fine.
-- **Has a problem** (one you found, or one a reviewer asked to change): **fix it yourself, then
+- **GitHub's automatic checks pass:** merge it. Nobody needs to approve it first. A quick look
+  (§5) is optional, if you want to understand what changed.
+- **Has a problem** (one you found, or one a teammate pointed out): **fix it yourself, then
   merge it.** Don't send it back to its author and wait. That leaves it open for days and makes
   more work for everyone.
   > **Say:** "Proposed change #12 has a problem: [what's wrong]. Fix it in that change, check that
@@ -73,7 +92,7 @@ You will probably need to revise the plan a few times before you tell Claude to 
 ### Step 7: Check the work
 > **Say:** "Run the automatic checks and explain any problems in plain language."
 
-Also look at what changed (the **diff**, see §4). If you can't explain the change roughly in your
+Also look at what changed (the **diff**: the list of exactly which lines changed; see §4). If you can't explain the change roughly in your
 own words, ask Claude to walk you through it before you continue.
 
 ### Step 8: Share your work (commit, push and open a pull request)
@@ -104,8 +123,8 @@ may use them when it explains what it's doing. If it uses a word you don't know,
 | **commit** | A saved snapshot of your changes, with a short message | Pressing save with a note about what changed |
 | **push** | Upload your commits to GitHub | Syncing your draft to the cloud |
 | **pull** | Download the latest commits from GitHub | Refreshing to get teammates' changes |
-| **pull request (PR)** | A request to merge your branch into `main`, where teammates can comment | "Suggest changes" mode, waiting for approval |
-| **merge** | Fold an approved branch into `main` | Accepting the suggested changes |
+| **pull request (PR)** | A request to merge your branch into `main`, where teammates can comment | "Suggest changes" mode: anyone can accept it |
+| **merge** | Fold a branch's changes into `main` | Accepting the suggested changes |
 | **merge conflict** | Two people changed the same lines differently, so git asks a human which to keep | Two editors rewrote the same sentence |
 | **CI** | Automatic checks GitHub runs on every PR (`ruff`, `pytest`, `validate`) | A spell-checker that blocks submission |
 | **diff** | A view of exactly which lines changed | Track changes |
@@ -120,7 +139,7 @@ different, ask Claude ("where do I see my changes in this app?").
 
 - **Opening the project.** Under **Local**, click the project-folder control and choose
   **Open folder…**, then pick `capstone-fall26`.
-- **Seeing what changed (the diff).** Click the line counts (e.g. **+12 −1**) in the **Changes**
+- **Seeing what changed (the diff, the list of changed lines).** Click the line counts (e.g. **+12 −1**) in the **Changes**
   card, or the **Changes** button in the title bar (shortcut ⌘⇧D). You can click **+** next to a
   line to leave Claude a comment on it, like "why did you remove this?".
 - **How much Claude may do on its own.** The **permission mode** selector under the prompt box:
@@ -130,8 +149,9 @@ different, ask Claude ("where do I see my changes in this app?").
   - **Plan**: Claude only investigates and proposes a plan; it doesn't change anything. Great for
     Step 6.
   - **Auto**: Claude proceeds on its own. Use it only for routine tasks you understand well.
+- **Commands.** Type `/` in the prompt box to see the menu, including the project's `/start-task` and `/finish-task` (§2).
 - **Getting a review of your changes.** Type `/code-review` in the prompt box before you share them.
-- **Pull-request status.** After a PR is opened, its CI status shows in the **Changes** card.
+- **Pull-request status.** After a PR is opened, the result of its CI (GitHub's automatic checks) shows in the **Changes** card.
 - **Sharing your work.** The simplest reliable path is to ask Claude (Step 8), then check the
   **Changes** card. If you see a PR button in your version of the app, it's fine to use it.
 - **Worktree toggle and parallel sessions (+ New).** Leave **Worktree** off unless you know you
@@ -140,22 +160,23 @@ different, ask Claude ("where do I see my changes in this app?").
 
 ---
 
-## 5. Reviewing a teammate's PR
+## 5. Taking a quick look at a teammate's PR (optional)
 
-You review PRs in Step 2. Let Claude do the checking:
+Reviews are optional: anyone can merge any PR whose automatic checks pass (Step 2). A quick look helps
+when you want to understand a change, or something seems off. Let Claude do the checking:
 > **Say:** "Review proposed change #12 against the checklist in section 5 of the workflow doc.
 > Explain in plain language what it changes and anything that looks risky. Tell me what you'd fix
 > before you change anything."
 
 What Claude checks:
-- ☐ CI is green.
+- ☐ CI is green (GitHub's automatic checks passed).
 - ☐ The changes match what the description says.
 - ☐ No generated files were edited by hand (`data/`, `reports/`, `review/review_queue.csv`).
 - ☐ No new or renamed columns or allowed values unless `DESIGN.md` §7/§9 and `schemas.py` were updated too.
 - ☐ The tracker in `OVERVIEW.md` or DESIGN §21 is updated if a milestone changed.
 
-If it's fine, approve and merge it. If something's wrong, have Claude fix it and then merge it, and
-leave a short comment saying what you changed (Step 2).
+If it's fine, merge it. If something's wrong, have Claude fix it and then merge it, and leave a
+short comment saying what you changed (Step 2).
 
 ---
 
@@ -182,7 +203,7 @@ that our goal doesn't need, or you're being asked to decide between two options 
 - **Ask it to explain** code you don't understand. "What does this function do, line by line?"
   is a perfectly good question.
 - **Keep PRs small.** One idea per PR is easier to review, test, and undo.
-- **Look at the diff before sharing.** Know what you're saving.
+- **Look at the diff (the list of changed lines) before sharing.** Know what you're saving.
 - **Watch for bloat.** If Claude adds a new file, setting, or helper you didn't ask for, ask
   whether it's needed. Less code means less to understand.
 - **Start a fresh chat for a new task.** Long chats about many topics get muddled.
