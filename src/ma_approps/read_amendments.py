@@ -43,7 +43,7 @@ from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.10.0"
+READER_VERSION = "0.11.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -140,7 +140,7 @@ TRANSFER_FROM_RE = re.compile(
 # $4,891,987,249.40 allocated to the commonwealth from …" (2021-22 §3, read as whole dollars).
 TRANSFER_ACTOR_RE = re.compile(
     r"\b(?:comptroller|secretary of administration and finance)\b[^.;]{0,160}?"
-    r"\btransfer(?:s|red|ring)?\b",
+    r"\b(?P<verb>transfer(?:s|red|ring)?)\b",
     re.I,
 )
 # The figure must come soon after the verb, as in the `laws` signal: not "reduce any transfers …
@@ -159,12 +159,12 @@ AMOUNT_RE = re.compile(r"\$\s*(?P<amount>\d[\d,]*)(?:\.\d\d)?")
 # (2025-73 §191: "$50,000,000 each such fiscal year")
 ESTIMATE_RE = re.compile(r",?\s*(?:or such (?:other )?amount|each\b)")
 FUND_RE = re.compile(r"\bfrom the ((?:[A-Z][\w’'&.-]*\s+)+?Fund)\b")
-# A fund named as a transfer's source, even in lowercase: "the federal COVID-19 response fund".
-# Not "the undesignated fund balance in the General Fund" (2022-268 §265): that money is the
-# General Fund's.
+# A fund named in a transfer, even in lowercase: "the federal COVID-19 response fund"; "and" only
+# inside a capitalised name ("the Disaster Relief and Resiliency Fund", 2024-140 §229). Not "the
+# undesignated fund balance in the General Fund" (2022-268 §265): that money is the General Fund's.
 FUND_NAME_RE = re.compile(
-    r"\bthe ((?:(?!(?:the|of|in|or|and|to|from|by|for|established|section|chapter|item)\b)"
-    r"[\w’'&.-]+ ){0,6}?[Ff]und)\b(?!\s+balance)"
+    r"\bthe ((?:(?:(?!(?:the|of|in|or|and|to|from|by|for|established|section|chapter|item)\b)"
+    r"[\w’'&.-]+|and(?= [A-Z])) ){0,8}?[Ff]und)\b(?!\s+balance)"
 )
 MONEY_RE = re.compile(r"\$\s*\d")
 ITEM_OR_APPROP_RE = re.compile(rf"\bitems?\s+{ITEM}|appropriat", re.I)
@@ -419,16 +419,53 @@ def _sentence_actions(
                     "fund_raw": fund[1] if fund else None,
                 }
             )
-        transfers = len(actions)
+        transfers, read = [], []
         for m in TRANSFER_RE.finditer(sentence):
-            actions.append(_transfer(m["amount"], *_source_and_destination(m["tail"])))
+            transfers.append(_transfer(m["amount"], *_source_and_destination(m["tail"])))
+            read.append(m.span())
         for m in TRANSFER_FROM_RE.finditer(sentence):
             # "the greater of $45,000,000 or 1/12 of …": the stated figure is only a bound
             bound = m["qual"] in ("the greater of ", "the lesser of ")
-            actions.append(_transfer(m["amount"], m["source"], m["dest"], bound))
-        if len(actions) == transfers:
-            actions += _other_transfers(sentence)
+            transfers.append(_transfer(m["amount"], m["source"], m["dest"], bound))
+            read.append(m.span())
+        transfers += _other_transfers(sentence, read)
+        actions += _one_per_transfer(transfers)
     return actions
+
+
+def _one_per_transfer(transfers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The same figure twice in a sentence, with no different destinations, is one transfer with
+    a fallback source: "transfer $75,000,000 to the COVID-19 … Fund … from amongst federal funds
+    …; provided, however, that if … no such funds are available, … transfer $75,000,000 from other
+    funding sources, including the General Fund" (2021-16 §13). It becomes one `low` row with both
+    rows' items and funds, so nobody reads $150,000,000 (Emma's review of PR #39). Separate
+    transfers of the same figure to different funds (2021-102 §84) stay separate."""
+    out: list[dict[str, Any]] = []
+    for t in transfers:
+        dest = (t["to_item"], t["to_fund"])
+        same = next(
+            (
+                o
+                for o in out
+                if o["amount"] == t["amount"]
+                and (
+                    (o["to_item"], o["to_fund"]) == dest
+                    or not any(dest)
+                    or not o["to_item"]
+                    and not o["to_fund"]
+                )
+            ),
+            None,
+        )
+        if same is None:
+            out.append(t)
+            continue
+        for k in ("from_item", "to_item", "to_fund"):
+            same[k] = same[k] or t[k]
+        funds = [f for r in (same, t) for f in (r["fund_raw"] or "").split("; ") if f]
+        same["fund_raw"] = "; ".join(dict.fromkeys(funds)) or None
+        same["confidence"] = "low"
+    return out
 
 
 def _source_and_destination(tail: str) -> tuple[str, str]:
@@ -443,32 +480,46 @@ def _source_and_destination(tail: str) -> tuple[str, str]:
     (2024-88 §25).
     """
     anchor = re.search(rf"{ITEM}|\b[Ff]und\b", tail)
-    cut = re.compile(r"\b(?:in)?to\b").search(tail, anchor.end() if anchor else 0)
+    to = re.compile(r"\b(?:in)?to\b")
+    cut = to.search(tail, anchor.end() if anchor else 0)
+    if not cut and anchor:
+        # the first fund or item named is the destination: "from income surtax revenue, as defined
+        # by … , to the Student Opportunity Act Investment Fund" (2025-73 §177)
+        cut = next(reversed(list(to.finditer(tail, 0, anchor.start()))), None)
     return (tail[: cut.start()], tail[cut.end() :]) if cut else (tail, "")
+
+
+def _funds(text: str) -> str | None:
+    return "; ".join(dict.fromkeys(FUND_NAME_RE.findall(text))) or None
 
 
 def _transfer(amount: str, source: str, dest: str, low: bool = False) -> dict[str, Any]:
     from_item = re.search(rf"\bitems?\s+({ITEM})", source)
     to_item = re.search(rf"\bitems?\s+({ITEM})", dest)
-    funds = list(dict.fromkeys(FUND_NAME_RE.findall(source)))
+    # The funds the money goes to are those named before any item, purpose or proviso: not "the
+    # reserve established in item 1599-0514 … for the purposes of …" (2024-88 §25), but both of
+    # "the Transitional Escrow Fund … or the federal COVID-19 response fund" (2024-206 §58)
+    head = re.split(rf"{ITEM}|\bfor (?:the )?purposes?\b|;|\bprovided\b", dest, maxsplit=1)[0]
     return {
         "action_type": "transfer",
         "amount": _int(amount),
         "from_item": from_item[1] if from_item else None,
         "to_item": to_item[1] if to_item else None,
-        "fund_raw": "; ".join(funds) or None,
+        "fund_raw": _funds(source),
+        "to_fund": _funds(head),
         # fund-to-fund transfers carry no items; a human should confirm them
         "confidence": "low" if low else ("high" if from_item and to_item else "medium"),
     }
 
 
-def _other_transfers(sentence: str) -> list[dict[str, Any]]:
+def _other_transfers(sentence: str, read: list[tuple[int, int]]) -> list[dict[str, Any]]:
     """Transfers by the comptroller or the secretary of administration and finance in the other
-    wordings (TRANSFER_ACTOR_RE): one per figure, or per "(i)", "(ii)" … in a list."""
+    wordings (TRANSFER_ACTOR_RE): one per figure, or per "(i)", "(ii)" … in a list. ``read`` are
+    the spans the two transfer patterns already read."""
     actions: list[dict[str, Any]] = []
     end = 0
     for m in TRANSFER_ACTOR_RE.finditer(sentence):
-        if m.start() < end:
+        if m.start() < end or any(a <= m.start("verb") < b for a, b in read):
             continue  # "said transfers" inside a clause already read
         rest = sentence[m.end() :]
         stop = TRANSFER_CLAUSE_END_RE.search(rest)
@@ -483,6 +534,13 @@ def _other_transfers(sentence: str) -> list[dict[str, Any]]:
             source = re.search(r"\bfrom\s+", after)
             if source:
                 source_text, dest = _source_and_destination(after[source.end() :])
+                # the destination first: "transfer $310,000,000 to the General Fund from the
+                # Commonwealth Stabilization Fund" (2008-182 §82), but not "$4,891,987,249.40
+                # allocated to the commonwealth from …" (2021-22 §3)
+                to = re.search(r"\b(?:in)?to\b", after[: source.start()])
+                first = after[to.end() : source.start()] if to else ""
+                if FUND_NAME_RE.search(first) or re.search(ITEM, first):
+                    dest = first
             else:  # "transfer $20,000,000 to the …", "… of the General Fund to the …"
                 cut = re.search(r"\b(?:in)?to\b", after)
                 source_text, dest = (after[: cut.start()], after[cut.end() :]) if cut else ("", "")
