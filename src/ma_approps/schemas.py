@@ -86,6 +86,7 @@ SECTION_TYPES = (
     "capital",
     "outside",
     "interim",
+    "prior_approp",  # §2CI/§2CII prior appropriations continued (proposed 2026-11-11, B)
 )
 
 # §9.5
@@ -250,6 +251,7 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         "from_item",
         "to_item",
         "fund_raw",
+        "to_fund",
         "source_text",
         *_READER,
     ),
@@ -332,7 +334,7 @@ SCHEMAS["fund_splits"] = _cols(
     Col("record_id", required=True),
     Col("fund_name", required=True),
     "fund_number",
-    Col("share", "float", required=True),
+    Col("share", "float"),  # empty: shares unknown (§7.8)
     Col("is_federal", "bool", required=True),
 )
 SCHEMAS["running_amounts"] = _cols(

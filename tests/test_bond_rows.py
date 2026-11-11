@@ -77,7 +77,7 @@ def test_a_bond_item_becomes_a_capital_authorization():
         URL,
     )
     assert len(rows) == 1
-    r = rows[0]
+    r = combine.assign_ids(rows)[0]  # the shared core gives each row its ID
     assert (r["record_id"], r["funding_action"], r["amount_kind"], r["section_type"]) == (
         "2024-139-S2A-1790-3014-CAP-1",
         "CAP",
@@ -171,7 +171,7 @@ def test_identified_federal_share_and_single_item_limits():
 def test_record_ids_count_repeats_in_source_order():
     items = [item("2025-17", "2A", "6121-2617", 5), item("2025-17", "2A", "6121-2617", 7)]
     rows = combine.bond_rows(items, [], [law("2025-17", approved="2025-06-30")], URL)
-    assert [r["record_id"] for r in rows] == [
+    assert [r["record_id"] for r in combine.assign_ids(rows)] == [
         "2025-017-S2A-6121-2617-CAP-1",
         "2025-017-S2A-6121-2617-CAP-2",
     ]
@@ -196,6 +196,9 @@ def sample_rows(tmp_path_factory, request):
     limits = schemas.read_csv(ctx.interim_dir / "bond_authorizations_raw.csv")[1]
     laws = schemas.read_csv(root / "config" / "law_list.csv")[1]
     rows = combine.bond_rows(items, limits, laws, ctx.settings["sources"]["session_law_url"])
+    rows = combine.assign_ids(rows)
+    for r in rows:
+        r["counts_toward_total"] = "true" if combine.counts_toward_total(r) else "false"
     path = out / "funding_actions.csv"
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=schemas.columns("funding_actions"), lineterminator="\n")

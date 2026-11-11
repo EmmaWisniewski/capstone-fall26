@@ -26,6 +26,7 @@ The reading stages are built and merged. What remains is putting the data togeth
 ## Notes
 
 - Each piece of combine hands over rows in the funding actions format ([DESIGN.md §7](DESIGN.md)), so nobody edits anyone else's code.
+- **How to plug in your piece** (shared core, Emma, 2026-11-10): write one function `your_rows(inputs, settings)` in `combine.py` and put it in `combine.BUILDERS` next to your piece's name. `inputs` holds every input table as rows (`law_list`, `items_raw`, `bond_items_raw`, `bond_authorizations_raw`, `amendments_raw`, `cthru_line_items`, `funds`, `manual_rows`). Return funding-action rows in source order; leave `record_id` and `counts_toward_total` empty, because the core sets them. For fund splits, add `fund_splits_raw` (from `items_raw`), `fund_numbers` (from CTHRU) or `section_fund_default` to each row; the core turns them into `fund_splits.csv` and sets `fund_primary`, `federal_share` and the federal flags. `combine.bond_rows` is a worked example.
 - Suggested order: annual rows and supplemental rows first, because together they produce the four example rows (milestone M1). Amendments and bonds follow. Labels, export and the full checks come after the combined table exists. The runbook comes last.
 - Not yet assigned: the extended export file (the main file plus every extra column). It would naturally go with the main file.
 - To confirm with the group: who builds the §2D rule, and the veto status "unknown" with the flag `veto_unverified` for those rows.

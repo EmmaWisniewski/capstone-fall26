@@ -1,7 +1,8 @@
 """Stage 6 `combine`: build funding_actions.csv, fund_splits.csv, running_amounts.csv (DESIGN §5,
 §7.6–§7.8).
 
-Stub. Owner: everyone (Putting it together), coordinated by E. GAA rows come from
+A owns the shared core (decided 2026-11-10): it collects each piece's rows, keeps in-scope
+laws, assigns Record IDs, decides counts_toward_total and splits rows by fund. GAA rows come from
 cthru_line_items.csv; everything else from items_raw, bond_items_raw, amendments_raw and the
 manual_rows escape hatch. C owns the running-amounts logic; E owns the CTHRU comparison that sets
 veto_status. Use schemas.record_id_prefix / assign_record_ids.
@@ -23,15 +24,17 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
   them non-zero fee-revenue caps ($632–704M a year).
 """
 
+import csv
 import re
 from collections.abc import Mapping
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from ma_approps import schemas
 from ma_approps.context import Context
 
-IMPLEMENTED = False
+IMPLEMENTED = True
 
 # -- Running amounts and the struck-figure check (workstream C; DESIGN §5.5, §13 check 3) --------
 
@@ -87,6 +90,43 @@ def _figures(text: str) -> set[int]:
     return {int(f.replace(",", "")) for f in re.findall(r"\$\s*(\d[\d,]*)", text)}
 
 
+def item_sections(items: list[Mapping[str, str]]) -> dict[tuple[str, str], set[str]]:
+    """(law, line item) -> the sections that print it."""
+    sections: dict[tuple[str, str], set[str]] = {}
+    for r in items:
+        sections.setdefault((r["law_key"], r["line_item"]), set()).add(r["section"])
+    return sections
+
+
+def target_section(a: Mapping[str, str], sections: Mapping[tuple[str, str], set[str]]) -> str:
+    """The section of the target law that holds the amended item. A law sometimes names the wrong
+    one: 2019-142 §48 strikes 1595-1068 from "section 2" of the FY2020 GAA, which prints it in
+    §2E. Then the item's only section in that law is used, if it has one."""
+    found = sections.get((a["target_law_key"], a["target_item"]), set())
+    if a["target_section"] not in found and len(found) == 1:
+        return next(iter(found))
+    return a["target_section"]
+
+
+def manual_items(rows: list[Mapping[str, str]]) -> list[dict[str, str]]:
+    """``config/manual_rows.csv`` rows (§7.6) as items with a starting amount, for laws no stage
+    reads: 1993-52, kept by hand, prints item 4000-8200 at $50,000,000, which 2024-150 §60 restates
+    (issue #41). Only rows for the law's own items (``target_law_key`` = ``law_key``)."""
+    return [
+        {
+            "law_key": r["law_key"],
+            "section": r["section"],
+            "line_item": r["line_item"],
+            "amount": r["amount"],
+            "retained_revenue_ceiling": "",
+            "item_text": r["item_text"],
+            "fy_stated": "",
+        }
+        for r in rows
+        if r["line_item"] and r["amount"] and r["target_law_key"] in ("", r["law_key"])
+    ]
+
+
 def amendment_amounts(
     items: list[dict[str, str]], amendments: list[dict[str, str]], laws: list[dict[str, str]]
 ) -> list[dict]:
@@ -109,11 +149,7 @@ def amendment_amounts(
             text[key] = r["item_text"]
         if r["amount"] and r["fy_stated"]:
             supplement.setdefault((r["law_key"], r["line_item"], r["fy_stated"]), int(r["amount"]))
-    # A law sometimes names the wrong section: 2019-142 §48 strikes 1595-1068 from "section 2"
-    # of the FY2020 GAA, which prints it in §2E. Use the item's only section in that law, if any.
-    sections: dict[tuple[str, str], set[str]] = {}
-    for law_key, section, item in amount:
-        sections.setdefault((law_key, item), set()).add(section)
+    sections = item_sections(items)
 
     order = sorted(
         (a for a in amendments if a["action_type"] in AMOUNT_ACTIONS and a["target_item"]),
@@ -126,9 +162,8 @@ def amendment_amounts(
     out = []
     for a in order:
         kind, key = a["action_type"], (a["target_law_key"], a["target_section"], a["target_item"])
-        found = sections.get((key[0], key[2]), set())
-        if key not in amount and len(found) == 1:
-            key = (key[0], next(iter(found)), key[2])
+        if key not in amount:  # not printed there, nor inserted there by an earlier amendment
+            key = (key[0], target_section(a, sections), key[2])
         before = amount.get(key)
         known = before is not None
         old, new = _int(a["old_figure"]), _int(a["new_figure"])
@@ -185,6 +220,190 @@ def amendment_amounts(
                 "check": check,
                 "review": "true" if check not in ("", "match") or note else "false",
                 "note": note,
+            }
+        )
+    return out
+
+
+# -- Amendment rows (workstream C; DESIGN §5.4, §5.5, §7.7, §10, §11.3; issue #41) -------------
+
+# Actions whose funding action doesn't depend on an amount: action_type -> (funding_action,
+# amount_kind). The amount actions (AMOUNT_ACTIONS) are worked out from the running amounts.
+AMENDMENT_ACTIONS = {
+    "text_insert": ("PURP", "none"),
+    "text_strike": ("PURP", "none"),
+    "purpose_change": ("PURP", "none"),
+    "date_extend": ("REAUTH", "none"),
+    "transfer": ("XFER", "transfer"),
+    "direct_appropriation": ("NEW", "appropriation"),
+}
+# What the amended item is, from its section in the target law (§9.4), so an amendment counts the
+# way the item does (§10): a change to a §2B chargeback, a §2D federal grant or a §2E trust
+# transfer doesn't count. Any other section, or no item: an outside section.
+TARGET_SECTION_TYPES = {
+    "2": ("approp_main", ()),
+    "2A": ("approp_new", ()),
+    "2B": ("isf", ("isf_chargeback",)),
+    "2D": ("federal_grants", ("federal",)),
+    "2E": ("trust_transfer", ("trust_transfer",)),
+    "2F": ("surtax", ()),
+}
+ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _amount_key(a: Mapping[str, Any]) -> tuple:
+    return tuple(str(a[c] or "") for c in AMOUNT_COLUMNS[:8])
+
+
+def _change(kind: str, a: Mapping[str, str], amount: Mapping[str, Any] | None) -> tuple:
+    """(funding_action, amount_kind, amount, low confidence) for an amount action (§11.3), from its
+    running amount (``amendment_amounts``).
+
+    - A figure change raises (``INC``) or cuts (``RED``) the item by its change. It counts $0 when
+      it doesn't change the item's amount: the struck figure is a cap or earmark in the item's text,
+      or the item already shows the new figure (Q21), or this law's §2 adds the same money (Q27).
+      When the running amount isn't known or doesn't match, the law's own change is used and the
+      row is sent to review.
+    - An inserted item is new money (``NEW``); a struck item is cut by its running amount (``RED``).
+    - A replaced item changes by the new amount less the running amount. At the same amount only
+      its wording changes (``PURP``, $0; Q26 option 1).
+    """
+    check = amount["check"] if amount else "target_not_read"
+    change = amount["change"] if amount else None
+    low = check in ("mismatch", "target_not_read") or change is None
+    if kind == "figure_change":
+        old, new = _int(a["old_figure"]), _int(a["new_figure"])
+        action = "RED" if old is not None and new is not None and new < old else "INC"
+        if check in ("in_item_text", "already_new") or "Q27" in (amount or {}).get("note", ""):
+            return action, "delta", 0, False
+        return action, "delta", change, low
+    if kind == "item_insert":
+        return "NEW", "appropriation", change, low
+    if kind == "item_strike":
+        return "RED", "delta", change, low
+    if change == 0:
+        return "PURP", "none", 0, False
+    return ("RED" if change is not None and change < 0 else "INC"), "delta", change, low
+
+
+def _bond_available_through(
+    a: Mapping[str, str], section: str, limits: list[Mapping[str, str]]
+) -> str:
+    """A changed bond item's spending end date: from the amending law's borrowing limit for the
+    amending section, if it has one, else from the item's own limit (issue #41)."""
+    for lim in limits:
+        if lim["law_key"] == a["law_key"] and a["section"] in lim["covers_sections"].split(";"):
+            return lim["available_through"]
+    item = {"law_key": a["target_law_key"], "section": section, "line_item": a["target_item"]}
+    return (limit_for(item, limits) or {}).get("available_through", "")
+
+
+def amendment_rows(
+    amendments: list[Mapping[str, str]],
+    amounts: list[Mapping[str, Any]],
+    items: list[Mapping[str, str]],
+    limits: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    session_law_url: str,
+) -> list[dict[str, Any]]:
+    """Funding-action rows (§7.7) for what in-scope laws' outside sections do (amendments_raw),
+    in source order (Combine-Export-Work-Split.md, C).
+
+    - The funding action follows §11.3 (``AMENDMENT_ACTIONS``, ``_change``). An amount comes from
+      the item's running amount (``amendments`` -> ``amounts``, §5.5), so a replaced item counts
+      only its change.
+    - A change to an existing item takes the fiscal year of the act it amends (§5.4,
+      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``).
+    - A change to a **bond** item is a capital authorization: ``CAP`` by the change, never counted
+      (Q5, issue #41); its wording changes are ``PURP``. Bond-item rows use the amending law's
+      fiscal year, like bond rows.
+    - Transfers and direct appropriations take the fiscal year of the law's approval; an interim
+      budget is ``INT``. A transfer's line item is the item it goes to, else the one it comes from.
+    - A date extension's new date, when it is a whole date, is ``available_through``.
+    - Reference-only laws' amendments are left out: they are read only for items' history (§1).
+    """
+    laws = {r["law_key"]: r for r in law_list}
+    sections = item_sections(items)
+    pending: dict[tuple, list[Mapping[str, Any]]] = {}
+    for r in amounts:
+        pending.setdefault(_amount_key(r), []).append(r)
+    out = []
+    for a in amendments:
+        law = laws.get(a["law_key"])
+        if not law or law["role"] != "in_scope":
+            continue
+        kind = a["action_type"]
+        has_target = bool(a["target_item"] or a["target_law_key"]) and kind not in (
+            "transfer",
+            "direct_appropriation",
+        )
+        target = laws.get(a["target_law_key"], {}) if has_target else law
+        bond = has_target and target.get("law_type") == "bond"
+        section = target_section(a, sections) if a["target_item"] else a["target_section"]
+        flags = ["low_confidence_parse"] if a["confidence"] == "low" else []
+        available = ""
+        line_item = a["target_item"]
+        if kind in AMOUNT_ACTIONS and a["target_item"]:
+            queue = pending.get(_amount_key(a))
+            action, amount_kind, amount, low = _change(kind, a, queue.pop(0) if queue else None)
+            if low and "low_confidence_parse" not in flags:
+                flags.append("low_confidence_parse")
+        else:
+            action, amount_kind = AMENDMENT_ACTIONS.get(kind, ("PURP", "none"))
+            amount = _int(a["amount"]) if kind in ("transfer", "direct_appropriation") else None
+            if kind == "date_extend" and ISO_DATE_RE.match(a["new_date"] or ""):
+                available = a["new_date"]
+            if kind == "transfer":
+                line_item = a["to_item"] or a["from_item"]
+        if kind == "direct_appropriation" and law["law_type"] == "interim":
+            action, amount_kind = "INT", "interim"
+        if bond:
+            section_type = "capital"
+            # every change to a bond item's amount, $0 included (a restated item), is a capital
+            # authorization; a wording change stays PURP (issue #41; the $0 label waits on Q26)
+            if kind in AMOUNT_ACTIONS or action != "PURP":
+                action, amount_kind = "CAP", "bond_authorization"
+            available = available or _bond_available_through(a, section, limits)
+        elif has_target and line_item:
+            section_type, section_flags = TARGET_SECTION_TYPES.get(section, ("outside", ()))
+            flags += [f for f in section_flags if f not in flags]
+        else:
+            section_type = "interim" if action == "INT" else "outside"
+        if bond or not has_target or not target.get("primary_fy"):
+            fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
+            if action == "INT" and law.get("primary_fy"):
+                fy, fy_rule = int(law["primary_fy"]), "stated"
+        else:
+            fy, fy_rule = int(target["primary_fy"]), "target_act"
+        if available and "multi_year" not in flags:
+            flags.append("multi_year")
+        funds = [f for f in (a["fund_raw"] or "").split("; ") if f]
+        out.append(
+            {
+                "law_key": a["law_key"],
+                "section": a["section"],
+                "line_item": line_item,
+                "target_law_key": a["target_law_key"] if has_target else a["law_key"],
+                "event_date": law["approved_date"],
+                "calendar_year": int(law["approved_date"][:4]),
+                "fiscal_year": fy,
+                "fy_rule": fy_rule,
+                "available_through": available,
+                "section_type": section_type,
+                "funding_action": action,
+                "amount_kind": amount_kind,
+                "amount": "" if amount is None else amount,
+                "amount_source": "law_text",
+                "veto_status": "none",
+                "federal_share": 1.0 if section_type == "federal_grants" else "",
+                "flags": ";".join(flags),
+                "item_text": a["source_text"],
+                "source_url": session_law_url.format(
+                    acts_year=law["acts_year"], chapter=law["chapter"]
+                ),
+                "reader_version": a["reader_version"],
+                # fund splits (shared core): the one fund the money comes from, if the law names one
+                "section_fund_default": funds[0] if len(funds) == 1 else "",
             }
         )
     return out
@@ -286,31 +505,566 @@ def bond_rows(
                 "reader_version": item["reader_version"],
             }
         )
-    prefixes = [
-        schemas.record_id_prefix(
-            int(laws[r["law_key"]]["acts_year"]),
-            laws[r["law_key"]]["chapter"],
-            r["section"],
-            r["line_item"],
-            "CAP",
-        )
-        for r in out
-    ]
-    for r, record_id in zip(out, schemas.assign_record_ids(prefixes), strict=True):
-        r["record_id"] = record_id
-    return [{c: r[c] for c in schemas.columns("funding_actions")} for r in out]
+    return [{c: r.get(c, "") for c in schemas.columns("funding_actions")} for r in out]
 
 
 def capital_total(rows: list[Mapping[str, Any]]) -> int:
     """The capital total (New 1): bond amounts minus identified federal shares."""
     total = 0
     for r in rows:
-        if r["funding_action"] != "CAP":
+        # an amendment of a bond item whose amount isn't known yet has none (2024-150 §60)
+        if r["funding_action"] != "CAP" or r["amount"] in ("", None):
             continue
         share = float(r["federal_share"] or 0)
         total += round(int(r["amount"]) * (1 - share))
     return total
 
 
+# -- Supplemental rows and §2D federal grant rows (workstream B; DESIGN §7.7, §10) -------------
+
+SUPPLEMENTAL_LAW_TYPES = ("supplemental", "surplus", "other")
+
+# What each section of a supplemental budget is, from its own preamble (2021-29, 2023-77, …):
+# section -> (section_type, funding_action, amount_kind, flags)
+SUPPLEMENTAL_SECTIONS = {
+    # "To provide for supplementing certain items in the general appropriation act …"
+    "2": ("approp_main", "INC", "delta", ()),
+    # "To provide for certain unanticipated obligations of the commonwealth …"
+    "2A": ("approp_new", "NEW", "appropriation", ()),
+    # "To provide for supplementing certain intragovernmental chargeback authorizations …"
+    "2B": ("isf", "INC", "delta", ("isf_chargeback",)),
+    # "… balances of appropriations which otherwise would revert … are hereby re-appropriated"
+    "2CI": ("prior_approp", "PAC", "prior_appropriation_continued", ()),
+    # "… balances of retained revenue and intragovernmental chargeback authorizations … are
+    # hereby re-authorized"
+    "2CII": ("prior_approp", "REAUTH", "prior_appropriation_continued", ()),
+    "2D": ("federal_grants", "NEW", "appropriation", ()),
+    # "… hereby appropriated for transfer from the General Fund to the trust funds …" (Q2)
+    "2E": ("trust_transfer", "NEW", "appropriation", ("trust_transfer",)),
+    "2F": ("surtax", "INC", "delta", ()),
+}
+# Any other section: read as new money, flagged for review
+OTHER_SECTION = ("approp_new", "NEW", "appropriation", ("low_confidence_parse",))
+
+# The reader's veto note (§7.3) -> veto_status (§9.9). Vetoes in supplementals can't be checked
+# against CTHRU (it has no per-law amounts), so any veto is also flagged veto_unverified (§5.7).
+SUPPLEMENTAL_VETO_STATUS = {
+    "none": "none",
+    "reduced": "reduced",
+    "reduced_and_wording": "reduced",
+    "overridden": "overridden",
+    "wording_vetoed": "wording_vetoed",
+    "disapproved": "vetoed",
+}
+
+MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
+# "… shall be made available for the purposes of this item until June 30, 2025"
+AVAILABLE_UNTIL_RE = re.compile(
+    rf"\bavailable\b[^.;]{{0,200}}?\b(?:until|through) ((?:{MONTHS}) \d{{1,2}}, \d{{4}})"
+)
+
+
+def available_through(item_text: str, fiscal_year: int) -> str:
+    """The date an item's money stays available until, if the text gives one past the fiscal
+    year's end (§5.4); else ""."""
+    dates = [
+        datetime.strptime(d, "%B %d, %Y").date() for d in AVAILABLE_UNTIL_RE.findall(item_text)
+    ]
+    later = [d for d in dates if d > date(fiscal_year, 6, 30)]
+    return max(later).isoformat() if later else ""
+
+
+def _cthru_funds(cthru: list[Mapping[str, str]]) -> dict[tuple[str, str], str]:
+    """(fiscal year, line item) -> CTHRU's fund number, where CTHRU books the item to one fund."""
+    out = {}
+    for r in cthru:
+        numbers = [n for n in r["fund_numbers"].split(";") if n]
+        if len(numbers) == 1:
+            out[(r["fiscal_year"], r["line_item"])] = numbers[0]
+    return out
+
+
+def _items_row(
+    item: Mapping[str, str], law: Mapping[str, str], session_law_url: str
+) -> dict[str, Any]:
+    """The fields every row built from an items_raw row shares (§7.3 -> §7.7)."""
+    fy = int(item["fy_stated"]) if item["fy_stated"] else enactment_fy(law["approved_date"])
+    return {
+        "law_key": item["law_key"],
+        "section": item["section"],
+        "line_item": item["line_item"],
+        "target_law_key": item["law_key"],
+        "event_date": law["approved_date"],
+        "calendar_year": int(law["approved_date"][:4]),
+        "fiscal_year": fy,
+        "fy_rule": "stated" if item["fy_stated"] else "enactment_fy",
+        "available_through": available_through(item["item_text"], fy),
+        "amount_source": "law_text",
+        "amount_printed": int(item["amount_struck"] or item["amount"] or 0),
+        "agency_header_raw": item["agency_header_raw"],
+        "item_text": item["item_text"],
+        "source_url": session_law_url.format(acts_year=law["acts_year"], chapter=law["chapter"]),
+        "source_para_start": item["para_start"],
+        "reader_version": item["reader_version"],
+        # fund splits (shared core): the law's printed split, else the section's fund
+        "fund_splits_raw": item["fund_splits_raw"],
+        "section_fund_default": item["section_fund_default"],
+    }
+
+
+def supplemental_rows(
+    items: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    cthru: list[Mapping[str, str]],
+    session_law_url: str,
+) -> list[dict[str, Any]]:
+    """Funding-action rows (§7.7) for the items of in-scope supplemental, surplus and other laws,
+    in source order (Combine-Export-Work-Split.md, B).
+
+    - Each section's action comes from its preamble (``SUPPLEMENTAL_SECTIONS``). §2 adds "to any
+      amounts previously appropriated", so its items are increases (``INC``) of items that already
+      exist: in that fiscal year's GAA, in any law approved earlier (any section or year, e.g.
+      2022-268 §2 adding to 1599-0793, which 2022-42 §2A created), or in CTHRU (that year's
+      original budget, or any amount in an earlier year). An item that exists nowhere yet is new
+      money: ``NEW`` (Emma's review of #46).
+    - Amounts are the law's (``amount_source = law_text``); a whole-item veto gives $0.
+    - Fund: the law's printed split; else the one fund CTHRU books the item to that year (2021-102
+      §2A names two funds, ARPA and the Transitional Escrow Fund, without saying which item uses
+      which); else the section's fund.
+    - Reference-only laws' items are left out (§1).
+    """
+    laws = {r["law_key"]: r for r in law_list}
+    budgeted = {(r["fy_stated"], r["line_item"]) for r in items if _law_type(laws, r) == "gaa"}
+    budgeted |= {
+        (r["fiscal_year"], r["line_item"]) for r in cthru if int(r["original_enacted"] or 0)
+    }
+    budget_years = {fy for fy, _ in budgeted}
+    # When each item first appears in a law (approval date), and in CTHRU (fiscal year)
+    first_law: dict[str, str] = {}
+    for r in items:
+        approved = laws.get(r["law_key"], {}).get("approved_date", "")
+        if approved and approved < first_law.get(r["line_item"], "9999"):
+            first_law[r["line_item"]] = approved
+    first_cthru: dict[str, int] = {}
+    for r in cthru:
+        if int(r["total_enacted"] or 0):
+            fy_ = int(r["fiscal_year"])
+            first_cthru[r["line_item"]] = min(fy_, first_cthru.get(r["line_item"], fy_))
+    funds = _cthru_funds(cthru)
+
+    def existed(line_item: str, fy: str, approved: str) -> bool:
+        return (
+            (fy, line_item) in budgeted
+            or first_law.get(line_item, "9999") < approved
+            or first_cthru.get(line_item, 9999) < int(fy)
+        )
+
+    out = []
+    for item in items:
+        law = laws.get(item["law_key"])
+        if not law or law["role"] != "in_scope" or law["law_type"] not in SUPPLEMENTAL_LAW_TYPES:
+            continue
+        section_type, action, kind, section_flags = SUPPLEMENTAL_SECTIONS.get(
+            item["section"], OTHER_SECTION
+        )
+        row = _items_row(item, law, session_law_url)
+        fy = str(row["fiscal_year"])
+        if (
+            action == "INC"
+            and fy in budget_years
+            and not existed(item["line_item"], fy, law["approved_date"])
+        ):
+            action, kind = "NEW", "appropriation"  # the item doesn't exist yet: a new item
+        veto = item["veto_kind_inline"] or "none"
+        amount = int(item["amount"] or 0)  # "": the whole amount is struck (vetoed)
+        flags = list(section_flags)
+        if row["available_through"]:
+            flags.append("multi_year")
+        if veto != "none":
+            flags.append("veto_unverified")
+        if item["confidence"] == "low" and "low_confidence_parse" not in flags:
+            flags.append("low_confidence_parse")
+        if not item["fund_splits_raw"] and (fy, item["line_item"]) in funds:
+            row["fund_numbers"] = funds[(fy, item["line_item"])]
+        row.update(
+            section_type=section_type,
+            funding_action=action,
+            amount_kind=kind,
+            amount=amount,
+            veto_status=SUPPLEMENTAL_VETO_STATUS.get(veto, "unknown"),
+            flags=";".join(flags),
+        )
+        out.append(row)
+    return out
+
+
+def federal_grant_rows(
+    items: list[Mapping[str, str]], law_list: list[Mapping[str, str]], session_law_url: str
+) -> list[dict[str, Any]]:
+    """Funding-action rows (§7.7) for the §2D federal grant items of in-scope GAAs, in source
+    order (Combine-Export-Work-Split.md, B; Mario's rules at the top of this file).
+
+    CTHRU has no §2D items, so the amount is the law's printed one (``amount_source = law_text``).
+    The money is federal (Q1): ``federal_share`` 1, flagged ``federal``, never counted. CTHRU can't
+    confirm vetoes here, so ``veto_status = unknown`` and ``veto_unverified``.
+    """
+    laws = {r["law_key"]: r for r in law_list}
+    out = []
+    for item in items:
+        law = laws.get(item["law_key"])
+        if not law or law["role"] != "in_scope" or law["law_type"] != "gaa":
+            continue
+        if item["section"] != "2D":
+            continue
+        row = _items_row(item, law, session_law_url)
+        flags = ["federal", "veto_unverified"]
+        if row["available_through"]:
+            flags.append("multi_year")
+        if item["confidence"] == "low":
+            flags.append("low_confidence_parse")
+        row.update(
+            section_type="federal_grants",
+            funding_action="ORIG",
+            amount_kind="appropriation",
+            amount=int(item["amount"] or 0),
+            veto_status="unknown",
+            federal_share=1.0,
+            flags=";".join(flags),
+        )
+        out.append(row)
+    return out
+
+
+def _law_type(laws: Mapping[str, Mapping[str, str]], item: Mapping[str, str]) -> str:
+    return laws.get(item["law_key"], {}).get("law_type", "")
+
+
+# -- Shared core (workstream A; DESIGN §5, §7.6–§7.8, §9.6, §10) ------------------------------
+#
+# Each piece of the work split (docs/Combine-Export-Work-Split.md) is one row builder: a function
+# taking the loaded inputs (``load_inputs``) and the settings, and returning funding-action rows
+# (§7.7) in source order. It may leave ``record_id`` and ``counts_toward_total`` empty: the core
+# sets both. A row may also carry two extra keys for the fund splits, which aren't written:
+# ``fund_splits_raw`` (items_raw's ``Fund name:percent;…``) and ``fund_numbers`` (CTHRU's
+# ``;``-separated fund numbers). A row without either uses ``section_fund_default`` if it has one.
+
+INPUTS = {
+    "law_list": ("config", "law_list.csv"),
+    "funds": ("config", "funds.csv"),
+    "manual_rows": ("config", "manual_rows.csv"),
+    "items_raw": ("interim", "items_raw.csv"),
+    "bond_items_raw": ("interim", "bond_items_raw.csv"),
+    "bond_authorizations_raw": ("interim", "bond_authorizations_raw.csv"),
+    "amendments_raw": ("interim", "amendments_raw.csv"),
+    "cthru_line_items": ("interim", "cthru_line_items.csv"),
+}
+
+# §10: what never counts toward the operating total, whatever the funding action's default.
+NOT_COUNTED_SECTIONS = ("isf", "federal_grants", "trust_transfer", "interim")
+NOT_COUNTED_KINDS = (
+    "bond_authorization",
+    "transfer",
+    "interim",
+    "prior_appropriation_continued",
+    "none",
+)
+NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer", "fund_transfer_chain")
+
+
+def load_inputs(ctx: Context) -> dict[str, list[dict[str, str]]]:
+    """Every input table as rows; a file that doesn't exist yet gives no rows."""
+    dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
+    out = {}
+    for name, (where, filename) in INPUTS.items():
+        path = dirs[where] / filename
+        out[name] = schemas.read_csv(path)[1] if path.exists() else []
+    return out
+
+
+def _bond_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    return bond_rows(
+        inputs["bond_items_raw"],
+        inputs["bond_authorizations_raw"],
+        inputs["law_list"],
+        settings["sources"]["session_law_url"],
+    )
+
+
+# One entry per piece of the work split; ``None`` until its owner adds the builder.
+def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    return supplemental_rows(
+        inputs["items_raw"],
+        inputs["law_list"],
+        inputs["cthru_line_items"],
+        settings["sources"]["session_law_url"],
+    )
+
+
+def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    items = starting_items(inputs)
+    return amendment_rows(
+        inputs["amendments_raw"],
+        amendment_amounts(items, inputs["amendments_raw"], inputs["law_list"]),
+        items,
+        inputs["bond_authorizations_raw"],
+        inputs["law_list"],
+        settings["sources"]["session_law_url"],
+    )
+
+
+def starting_items(inputs: Mapping[str, list]) -> list[dict[str, str]]:
+    """Every item with a starting amount for the running amounts (§5.5): items_raw, bond_items_raw
+    and hand-kept items in manual_rows (issue #41)."""
+    return inputs["items_raw"] + inputs["bond_items_raw"] + manual_items(inputs["manual_rows"])
+
+
+def _federal_grant_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    return federal_grant_rows(
+        inputs["items_raw"], inputs["law_list"], settings["sources"]["session_law_url"]
+    )
+
+
+BUILDERS = {
+    "annual budget rows (E)": None,
+    "supplemental rows (B)": _supplemental_builder,
+    "§2D federal grant rows (B)": _federal_grant_builder,
+    "amendment rows (C)": _amendment_builder,
+    "bond rows (A)": _bond_builder,
+}
+
+
+def manual_rows(rows: list[Mapping[str, str]]) -> list[dict[str, Any]]:
+    """The escape hatch (§7.6) as funding-action rows: ``amount_source = manual``, flagged."""
+    out = []
+    for r in rows:
+        row = {c: r.get(c, "") for c in schemas.columns("funding_actions")}
+        row["amount_source"] = "manual"
+        flags = [f for f in row["flags"].split(";") if f]
+        if "manual_row" not in flags:
+            flags.append("manual_row")
+        row["flags"] = ";".join(flags)
+        out.append(row)
+    return out
+
+
+def counts_toward_total(row: Mapping[str, Any]) -> bool:
+    """Whether a row counts toward the operating total (§10). A partly federal row counts and the
+    totals leave out its federal share; a wholly federal one doesn't count (Q1; Emma, 2026-11-10).
+    """
+    flags = str(row.get("flags") or "").split(";")
+    if (
+        row["section_type"] in NOT_COUNTED_SECTIONS
+        or row["amount_kind"] in NOT_COUNTED_KINDS
+        or any(f in flags for f in NOT_COUNTED_FLAGS)
+        or float(row.get("federal_share") or 0) >= 1
+    ):
+        return False
+    return schemas.FUNDING_ACTION_COUNTS_TOWARD_TOTAL[row["funding_action"]]
+
+
+def operating_total(rows: list[Mapping[str, Any]]) -> int:
+    """Net new appropriation authority (§10): counted rows, less their federal shares."""
+    total = 0
+    for r in rows:
+        if str(r["counts_toward_total"]) == "true" and r["amount"] not in ("", None):
+            total += round(int(r["amount"]) * (1 - float(r["federal_share"] or 0)))
+    return total
+
+
+def _fund_key(name: str) -> str:
+    name = re.sub(r"\s+", " ", name).strip().lower()
+    return re.sub(r"^the ", "", name)
+
+
+def fund_splits(
+    row: Mapping[str, Any], funds: list[Mapping[str, str]]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """A row's fund splits (§5.6, §7.8) without ``record_id``, plus any problems.
+
+    The law's printed split comes first, then CTHRU's fund numbers, then the fund named in the
+    section preamble. CTHRU's numbers carry no shares, so several of them without a printed split
+    give the funds with empty shares (Emma, 2026-11-10). A fund that isn't in ``config/funds.csv``
+    is kept but reported, and not taken as federal.
+    """
+    by_name = {_fund_key(f["fund_name"]): f for f in funds}
+    by_number = {f["fund_number"]: f for f in funds if f["fund_number"]}
+    found: list[tuple[Mapping[str, str], str, float | str]] = []  # (funds.csv row, name, share)
+    problems = []
+    if row.get("fund_splits_raw"):
+        for part in str(row["fund_splits_raw"]).split(";"):
+            name, _, pct = part.rpartition(":")
+            found.append((by_name.get(_fund_key(name), {}), name, float(pct) / 100))
+    elif row.get("fund_numbers"):
+        numbers = [n for n in str(row["fund_numbers"]).split(";") if n]
+        share: float | str = 1.0 if len(numbers) == 1 else ""
+        if len(numbers) > 1:
+            problems.append(f"several CTHRU funds and no printed split: {';'.join(numbers)}")
+        for n in numbers:
+            found.append((by_number.get(n, {"fund_number": n}), n, share))
+    elif row.get("section_fund_default"):
+        name = str(row["section_fund_default"])
+        found.append((by_name.get(_fund_key(name), {}), name, 1.0))
+    out = []
+    for fund, name, share in found:
+        if "fund_name" not in fund:
+            problems.append(f"fund not in config/funds.csv: {name}")
+        out.append(
+            {
+                "fund_name": fund.get("fund_name", name),
+                "fund_number": fund.get("fund_number", ""),
+                "share": share,
+                "is_federal": fund.get("is_federal", "false"),
+            }
+        )
+    return out, problems
+
+
+def _apply_splits(row: dict[str, Any], splits: list[Mapping[str, Any]]) -> None:
+    """Main fund, federal share and federal flags from the splits (§5.6, §9.5). A row whose builder
+    already set a federal share (bond rows, from their borrowing limit) keeps it."""
+    known = [s for s in splits if s["share"] != ""]
+    if known:
+        row["fund_primary"] = max(known, key=lambda s: s["share"])["fund_name"]
+    elif len(splits) == 1:
+        row["fund_primary"] = splits[0]["fund_name"]
+    if row.get("federal_share") not in ("", None) or not known:
+        return
+    share = sum(s["share"] for s in known if s["is_federal"] == "true")
+    if not share:
+        return
+    row["federal_share"] = round(share, 6)
+    flags = [f for f in str(row.get("flags") or "").split(";") if f]
+    for f in ["federal"] + (["federal_mixed"] if share < 1 else []):
+        if f not in flags:
+            flags.append(f)
+    row["flags"] = ";".join(flags)
+
+
+def assign_ids(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sort rows by law, section and position in the law, then give each its Record ID (§9.6).
+    The sort is stable, so rows at the same position keep their builders' order."""
+
+    def order(r: Mapping[str, Any]) -> tuple:
+        para = str(r.get("source_para_start") or "")
+        return (
+            _law_order(r["law_key"]),
+            _section_order(r["section"]),
+            int(para) if para.isdigit() else -1,
+        )
+
+    rows = sorted(rows, key=order)
+    prefixes = []
+    for r in rows:
+        year, chapter = _law_order(r["law_key"])
+        prefixes.append(
+            schemas.record_id_prefix(
+                year, chapter, r["section"], r["line_item"], r["funding_action"]
+            )
+        )
+    for r, record_id in zip(rows, schemas.assign_record_ids(prefixes), strict=True):
+        r["record_id"] = record_id
+    return rows
+
+
+def combine_rows(
+    pieces: Mapping[str, list[dict[str, Any]]],
+    law_list: list[Mapping[str, str]],
+    funds: list[Mapping[str, str]],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Every piece's rows as the funding actions table, with its fund splits and problems.
+
+    Rows from laws that aren't ``in_scope`` are left out: reference-only laws are read only to
+    look things up (§1). Returns (funding actions, fund splits, problems), ready to write.
+    """
+    roles = {r["law_key"]: r["role"] for r in law_list}
+    rows, problems = [], []
+    for piece, piece_rows in pieces.items():
+        for r in piece_rows:
+            if roles.get(r["law_key"]) != "in_scope":
+                problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
+                continue
+            rows.append(dict(r))
+    rows = assign_ids(rows)
+    splits = []
+    for r in rows:
+        row_splits, row_problems = fund_splits(r, funds)
+        _apply_splits(r, row_splits)
+        r["counts_toward_total"] = "true" if counts_toward_total(r) else "false"
+        splits += [{"record_id": r["record_id"], **s} for s in row_splits]
+        problems += [_problem(r, p) for p in row_problems]
+    columns = schemas.columns("funding_actions")
+    return [{c: r.get(c, "") for c in columns} for r in rows], splits, problems
+
+
+PROBLEM_COLUMNS = ("record_id", "law_key", "section", "line_item", "problem")
+
+
+def _problem(row: Mapping[str, Any], problem: str) -> dict[str, Any]:
+    return {c: row.get(c, "") for c in PROBLEM_COLUMNS[:-1]} | {"problem": problem}
+
+
+def running_amounts(
+    rows: list[Mapping[str, Any]], amounts: list[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """``running_amounts.csv`` (§7.8): each amount from ``amendment_amounts`` (C), tied to the
+    funding action that made it. Amendments with no funding-action row yet are left out."""
+    by_key: dict[tuple, str] = {}
+    for r in rows:
+        key = (r["law_key"], r["section"], r["line_item"], r["target_law_key"])
+        by_key.setdefault(key, r["record_id"])
+    out = []
+    for a in amounts:
+        record_id = by_key.get((a["law_key"], a["section"], a["target_item"], a["target_law_key"]))
+        if record_id and a["amount_after"] not in ("", None):
+            out.append(
+                {
+                    "target_law_key": a["target_law_key"],
+                    "section": a["target_section"],
+                    "line_item": a["target_item"],
+                    "as_of_event": record_id,
+                    "amount_after": a["amount_after"],
+                }
+            )
+    return out
+
+
+def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[Mapping]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(columns), lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+
+
 def run(ctx: Context) -> int:
-    raise NotImplementedError
+    inputs = load_inputs(ctx)
+    pieces = {}
+    for piece, builder in BUILDERS.items():
+        if builder is None:
+            print(f"  {piece}: not built yet")
+            continue
+        pieces[piece] = builder(inputs, ctx.settings)
+        print(f"  {piece}: {len(pieces[piece])} rows")
+    pieces["manual rows"] = manual_rows(inputs["manual_rows"])
+    rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
+    amounts = running_amounts(
+        rows,
+        amendment_amounts(starting_items(inputs), inputs["amendments_raw"], inputs["law_list"]),
+    )
+    bad = 0
+    for table, table_rows in (
+        ("funding_actions", rows),
+        ("fund_splits", splits),
+        ("running_amounts", amounts),
+    ):
+        path = ctx.interim_dir / f"{table}.csv"
+        _write(path, schemas.columns(table), table_rows)
+        bad += len(schemas.validate_file(table, path))
+    _write(ctx.reports_dir / "combine_problems.csv", PROBLEM_COLUMNS, problems)
+    print(
+        f"  funding actions: {len(rows)} ({len(pieces['manual rows'])} manual); fund splits: "
+        f"{len(splits)}; running amounts: {len(amounts)}; format problems: {bad}"
+    )
+    print(f"  problems: {len(problems)} (reports/combine_problems.csv)")
+    print(f"  operating total: ${operating_total(rows):,}; capital total: ${capital_total(rows):,}")
+    return 1 if bad else 0
