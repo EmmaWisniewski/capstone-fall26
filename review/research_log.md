@@ -104,3 +104,28 @@ target needs correcting on that side. 2022-24 is excluded from the law list.
 Corrected on the reading side by Emily H., 2026-11-09: `config/citation_fixes.csv` (DESIGN §7.18) maps
 2024-248 §35's citation of 2022-24 to 2021-24, so reader 0.10.0 attaches the date extension to
 2021-24 with `medium` confidence.
+
+## Amendment increases CTHRU doesn't show (Q28)
+Emily H., 2026-11-11. The CTHRU comparison in `validate` (§13 check 4, PR #51) lists three FY2024
+increases made by outside sections that CTHRU doesn't carry:
+
+| Row | The law | CTHRU, FY2024 |
+|---|---|---|
+| `2023-077-S182-4512-0205-INC-1` (+$100,000) | 2023 ch. 77 §182 raises item 4512-0205 of the FY2024 GAA (2023-28) from $5,295,000 to $5,395,000; §181 raises the item's earmark for One Life at a Time, Inc. from $100,000 to $200,000 to match | original $5,295,000, no supplemental |
+| `2023-077-S191-8324-0050-INC-1` (+$1,750,000) | 2023 ch. 77 §191 raises item 8324-0050 from $3,316,700 to $5,066,700 | original $3,316,700, no supplemental (and a $1,658,350 9C cut) |
+| `2024-248-S60-1599-0026-INC-1` (+$25,000) | 2024 ch. 248 §60 raises item 1599-0026 from $16,300,000 to $16,325,000 | original $16,300,000 plus 2024-248 §2's $12,673,961, but not the $25,000 |
+
+What was checked:
+- Each struck figure equals the item's printed amount (§13 check 3: `match`), so the reader is right.
+- Both bills were signed without vetoes (H4204 and H5077 histories: "Signed by the Governor"), and
+  neither law's text has veto markup.
+- No CTHRU account shows a supplemental of these amounts in FY2023 to FY2026 (CTHRU snapshot of
+  2026-11-11), so the money wasn't booked to another account or year.
+- CTHRU does carry other changes of the same kind: 2023-77 §178 (EX-004, +$350,000 to 2330-0100) is in
+  its FY2024 supplemental, and so are the other outside-section changes of these two laws, apart from
+  2024-248 §126 (a §2B chargeback, which CTHRU shows only as a ceiling; issue #36).
+
+Conclusion: the rows keep the law's amounts. For an amendment the amount is the law's
+(`amount_source = law_text`, DESIGN §5.7), and the law is in force. They add $1,875,000 to the FY2024
+total that CTHRU doesn't show, so check 4 keeps listing them; this entry is the explanation. If the
+group wants CTHRU's figure instead, that is a §5.7 change.
