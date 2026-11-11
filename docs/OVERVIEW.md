@@ -72,7 +72,7 @@ that haven't been written yet are skipped with a message.
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |
 | 5 | `read_amendments.py` | Reads sections that change earlier items ("strike out $9,310,231, insert $9,660,231") and lump-sum interim budgets | Emily H. (C) |
-| 6 | `combine.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | everyone |
+| 6 | `combine.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | Emma (shared core); each piece's rows by its owner |
 | 7 | `label.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
 | 8 | `export.py` | Applies human corrections and writes the final CSV in exactly the `exampledata.csv` format | everyone |
 | — | `validate.py` | Runs the checks: our numbers vs. CTHRU, nothing left unread, IDs unique | Mario (E) |
@@ -120,7 +120,7 @@ for their own area.
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ (`read_amendments` and the running-amounts check merged; all 58 laws read, 35 unread sections left for Q22; `running_amounts.csv` waits on `combine`) |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list, line-item catalog and funds list done; `label.py` session 1 merged, session 2 in review) |
 | **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ☐ |
-| — | **everyone** | **Putting it together:** combining the pieces into the final dataset | Waits on the above (milestone M1) | ☐ |
+| — | **Emma (core) + everyone** | **Putting it together:** combining the pieces into the final dataset; Emma owns the shared core of `combine` | Waits on the above (milestone M1) | ☐ |
 
 **Scope decided:** the project covers appropriations (what laws authorized), not what the
 state actually *spent*. Our partner set this at the proposal stage
@@ -130,7 +130,7 @@ state actually *spent*. Our partner set this at the proposal stage
 
 | Milestone | Done when… | Status |
 |---|---|---|
-| **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ◐ (skeleton updated to v0.2; sign-off pending) |
+| **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ☑ (signed off by the group, 2026-11-10) |
 | **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
 | **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ☐ |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
