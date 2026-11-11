@@ -621,8 +621,12 @@ def supplemental_rows(
     """Funding-action rows (§7.7) for the items of in-scope supplemental, surplus and other laws,
     in source order (Combine-Export-Work-Split.md, B).
 
-    - Each section's action comes from its preamble (``SUPPLEMENTAL_SECTIONS``). A §2 item that
-      isn't in that fiscal year's GAA (read_items) or CTHRU is new money: ``NEW``, not ``INC``.
+    - Each section's action comes from its preamble (``SUPPLEMENTAL_SECTIONS``). §2 adds "to any
+      amounts previously appropriated", so its items are increases (``INC``) of items that already
+      exist: in that fiscal year's GAA, in any law approved earlier (any section or year, e.g.
+      2022-268 §2 adding to 1599-0793, which 2022-42 §2A created), or in CTHRU (that year's
+      original budget, or any amount in an earlier year). An item that exists nowhere yet is new
+      money: ``NEW`` (Emma's review of #46).
     - Amounts are the law's (``amount_source = law_text``); a whole-item veto gives $0.
     - Fund: the law's printed split; else the one fund CTHRU books the item to that year (2021-102
       §2A names two funds, ARPA and the Transitional Escrow Fund, without saying which item uses
@@ -635,7 +639,26 @@ def supplemental_rows(
         (r["fiscal_year"], r["line_item"]) for r in cthru if int(r["original_enacted"] or 0)
     }
     budget_years = {fy for fy, _ in budgeted}
+    # When each item first appears in a law (approval date), and in CTHRU (fiscal year)
+    first_law: dict[str, str] = {}
+    for r in items:
+        approved = laws.get(r["law_key"], {}).get("approved_date", "")
+        if approved and approved < first_law.get(r["line_item"], "9999"):
+            first_law[r["line_item"]] = approved
+    first_cthru: dict[str, int] = {}
+    for r in cthru:
+        if int(r["total_enacted"] or 0):
+            fy_ = int(r["fiscal_year"])
+            first_cthru[r["line_item"]] = min(fy_, first_cthru.get(r["line_item"], fy_))
     funds = _cthru_funds(cthru)
+
+    def existed(line_item: str, fy: str, approved: str) -> bool:
+        return (
+            (fy, line_item) in budgeted
+            or first_law.get(line_item, "9999") < approved
+            or first_cthru.get(line_item, 9999) < int(fy)
+        )
+
     out = []
     for item in items:
         law = laws.get(item["law_key"])
@@ -646,8 +669,12 @@ def supplemental_rows(
         )
         row = _items_row(item, law, session_law_url)
         fy = str(row["fiscal_year"])
-        if action == "INC" and fy in budget_years and (fy, item["line_item"]) not in budgeted:
-            action, kind = "NEW", "appropriation"  # not in that year's budget: a new item
+        if (
+            action == "INC"
+            and fy in budget_years
+            and not existed(item["line_item"], fy, law["approved_date"])
+        ):
+            action, kind = "NEW", "appropriation"  # the item doesn't exist yet: a new item
         veto = item["veto_kind_inline"] or "none"
         amount = int(item["amount"] or 0)  # "": the whole amount is struck (vetoed)
         flags = list(section_flags)

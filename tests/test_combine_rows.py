@@ -110,6 +110,37 @@ def test_a_section_2_item_not_in_that_years_budget_is_new_money():
     ]
 
 
+def test_section_2_item_created_by_an_earlier_law_is_an_increase():
+    # Emma's review of #46: 2022-268 §2 adds to 1599-0793, which 2022-42 §2A created in FY2022;
+    # 2024-206 §2 adds to 1599-6073, which 2022-268 §2A created two years earlier
+    laws = [
+        law("2022-42", approved="2022-04-01"),
+        law("2022-268", approved="2022-11-10"),
+        law("2024-206", approved="2024-09-16"),
+        GAA,
+        law("2024-140", "gaa", approved="2024-07-29"),
+    ]
+    items = [
+        item("2022-126", "2", "0340-0400", 10, fy="2022"),  # FY2022 and FY2024 budgets were read
+        item("2024-140", "2", "0340-0400", 10, fy="2024"),
+        item("2022-42", "2A", "1599-0793", 5, fy="2022"),
+        item("2022-268", "2", "1599-0793", 6, fy="2022"),
+        item("2022-268", "2A", "1599-6073", 7, fy="2022"),
+        item("2024-206", "2", "1599-6073", 8, fy="2024"),
+        item("2024-206", "2", "1599-7777", 9, fy="2024"),  # exists nowhere earlier
+        item("2024-206", "2", "1599-8888", 9, fy="2024"),  # CTHRU has it in FY2023
+    ]
+    rows = supp(items, laws, cthru_rows=[cthru("2023", "1599-8888") | {"total_enacted": "50"}])
+    assert [(r["law_key"], r["line_item"], r["funding_action"]) for r in rows] == [
+        ("2022-42", "1599-0793", "NEW"),
+        ("2022-268", "1599-0793", "INC"),
+        ("2022-268", "1599-6073", "NEW"),
+        ("2024-206", "1599-6073", "INC"),
+        ("2024-206", "1599-7777", "NEW"),
+        ("2024-206", "1599-8888", "INC"),
+    ]
+
+
 def test_section_2_stays_an_increase_when_that_years_budget_isnt_read():
     [row] = supp([item("2023-77", "2", "1599-9817", 5000, fy="2019")])
     assert row["funding_action"] == "INC"
