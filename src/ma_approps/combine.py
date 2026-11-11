@@ -791,11 +791,6 @@ def _bond_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> li
 
 
 # One entry per piece of the work split; ``None`` until its owner adds the builder.
-BUILDERS = {
-    "annual budget rows (E)": None,
-    "supplemental rows (B)": None,
-    "§2D federal grant rows (B)": None,
-    "amendment rows (C)": None,
 def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
     return supplemental_rows(
         inputs["items_raw"],
@@ -985,7 +980,6 @@ def combine_rows(
     look things up (§1). A manual row of a reference-only law is left out without a problem: it's
     there only to give an item its starting amount (1993-52 item 4000-8200, issue #41).
     Returns (funding actions, fund splits, problems), ready to write.
-    look things up (§1). Returns (funding actions, fund splits, problems), ready to write.
     """
     roles = {r["law_key"]: r["role"] for r in law_list}
     rows, problems = [], []
@@ -995,8 +989,6 @@ def combine_rows(
             if role != "in_scope":
                 if not (piece == MANUAL_PIECE and role == "reference_only"):
                     problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
-            if roles.get(r["law_key"]) != "in_scope":
-                problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
                 continue
             rows.append(dict(r))
     rows = assign_ids(rows)
@@ -1064,11 +1056,6 @@ def run(ctx: Context) -> int:
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
     amounts = running_amounts(
         rows,
-        amendment_amounts(
-            inputs["items_raw"] + inputs["bond_items_raw"],
-            inputs["amendments_raw"],
-            inputs["law_list"],
-        ),
         amendment_amounts(starting_items(inputs), inputs["amendments_raw"], inputs["law_list"]),
     )
     bad = 0
