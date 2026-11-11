@@ -1,6 +1,6 @@
 # Working with Claude Code and git
 
-A refresher for the "how" of making progress on this project. For what the program does and who owns what, see [`OVERVIEW.md`](OVERVIEW.md).
+A refresher for the "how" of making progress on this project. For what the program does and who started which part, see [`OVERVIEW.md`](OVERVIEW.md).
 
 ---
 
@@ -147,7 +147,7 @@ You review PRs in Step 2. Let Claude do the checking:
 
 What Claude checks:
 - ☐ CI is green.
-- ☐ The changes match what the description says, and stay mostly within the author's workstream.
+- ☐ The changes match what the description says.
 - ☐ No generated files were edited by hand (`data/`, `reports/`, `review/review_queue.csv`).
 - ☐ No new or renamed columns or allowed values unless `DESIGN.md` §7/§9 and `schemas.py` were updated too.
 - ☐ The tracker in `OVERVIEW.md` or DESIGN §21 is updated if a milestone changed.

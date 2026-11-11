@@ -42,7 +42,7 @@ def run_stages(ctx: Context, names: list[str]) -> int:
             continue
         mod = stage_module(name)
         if not getattr(mod, "IMPLEMENTED", False):
-            print(f"[{name}] skipped: not implemented yet (owner: {owner})")
+            print(f"[{name}] skipped: not implemented yet (started by: {owner})")
             continue
         print(f"[{name}] running")
         status = mod.run(ctx) or 0

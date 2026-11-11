@@ -1,6 +1,6 @@
 # The "laws" step, in plain language
 
-*For readers with no programming background. Owner: workstream A (Emma). The technical
+*For readers with no programming background. Started by workstream A (Emma). The technical
 description is in [DESIGN §6](../DESIGN.md#6-pipeline-architecture) and
 [§7.15](../DESIGN.md#715-datarawmanifestcsv-written-by-laws); the program itself is
 `src/ma_approps/laws.py`. Last updated 2026-10-28.*

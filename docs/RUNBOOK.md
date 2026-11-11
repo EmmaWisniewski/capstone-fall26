@@ -147,7 +147,7 @@ Also fill in `law_type` (§9.1), a short `law_name`, `primary_fy` where it has o
 
 **If something's wrong**
 - **Many unread rows of the same kind:** the law format changed. That's a code fix in the stage's
-  reader. Open an issue for its owner (see OVERVIEW §3), with an example.
+  reader. Fix it yourselves, or open an issue (a to-do item on GitHub) with an example.
 - **A misprinted item number** in the law (like "911-1003", which should be 5911-1003): add a row
   to `config/item_number_fixes.csv` (DESIGN §7.17), so the item is read with the right number.
 - **A misprinted law citation** in an amending section (2024 ch. 248 §35 cites 2022 ch. 24 for an
@@ -246,7 +246,7 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 - **Write down your reasoning** in `review/research_log.md` whenever a decision took more than one
   line.
 - **Open a GitHub issue** for anything you can't fix, with the law, the section and what you
-  expected. Assign it to the stage's owner if there still is one.
+  expected.
 
 ---
 
