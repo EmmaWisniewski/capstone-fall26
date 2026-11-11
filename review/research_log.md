@@ -141,3 +141,13 @@ Conclusion: the rows keep the law's amounts. For an amendment the amount is the 
 (`amount_source = law_text`, DESIGN §5.7), and the law is in force. They add $1,875,000 to the FY2024
 total that CTHRU doesn't show, so check 4 keeps listing them; this entry is the explanation. If the
 group wants CTHRU's figure instead, that is a §5.7 change.
+
+## Manual row: 1993 ch. 52 item 4000-8200 (starting amount for 2024 ch. 150 §60)
+Emma, 2026-11-11.
+
+`config/manual_rows.csv` holds one row: 1993 ch. 52 §2 item 4000-8200 at $50,000,000, as a `CAP`
+row. 1993 ch. 52 predates the Legislature's API, so no reader can read it (its text is in
+`review/sources/1993-52.txt`, checked against the State Archives PDF). The row exists only to give the
+item its starting amount: `combine` leaves it out of the funding actions because 1993-52 is
+reference-only, and uses it in the running amounts, so 2024 ch. 150 §60, which replaces the item at
+the same $50,000,000, becomes a `CAP` row of $0 (2026-11-06 decision; Q26, decided 2026-11-11, keeps a restated bond item as `CAP` $0, labeled "New" and "One-time").

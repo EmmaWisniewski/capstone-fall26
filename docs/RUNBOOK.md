@@ -152,8 +152,14 @@ Also fill in `law_type` (§9.1), a short `law_name`, `primary_fy` where it has o
   to `config/item_number_fixes.csv` (DESIGN §7.17), so the item is read with the right number.
 - **A misprinted law citation** in an amending section (2024 ch. 248 §35 cites 2022 ch. 24 for an
   item that's in 2021 ch. 24): add a row to `config/citation_fixes.csv` (DESIGN §7.18).
-- **Any other odd paragraph:** explain it. *Where those explanations are written is still being
-  decided (DESIGN §19 Q22); update this step when it is.*
+- **Any other odd paragraph or section** (a local-aid formula, a revenue declaration, a section
+  that needs no row): explain it in `review/unread_explanations.csv` (DESIGN §7.19, decided in Q22),
+  one row per unread row: which `report` it's in (e.g. `unread_sections.csv`), its `law_key` and
+  `section`, a plain-language `explanation` (what the section does and why it needs no row, or
+  where its money is counted instead), `explained_by` and `date`. Never edit the report itself:
+  it's regenerated on every run. `validate` counts a row as explained when this file has a match.
+  > **Say:** "List the unread rows that aren't explained yet, with each section's text, so I can
+  > write the explanations."
 
 ---
 
@@ -225,7 +231,7 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
 - update the Status Board (§21) and the tracker in OVERVIEW §5;
-- open a pull request and get one teammate's review (WORKFLOW §3).
+- share the work as a pull request (WORKFLOW §2, Step 8).
 
 ---
 
