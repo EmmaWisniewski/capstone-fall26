@@ -13,14 +13,18 @@ Owner: workstream D (Labels). No LLM.
 - Program / purpose (§8 column 10): the first clause of the law text with boilerplate like "For
   the operation of" removed, else the CTHRU account name.
 - Policy area (§12): config/line_item_catalog.csv, then config/department_policy_areas.csv
-  (via the line's CTHRU department that fiscal year), else empty, which sends the row to the
-  review queue.
+  via the line's CTHRU department (that fiscal year, else another year, else the department
+  that owns the line's first four digits, which covers bond items CTHRU doesn't list), else
+  empty, which sends the row to the review queue.
 - Previously funded? (§8 column 14, Q3): ``Yes`` if the line had non-zero enacted authority in
   the fiscal year before the row's, else ``No``.
 - One-time or recurring (§8 column 15, Q3): a GAA row is ``Recurring`` if the line was also in
   the GAA the year before or the year after, else ``One-time``. Supplemental and bond rows are
   ``One-time`` (interim rule).
-- New vs. re-appropriation stays ``Pending`` until the partner answers Q3.
+- New vs. re-appropriation (§8 column 16, Q3 decided by the group 2026-11-11): appropriations,
+  supplemental increases and reductions, and bonds are ``New``; carried-over money and
+  reauthorizations are ``Re-appropriation``; transfers and purpose changes are ``Transfer of
+  existing authority``; interim budgets stay ``Pending``.
 """
 
 from __future__ import annotations
@@ -41,6 +45,8 @@ IMPLEMENTED = False
 # purpose changes and interim budgets don't fund a line on their own.
 AUTHORITY_ACTIONS = frozenset(("ORIG", "NEW", "INC", "RED", "VETO", "OVR", "CAP"))
 ONE_TIME_ACTIONS = frozenset(("NEW", "INC", "RED", "CAP"))
+REAPPROPRIATION_ACTIONS = frozenset(("REAUTH", "PAC"))
+TRANSFER_ACTIONS = frozenset(("XFER", "PURP"))
 
 Row = Mapping[str, str]
 
@@ -176,12 +182,32 @@ class Departments:
     def __init__(self, cthru_rows: Iterable[Row]) -> None:
         self.prefixes: dict[str, set[str]] = defaultdict(set)  # department -> prefixes it uses
         by_prefix: dict[str, Counter] = defaultdict(Counter)  # prefix -> department counts
+        codes_by_prefix: dict[str, Counter] = defaultdict(Counter)  # prefix -> department codes
+        self.line_codes: dict[str, dict[int, str]] = defaultdict(dict)  # line -> {year: code}
+        self.name_code: dict[str, str] = {}  # display name -> department code
         for r in cthru_rows:
             name = department_display_name(r["department_name"])
             if name:
                 self.prefixes[name].add(r["line_item"][:4])
                 by_prefix[r["line_item"][:4]][name] += 1
+            if r["department_code"]:
+                self.line_codes[r["line_item"]][int(r["fiscal_year"])] = r["department_code"]
+                codes_by_prefix[r["line_item"][:4]][r["department_code"]] += 1
+                if name:
+                    self.name_code.setdefault(name, r["department_code"])
         self.owner = {p: c.most_common(1)[0][0] for p, c in by_prefix.items()}
+        self.owner_code = {p: c.most_common(1)[0][0] for p, c in codes_by_prefix.items()}
+
+    def department_code(self, line_item: str, fiscal_year: int, names: Iterable[str] = ()) -> str:
+        """The line's CTHRU department that year, else in its latest year, else the department
+        that owns its first four digits, else a department whose name was printed in the law
+        (MassDOT's capital lines, for example, never appear in CTHRU)."""
+        years = self.line_codes.get(line_item)
+        if years:
+            return years.get(fiscal_year) or years[max(years)]
+        if line_item[:4] in self.owner_code:
+            return self.owner_code[line_item[:4]]
+        return next((self.name_code[n] for n in names if n in self.name_code), "")
 
     def fix_inherited(self, agency: str, line_item: str) -> str:
         """A bond item with no heading of its own inherits the one above it, which can belong to
@@ -239,15 +265,27 @@ def policy_area(
     catalog: Mapping[str, Row],
     departments: Mapping[str, Row],
     cthru: Mapping[tuple[str, int], Row],
+    cthru_departments: Departments | None = None,
+    printed_names: Iterable[str] = (),
 ) -> tuple[str, str]:
-    """Return ``(policy_area, policy_area_method)``. ``("", "")`` means the row needs review."""
+    """Return ``(policy_area, policy_area_method)``. ``("", "")`` means the row needs review.
+
+    ``printed_names`` are department names from the law (secretariat header, agency), used only
+    when CTHRU has no department for the line or its first four digits.
+    """
     entry = catalog.get(line_item)
     if entry is not None:
         if entry["label_every_year"] == "true":
             return "", ""
         return entry["policy_area"], "catalog"
     account = cthru.get((line_item, fiscal_year))
-    dept = departments.get(account["department_code"]) if account else None
+    if account:
+        code = account["department_code"]
+    elif cthru_departments:
+        code = cthru_departments.department_code(line_item, fiscal_year, printed_names)
+    else:
+        code = ""
+    dept = departments.get(code)
     if dept and dept["mixed"] == "false" and dept["policy_area"]:
         return dept["policy_area"], "department"
     return "", ""
@@ -310,6 +348,18 @@ def one_time_or_recurring(row: Row, gaa_funded: set[tuple[str, int]]) -> str:
     return "Not classified"
 
 
+def new_or_reapprop(row: Row) -> str:
+    """Q3 (group, 2026-11-11): the §8 column 16 rule, by funding action."""
+    action = row["funding_action"]
+    if action in AUTHORITY_ACTIONS:
+        return "New"
+    if action in REAPPROPRIATION_ACTIONS:
+        return "Re-appropriation"
+    if action in TRANSFER_ACTIONS:
+        return "Transfer of existing authority"
+    return "Pending"  # interim budgets: no rule decided
+
+
 # ---------------------------------------------------------------------------
 # Stage
 # ---------------------------------------------------------------------------
@@ -340,19 +390,23 @@ def label_rows(
         fy = int(r["fiscal_year"])
         account = cthru.get((r["line_item"], fy))
         secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
+        agency = agency_office(r, account, secretariat, cthru_departments)
         purpose, purpose_method = program_purpose(r, account)
-        area, method = policy_area(r["line_item"], fy, catalog, departments, cthru)
+        printed = (department_display_name(secretariat), agency)
+        area, method = policy_area(
+            r["line_item"], fy, catalog, departments, cthru, cthru_departments, printed
+        )
         label = dict.fromkeys(schemas.columns("labels"), "")
         label.update(
             record_id=r["record_id"],
-            agency_office=agency_office(r, account, secretariat, cthru_departments),
+            agency_office=agency,
             program_purpose=purpose,
             program_purpose_method=purpose_method,
             policy_area=area,
             policy_area_method=method,
             previously_funded=previously_funded(r["line_item"], fy, funded),
             one_time_or_recurring=one_time_or_recurring(r, gaa_funded),
-            new_or_reapprop="Pending",
+            new_or_reapprop=new_or_reapprop(r),
         )
         out.append(label)
     return sorted(out, key=lambda r: r["record_id"])

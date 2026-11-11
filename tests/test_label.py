@@ -162,6 +162,59 @@ def test_purpose_falls_back_to_the_cthru_account_name():
     assert label.program_purpose(action("b", "", 2024, "INT"), None) == ("", "")
 
 
+def test_new_or_reapprop_follows_the_group_rule():
+    expected = {
+        "ORIG": "New", "NEW": "New", "INC": "New", "RED": "New", "CAP": "New",
+        "REAUTH": "Re-appropriation", "PAC": "Re-appropriation",
+        "XFER": "Transfer of existing authority", "PURP": "Transfer of existing authority",
+        "INT": "Pending",
+    }
+    for funding_action, answer in expected.items():
+        assert label.new_or_reapprop(action("a", "1234-5678", 2024, funding_action)) == answer
+
+
+def test_bond_lines_get_their_department_area_from_the_line_number():
+    # Bond items aren't in CTHRU; their first four digits point to a department
+    cthru_rows = [
+        cthru("7066-0000", 2024, dept="RGT", account="x"),
+        cthru("1599-0026", 2024, dept="ANF", account="x"),
+        cthru("4000-0300", 2022, dept="EHS", account="x"),
+    ]
+    rows = {(r["line_item"], int(r["fiscal_year"])): r for r in cthru_rows}
+    depts = label.Departments(cthru_rows)
+    departments = {
+        "RGT": {"department_code": "RGT", "policy_area": "Education", "mixed": "false"},
+        "ANF": {"department_code": "ANF", "policy_area": "", "mixed": "true"},
+        "EHS": {"department_code": "EHS", "policy_area": "Health and public health",
+                "mixed": "false"},
+    }
+    assert label.policy_area("7066-2011", 2023, {}, departments, rows, depts) == (
+        "Education", "department",
+    )
+    # A mixed department (A&F reserves) still goes to review
+    assert label.policy_area("1599-1953", 2025, {}, departments, rows, depts) == ("", "")
+    # A line CTHRU lists in another year uses that year's department
+    assert label.policy_area("4000-0300", 2025, {}, departments, rows, depts) == (
+        "Health and public health", "department",
+    )
+    # No CTHRU line with these digits at all: review
+    assert label.policy_area("6121-2617", 2025, {}, departments, rows, depts) == ("", "")
+
+
+def test_mass_dot_capital_lines_use_the_printed_department():
+    # MassDOT's capital lines (6121-…) never appear in CTHRU, but the law prints its name
+    cthru_rows = [cthru("1595-6368", 2024, dept="DOT", account="x",
+                        dept_name="MASSACHUSETTS DEPARTMENT OF TRANSPORTATION")]
+    rows = {(r["line_item"], int(r["fiscal_year"])): r for r in cthru_rows}
+    departments = {"DOT": {"department_code": "DOT", "policy_area": "Transportation",
+                           "mixed": "false"}}
+    printed = ("Massachusetts Department of Transportation",
+               "Massachusetts Department of Transportation Highway Division")
+    assert label.policy_area("6121-2617", 2025, {}, departments, rows,
+                             label.Departments(cthru_rows), printed) == ("Transportation",
+                                                                         "department")
+
+
 def test_policy_area_comes_from_the_catalog_first():
     assert label.policy_area("2330-0100", 2024, CATALOG, DEPARTMENTS, CTHRU) == (ENV, "catalog")
 
@@ -268,7 +321,7 @@ def test_run_writes_a_valid_labels_file(tmp_path):
     assert (ex1["previously_funded"], ex1["one_time_or_recurring"]) == ("Yes", "Recurring")
     assert (ex4["policy_area"], ex4["policy_area_method"]) == (ENV, "catalog")
     assert (ex4["previously_funded"], ex4["one_time_or_recurring"]) == ("Yes", "One-time")
-    assert ex4["new_or_reapprop"] == "Pending"
+    assert ex4["new_or_reapprop"] == "New"  # a supplemental increase (Q3)
 
 
 def test_run_reports_missing_inputs(tmp_path):
