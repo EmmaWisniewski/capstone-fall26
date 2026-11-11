@@ -7,6 +7,7 @@ A line-item dataset of every Massachusetts state appropriation in laws approved
 - [`docs/OVERVIEW.md`](docs/OVERVIEW.md): how the program works, who owns what, and where things stand
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md): working with Claude Code and git (branches, commits, pull requests)
 - [`docs/DESIGN.md`](docs/DESIGN.md): the full design and source of truth
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md): adding a new year of laws (for future groups; first draft)
 
 ## Quickstart
 
