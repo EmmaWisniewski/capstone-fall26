@@ -784,7 +784,7 @@ Each workstream owner works the review items for their own area (§16).
 capstone-fall26/
 ├── CLAUDE.md                     # pointer + rules for Claude sessions
 ├── README.md                     # quickstart
-├── docs/                         # OVERVIEW, WORKFLOW, DESIGN (this file), RUNBOOK (to write)
+├── docs/                         # OVERVIEW, WORKFLOW, DESIGN (this file), RUNBOOK (first draft)
 ├── exampledata.csv  policyareas.csv  URLs.csv   # reference inputs (keep at root)
 ├── pyproject.toml                # deps, ruff, pytest config
 ├── config/
@@ -1033,5 +1033,5 @@ Update this table in the same commit as the work it describes. Edit only your ow
 | M3: supplementals, surplus, interim | B, C | ☐ todo | |
 | M4: bond bills | A | ◐ in progress | `read_bonds` reads every capital item and borrowing limit (in review, #23 and step 2); left: check 7 and the capital file |
 | M5: labels, review, release | D, all | ☐ todo | |
-| M6: runbook and 2026 re-run test | A | ☐ todo | |
+| M6: runbook and 2026 re-run test | A | ◐ in progress | `docs/RUNBOOK.md` first draft (2026-11-07): steps 0–4 and 7–8 written, 5–6 placeholders until `cthru`, `combine`, `label` and `export` exist. The re-run test waits on the finished program |
 | Q1: federal treatment (OSA partner) | group | ☑ resolved | keep federal money in the data, flagged, out of totals; only federal-source money is flagged (recorded 2026-11-02) |
