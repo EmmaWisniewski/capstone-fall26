@@ -170,3 +170,52 @@ def test_items_below_their_limit_and_labels_replace_placeholders():
 def test_only_capital_rows_go_in():
     other = cap_row(record_id="2023-028-S2-0930-0100-ORIG-1", funding_action="ORIG")
     assert export.capital_rows([other], [], [LAW]) == []
+
+
+def test_a_later_change_to_a_bond_item_takes_the_items_limit():
+    # 2021-25 §3 raises 2020-383 item 6121-2118; 2021-25's own limit (§11) covers only its §2
+    original = cap_row(
+        record_id="2020-383-S2-6121-2118-CAP-1", line_item="6121-2118", amount="70000000"
+    )
+    change = cap_row(
+        record_id="2021-025-S3-6121-2118-CAP-1",
+        law_key="2021-25",
+        section="3",
+        line_item="6121-2118",
+        target_law_key="2020-383",
+        amount="25000000",
+    )
+    limits = [
+        limit(
+            section="33",
+            covers_items="",
+            authorized="95000000",
+            items_total="95000000",
+            federal_split="none",
+            federal_share="",
+        ),
+        limit(
+            law_key="2021-25",
+            section="11",
+            covers_sections="2",
+            covers_items="",
+            authorized="200000000",
+            items_total="200000000",
+            federal_split="none",
+            federal_share="",
+        ),
+    ]
+    laws = [
+        LAW,
+        {
+            "law_key": "2021-25",
+            "acts_year": "2021",
+            "chapter": "25",
+            "law_name": "Chapter 90 (2021)",
+        },
+    ]
+    rows = export.capital_rows([original, change], limits, laws)
+    assert [(r["Record ID"], r["Borrowing limit section"]) for r in rows] == [
+        ("2020-383-S2-6121-2118-CAP-1", "33"),
+        ("2021-025-S3-6121-2118-CAP-1", "33"),
+    ]

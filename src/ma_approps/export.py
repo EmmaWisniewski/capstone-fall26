@@ -112,14 +112,28 @@ def capital_rows(
     labels: list[Mapping[str, str]] = (),
 ) -> list[dict[str, Any]]:
     """The capital file (§7.13): every ``CAP`` row, sorted by Record ID, with the 20 main columns
-    and the details of the borrowing limit that covers it (Q16)."""
+    and the details of the borrowing limit that covers it (Q16).
+
+    A later law's change to a bond item (issue #41, e.g. 2021-25 §3 raising 2020-383 item
+    6121-2118) takes the limit that covers the item it changes: the amending section itself is
+    outside any capital section (2021-25 §11 covers only its own §2)."""
     laws = {r["law_key"]: r for r in law_list}
     by_id = {r["record_id"]: r for r in labels}
+    # (law, item) -> the capital section that prints it, from the bond laws' own rows
+    item_section = {
+        (r["law_key"], r["line_item"]): r["section"]
+        for r in funding_actions
+        if r["funding_action"] == "CAP" and r["law_key"] == r["target_law_key"]
+    }
     out = []
     for row in sorted(funding_actions, key=lambda r: r["record_id"]):
         if row["funding_action"] != "CAP":
             continue
-        limit = combine.limit_for(row, limits) or {}
+        covered = row
+        if row["target_law_key"] and row["target_law_key"] != row["law_key"]:
+            key = (row["target_law_key"], row["line_item"])
+            covered = {"law_key": key[0], "section": item_section.get(key, ""), "line_item": key[1]}
+        limit = combine.limit_for(covered, limits) or {}
         split = limit.get("federal_split", "")
         out.append(
             {
