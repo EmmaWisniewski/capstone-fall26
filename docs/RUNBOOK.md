@@ -5,10 +5,11 @@ language for readers who are new to programming. You'll work through Claude Code
 fall 2026 group did; the **Say:** lines are things you can type to it. If this runbook and
 [`DESIGN.md`](DESIGN.md) disagree, DESIGN is correct, and please fix the runbook.*
 
-*Status: first draft (workstream A, 2026-11-07). Steps 1–4 describe stages that are built (some still
-in review as pull requests: discovery #26, `read_bonds` #23 and #25, `read_amendments` #17). Steps
-5–6 are placeholders until the stages they describe exist. Milestone M6 is a test of this runbook:
-someone who didn't write it follows it on the 2026 laws and lists what broke.*
+*Status: first draft (workstream A, 2026-11-07; updated 2026-11-11 after Tierney's review). Steps
+1–4 describe stages that are built and merged. Step 5 waits on workstream E (the `cthru` stage is
+merged, #21). Step 6 is a placeholder while `combine`, `label` and `export` are built (the shared
+core of `combine` and the capital file are in review, #43 and #44). Milestone M6 is a test of this
+runbook: someone who didn't write it follows it on the 2026 laws and lists what broke.*
 
 Each step has three parts: **what to do**, **what to check**, and **if something's wrong**.
 
@@ -30,6 +31,10 @@ Each step has three parts: **what to do**, **what to check**, and **if something
 **What to check:** `pytest` and `python -m ma_approps validate` pass before you change anything.
 If they don't, fix that first, so you know later failures come from the new year.
 
+**If something's wrong:** on a Mac, if `python -m ma_approps` says "No module named ma_approps",
+the Mac has hidden the project's setup folder. Run `chflags -R nohidden .venv` and try again (the
+README's macOS tip; the fall 2026 group hit this several times).
+
 **Rough time:** step 2 takes the longest for people, because every candidate law needs a
 decision. The program's own run takes minutes.
 
@@ -40,11 +45,14 @@ decision. The program's own run takes minutes.
 **What to do:** in `config/settings.toml`, under `[scope]`:
 - add the new Acts volume to `discover_years`, plus the year after it (laws approved next year
   can still belong to this year's budget, and the other way round);
-- add the new fiscal year to `cthru_fiscal_years` (the annual budget data; this setting comes with
-  the `cthru` stage, PR #21);
+- **the fiscal years for the annual budget data need no change.** The `cthru` stage works them out
+  from the `primary_fy` column of the law list, so the new year's laws bring their fiscal year with
+  them in step 2. `cthru_fiscal_years` is there only to force a specific list, and is normally left
+  commented out;
 - decide with your group whether the dataset's **approval window** (`approved_from`,
-  `approved_to`) grows to include the new year. The output file names say `cy2021_2025`, so
-  growing the window may need a small code change. That's one of the things M6 is meant to find.
+  `approved_to`) grows to include the new year. The capital file's name (`…_cy2021_2025.csv`)
+  follows the window automatically; check that the main file's name does too. That's one of the
+  things M6 is meant to find.
 
 **What to check:** nothing else in the code mentions a year. The program is meant to have no
 years written into it (CLAUDE.md, "Nothing may be hard-coded to 2021–2025"). If you find one,
@@ -66,9 +74,14 @@ The stage:
    - "hereby appropriated";
    - an amendment of a line item;
    - borrowing ("issue and sell … bonds");
+   - the comptroller transferring a dollar amount ("the comptroller shall transfer $…");
    - an appropriation-style title.
 3. adds each match to `config/law_list.csv` with `role = tbd`, recording which signs matched;
-4. downloads the text of every listed law that isn't `excluded`.
+4. adds **amendment targets**: every law that an in-scope law amends but the list lacks, also as
+   `tbd`, with a reason like "Amendment target: amended by 2021-102 §46". These usually become
+   `reference_only`. They come from the previous run of `read_amendments`, so **run `laws` again
+   after step 3** and decide any new ones;
+5. downloads the text of every listed law that isn't `excluded`.
 
 It never changes a row that's already there, so earlier groups' decisions stay as they were.
 
@@ -125,16 +138,22 @@ Also fill in `law_type` (§9.1), a short `law_name`, `primary_fy` where it has o
 | `read_bonds` | items and borrowing limits in bond laws, and capital sections in other laws | `data/interim/bond_items_raw.csv`, `bond_authorizations_raw.csv` |
 | `read_amendments` | sections that change earlier laws, and interim budgets | `data/interim/amendments_raw.csv` |
 
-**What to check:** the **unread reports** in `reports/` (`unread_paragraphs.csv`,
-`unread_paragraphs_bonds.csv`, `unread_sections.csv`). Every row there is something the program
-couldn't read. Each must be either fixed or explained before the year is done.
+**What to check**
+- The **unread reports** in `reports/` (`unread_paragraphs.csv`, `unread_paragraphs_bonds.csv`,
+  `unread_sections.csv`). Every row there is something the program couldn't read. Each must be
+  either fixed or explained before the year is done.
+- **Then run `laws` again** (step 2): `read_amendments` may have found amendments of laws that
+  aren't on the law list yet. Decide the new `tbd` rows, then run step 3 once more.
 
 **If something's wrong**
 - **Many unread rows of the same kind:** the law format changed. That's a code fix in the stage's
   reader. Open an issue for its owner (see OVERVIEW §3), with an example.
-- **One odd paragraph** (a typo in the law, like item "911-1003" with a digit missing): explain
-  it. *Where explanations are written is still being decided (DESIGN §19 Q22); update this step
-  when it is.*
+- **A misprinted item number** in the law (like "911-1003", which should be 5911-1003): add a row
+  to `config/item_number_fixes.csv` (DESIGN §7.17), so the item is read with the right number.
+- **A misprinted law citation** in an amending section (2024 ch. 248 §35 cites 2022 ch. 24 for an
+  item that's in 2021 ch. 24): add a row to `config/citation_fixes.csv` (DESIGN §7.18).
+- **Any other odd paragraph:** explain it. *Where those explanations are written is still being
+  decided (DESIGN §19 Q22); update this step when it is.*
 
 ---
 
@@ -175,7 +194,7 @@ borrowing the survey had missed; spending end dates that differ by section).
 
 ## 5. Annual budgets from the Comptroller (`cthru` stage)
 
-*To be written by workstream E when the `cthru` stage is merged. It should cover: running it,
+*To be written by workstream E (the `cthru` stage is merged, #21). It should cover: running it,
 the dated snapshot it saves, and how to read its comparison with the law text.*
 
 ---
@@ -236,7 +255,10 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
   overridden the veto later (DESIGN §11.4).
 - **Some old laws aren't in the Legislature's API**: 1993's weren't, 2002's were. The State
   Archives' website (https://archives.lib.state.ma.us/) has text and PDFs.
-- **Mistyped item numbers** occur in the official text (e.g. "911-1003", which is missing a digit; issue #18).
+- **Mistyped item numbers** occur in the official text (e.g. "911-1003", which is missing a digit;
+  issue #18). They're corrected in `config/item_number_fixes.csv`.
+- **Misprinted law citations** occur too (2024 ch. 248 §35 cites the wrong chapter). They're
+  corrected in `config/citation_fixes.csv`.
 - **Spending end dates can differ by section** within one bond law (2024 ch. 238).
 - **Not all borrowing is "bonds":** 2020 ch. 383 §34 authorizes "federal grant anticipation notes",
   repaid from federal highway money.
