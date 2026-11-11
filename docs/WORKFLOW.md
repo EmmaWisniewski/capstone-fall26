@@ -9,17 +9,90 @@ A refresher for the "how" of making progress on this project. For what the progr
 - **The program is the `.py` files** in `src/ma_approps/`. These are text files of
   Python code.
 - **Chatting with Claude Code can change those files.** You can edit them yourself too, but if you are in "code" more (rather than the regular "chat" mode), Claude will directly program for you in your copy of these files.
-- **Git saves and shares snapshots of the files.** Edits sit only on your computer until you
-  **commit** them (save a snapshot), **push** them (upload to GitHub), and **merge** them (add them
-  to the shared version). Teammates see your work only after it's merged, or if they look at your
-  branch.
+- **Git saves and shares snapshots of the files.** Your edits sit only on your computer until you
+  save a snapshot, upload it, and add it to the group's shared version. Teammates see your work
+  only after that.
 
-So the loop is: **ask Claude to edit files → check the edits → save a snapshot → share it for
-review.**
+So the loop is: **ask Claude to edit files → check the edits → save a snapshot → share it with the
+group.**
 
 ---
 
-## 2. Vocabulary
+## 2. What to actually do
+
+### Step 1: Work locally, and start from the latest `main`
+When you start a session in the desktop app, choose **Local**, not a cloud environment. (A cloud
+session runs on another computer with its own copy of the project, and your files (like the downloaded laws in `data/raw/`) aren't there
+for it. That has caused problems for the group.) If you're not sure which kind of session you're in,
+ask Claude: "Are you running locally on my computer or in the cloud?"
+
+Then make sure you're building on everyone's newest work.
+> **Say:** "Make sure I'm working on the group's latest version of the project."
+
+### Step 2: Add in your classmates' finished work (merge open pull requests)
+When your classmates have finished something, pulling it in to the "main" codebase lets everyone start using it. Leaving these sitting open creates extra work and makes the next steps more complicated than they need to be.
+> **Say:** "Are there any open Pull Requests? I want to work through closing all of them."
+
+Then, for each PR:
+- **Approved and green:** merge it.
+- **Not reviewed yet:** review it, then merge it if it's fine.
+- **Has a problem** (one you found, or one a reviewer asked to change): **fix it yourself, then
+  merge it.** Don't send it back to its author and wait. That leaves it open for days and makes
+  more work for everyone.
+  > **Say:** "Proposed change #12 has a problem: [what's wrong]. Fix it in that change, check that
+  > everything still works, and then add it to the group's shared version."
+
+### Step 3: Make sure docs are up to date
+> **Say:** "Check whether our project documents still match the work that's been finished: the
+> progress tracker, the status board, the open questions, the runbook, and the to-do items on GitHub.
+> List anything that's out of date and suggest fixes. Don't change anything yet."
+
+Docs fixes shouldn't wait for a review. Once you agree with the fixes:
+> **Say:** "Make these fixes directly in the group's shared version and upload them."
+
+### Step 4: Choose the task that matters most
+Pick the next open task that most directly moves us toward the final goal, the released dataset.
+> **Say:** "Look at our milestones, the progress tracker, the to-do items on GitHub, and the changes
+> waiting for review. What unfinished task matters most for getting our final dataset done? If it's in
+> my area, or nobody has taken it, explain it to me."
+
+### Step 5: Start a separate copy for this task (make a branch)
+Claude names it with your workstream letter and a few words, like `a/bond-sample` or
+`b/paragraphs`. Use **one branch per task**, kept small: roughly a day or two of work.
+> **Say:** "Start a new branch for this task."
+
+### Step 6: Plan the change, then make it
+Point Claude at the relevant part of the design so it doesn't guess. **Use "plan" mode for this part.**
+> **Say:** "Read section 11.2 of the design document. Then make a plan for handling dollar amounts
+> that end with a period, in the step that reads budget items. Don't change anything yet."
+
+You will probably need to revise the plan a few times before you tell Claude to start coding.
+
+### Step 7: Check the work
+> **Say:** "Run the automatic checks and explain any problems in plain language."
+
+Also look at what changed (the **diff**, see §4). If you can't explain the change roughly in your
+own words, ask Claude to walk you through it before you continue.
+
+### Step 8: Share your work (commit, push and open a pull request)
+> **Say:** "Save this work with a clear note about what changed, upload it, and propose it to the
+> group. Show me which files you're including first."
+
+Check that the list has **no** files from `data/raw/`, `data/interim/`, `data/output/`, `reports/`,
+or anything with a key or password. The first time, Claude may ask you to log in to GitHub (see §7).
+
+You don't need to wait for a review. At the start of the next work session, yours or a
+classmate's, Step 2 reviews it and adds it to the group's shared version.
+
+Then choose the next task at Step 4. In a new work session, start again at Step 1.
+
+---
+
+## 3. Words Claude will use
+
+You don't need any of these words to ask Claude for something; plain language works. But Claude
+may use them when it explains what it's doing. If it uses a word you don't know, look here, or ask
+(§6).
 
 | Word | Meaning | Analogy |
 |---|---|---|
@@ -30,64 +103,10 @@ review.**
 | **push** | Upload your commits to GitHub | Syncing your draft to the cloud |
 | **pull** | Download the latest commits from GitHub | Refreshing to get teammates' changes |
 | **pull request (PR)** | A request to merge your branch into `main`, where teammates can comment | "Suggest changes" mode, waiting for approval |
-| **review** | A teammate reads your PR and approves it or asks for changes | Peer editing |
 | **merge** | Fold an approved branch into `main` | Accepting the suggested changes |
 | **merge conflict** | Two people changed the same lines differently, so git asks a human which to keep | Two editors rewrote the same sentence |
 | **CI** | Automatic checks GitHub runs on every PR (`ruff`, `pytest`, `validate`) | A spell-checker that blocks submission |
 | **diff** | A view of exactly which lines changed | Track changes |
-
----
-
-## 3. The everyday loop
-
-In each step, **"Say"** is something you can type to Claude. You don't need the exact
-wording.
-
-### Step 1: Start from the latest `main`
-Make sure you're building on everyone's newest work.
-> **Say:** "Switch to main and pull the latest changes. Tell me if I have any uncommitted work first."
-
-### Step 2: Make a branch for this task
-Name it with your workstream letter and a few words: `a/bond-sample`, `b/paragraphs`,
-`c/figure-change`, `d/department-table`, `e/cthru-snapshot`. Use **one branch per task**, kept small:
-roughly a day or two of work.
-> **Say:** "Create a new branch called `b/paragraphs`."
-
-### Step 3: Ask for the change
-Point Claude at the relevant part of the design so it doesn't guess.
-> **Say:** "Read DESIGN §11.2. Then make a plan for handling trailing periods on amounts in
-> `read_items.py`. Don't edit anything yet."
->
-> Then, once you understand and agree with the plan: "OK, go ahead."
-
-### Step 4: Check the work
-> **Say:** "Run `pytest` and `python -m ma_approps validate` and explain any failures in plain language."
-
-Also look at the **diff** (see §4) so you know what actually changed. If you can't explain the
-change roughly in your own words, ask Claude to walk you through it before you continue.
-
-### Step 5: Commit
-A good message says what changed and why, e.g. `read_items: allow trailing period after amount (2025 ch. 3)`.
-> **Say:** "Commit these changes with a clear message. Show me which files you're including first."
-
-Check that the list has **no** files from `data/raw/`, `data/interim/`, `data/output/`, `reports/`,
-or anything with a key or password.
-
-### Step 6: Push and open a pull request
-> **Say:** "Push this branch and open a pull request. In the description, explain what changed, why,
-> and how it was tested, and mention which DESIGN section it relates to."
-
-Claude uses the `gh` tool for this. The first time, it may ask you to log in to GitHub (see §8).
-
-### Step 7 (maybe optional): Get one teammate's review
-Post the PR link in the group chat. Any one teammate can review (see §5). Wait for **CI to be
-green** (a ✅ on the PR page) and **one approval**. You can also accept & merge your own PRs, but it's good practice to have a second set of eyes.
-
-### Step 8: Merge and tidy up
-Merge on the GitHub PR page with the green **Merge pull request** button, or:
-> **Say:** "Merge PR #12, then switch back to main and pull."
-
-Then start the next task at Step 1.
 
 ---
 
@@ -107,13 +126,12 @@ different, ask Claude ("where do I see my changes in this app?").
     you're learning.
   - **Accept edits**: Claude edits files without asking but still asks before running commands.
   - **Plan**: Claude only investigates and proposes a plan; it doesn't change anything. Great for
-    Step 3.
+    Step 6.
   - **Auto**: Claude proceeds on its own. Use it only for routine tasks you understand well.
-- **Getting a review of your changes.** Type `/code-review` in the prompt box before you commit.
+- **Getting a review of your changes.** Type `/code-review` in the prompt box before you share them.
 - **Pull-request status.** After a PR is opened, its CI status shows in the **Changes** card.
-- **Committing and creating PRs.** The simplest reliable path is to ask Claude (Steps 5–6), then
-  check the **Changes** card. If you see a PR button in your version of the app, it's fine to use
-  it.
+- **Sharing your work.** The simplest reliable path is to ask Claude (Step 8), then check the
+  **Changes** card. If you see a PR button in your version of the app, it's fine to use it.
 - **Worktree toggle and parallel sessions (+ New).** Leave **Worktree** off unless you know you
   want it. It creates a separate copy of the repo on its own branch, which is confusing if you
   don't expect it. One session per task is plenty.
@@ -122,19 +140,20 @@ different, ask Claude ("where do I see my changes in this app?").
 
 ## 5. Reviewing a teammate's PR
 
-1. Open the PR link on GitHub, then the **Files changed** tab.
-2. Not sure what you're looking at? Ask Claude:
-   > **Say:** "Explain PR #12 to me in plain language: what it changes, why, and anything that looks risky."
-3. Check:
-   - ☐ CI is green.
-   - ☐ The changes match what the description says, and stay mostly within the author's workstream.
-   - ☐ No generated files were edited by hand (`data/`, `reports/`, `review/review_queue.csv`).
-   - ☐ No new or renamed columns or allowed values unless `DESIGN.md` §7/§9 and `schemas.py` were updated too.
-   - ☐ The tracker in `OVERVIEW.md` or DESIGN §21 is updated if a milestone changed.
-4. Click **Review changes** and choose **Approve**, or **Request changes** with a comment. Kind,
-   specific questions are a great review: "What happens if the amount has no `$`?"
+You review PRs in Step 2. Let Claude do the checking:
+> **Say:** "Review proposed change #12 against the checklist in section 5 of the workflow doc.
+> Explain in plain language what it changes and anything that looks risky. Tell me what you'd fix
+> before you change anything."
 
-Reviewing is real work, so spread it around. Try to review roughly as many PRs as you open.
+What Claude checks:
+- ☐ CI is green.
+- ☐ The changes match what the description says, and stay mostly within the author's workstream.
+- ☐ No generated files were edited by hand (`data/`, `reports/`, `review/review_queue.csv`).
+- ☐ No new or renamed columns or allowed values unless `DESIGN.md` §7/§9 and `schemas.py` were updated too.
+- ☐ The tracker in `OVERVIEW.md` or DESIGN §21 is updated if a milestone changed.
+
+If it's fine, approve and merge it. If something's wrong, have Claude fix it and then merge it, and
+leave a short comment saying what you changed (Step 2).
 
 ---
 
@@ -161,29 +180,31 @@ that our goal doesn't need, or you're being asked to decide between two options 
 - **Ask it to explain** code you don't understand. "What does this function do, line by line?"
   is a perfectly good question.
 - **Keep PRs small.** One idea per PR is easier to review, test, and undo.
-- **Look at the diff before committing.** Know what you're saving.
+- **Look at the diff before sharing.** Know what you're saving.
 - **Watch for bloat.** If Claude adds a new file, setting, or helper you didn't ask for, ask
   whether it's needed. Less code means less to understand.
 - **Start a fresh chat for a new task.** Long chats about many topics get muddled.
 
 ---
 
-## 8. When things go wrong
+## 7. When things go wrong
 
-| Situation | What to say to Claude |
+Most of the time, you can just tell Claude what happened in your own words:
+> **Say:** "Something went wrong: [what you saw]. Explain what happened in plain language, and tell
+> me how you'd fix it before you change anything."
+
+A few situations need you to act or decide:
+
+| Situation | What to do |
 |---|---|
-| **Tests fail** | "Run pytest and explain the failure in plain language. Is it caused by my change? Propose a fix but don't apply it yet." |
-| **Merge conflict** | "I have a merge conflict. Show me both versions of each conflicting part and explain them. Don't resolve it until I choose." If it involves a teammate's work, ask them. |
-| **Not sure what branch I'm on** | "Which branch am I on, and do I have uncommitted changes?" |
-| **Want to throw away uncommitted changes** | "Show me what I'd lose first." Then, if you're sure: "Discard my uncommitted changes to these files." This can't be undone. |
-| **Committed to `main` by accident** | "I committed to main by mistake and haven't pushed. Move that commit to a new branch called `x/...` and reset main to match GitHub." |
-| **My branch is behind `main`** | "Bring the latest main into my branch and tell me if there are conflicts." |
-| **`No module named ma_approps`** (but `pytest` works) | macOS has hidden the `.venv` folder. Run `chflags -R nohidden .venv`, or ask Claude to. |
-| **Claude asks to log in to GitHub / `gh` not authenticated** Login is interactive, so open the Terminal app, run `gh auth login`, and follow the prompts (choose GitHub.com and "Login with a web browser"). Then go back to Claude. |
-| **Totally lost** | "Summarize where I am: branch, uncommitted changes, last commit, and whether my PR exists." |
+| **You want to throw away changes** | "Show me what I'd lose first." Then, if you're sure: "Throw away my unsaved changes to these files." This can't be undone. |
+| **Your changes clash with a teammate's** (a merge conflict) | "Two of us changed the same part of a file. Show me both versions of each part that clashes and explain them. Don't pick one until I decide." If you can't tell which is right, ask the teammate. |
+| **Claude asks you to log in to GitHub** | Only you can do this. Open the Terminal app, run `gh auth login`, and follow the prompts (choose GitHub.com and "Login with a web browser"). Then go back to Claude. |
+| **`No module named ma_approps`** | macOS has hidden the project's `.venv` folder. Run `chflags -R nohidden .venv`, or ask Claude to fix it. |
 
 ### First-time setup (once per computer)
-> **Say:** "Set up this repo for me following the Quickstart in README.md, and run the tests."
+> **Say:** "Set up this project on my computer, following the instructions in the README, and check
+> that everything works."
 
 That creates the `.venv` folder (the project's private copy of Python and its libraries), installs
 the project, and runs `pytest` and `validate`. The contact email the `laws` stage sends to

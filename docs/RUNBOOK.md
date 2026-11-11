@@ -231,7 +231,7 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
 - update the Status Board (§21) and the tracker in OVERVIEW §5;
-- open a pull request and get one teammate's review (WORKFLOW §3).
+- share the work as a pull request (WORKFLOW §2, Step 8).
 
 ---
 

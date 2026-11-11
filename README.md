@@ -3,7 +3,7 @@
 A line-item dataset of every Massachusetts state appropriation in laws approved
 2021-01-01 → 2025-12-31.
 
-**New here? Read these first:**
+## Quick links
 - [`docs/OVERVIEW.md`](docs/OVERVIEW.md): how the program works, who owns what, and where things stand
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md): working with Claude Code and git (branches, commits, pull requests)
 - [`docs/DESIGN.md`](docs/DESIGN.md): the full design and source of truth
