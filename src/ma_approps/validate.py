@@ -130,8 +130,8 @@ def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
 def check_amendment_amounts(ctx: Context) -> list[dict] | None:
     """§13 check 3 (workstream C): every amendment that changes an item's amount, with the item's
     running amount before and after and the struck-figure check (combine.amendment_amounts).
-    None when read_amendments hasn't run. Reported only, not a failure, until Q21 and Q27 decide
-    what the flagged rows mean."""
+    None when read_amendments hasn't run. Reported, not a failure: Q21 and Q27 (decided 2026-11-11)
+    send every flagged change to a person."""
     if not (ctx.interim_dir / "amendments_raw.csv").exists():
         return None
 
@@ -181,6 +181,6 @@ def run(ctx: Context) -> int:
         review = sum(r["review"] == "true" for r in amounts)
         print(
             f"  amendment amounts: {len(amounts)} changes, {review} to review in {path.name}"
-            " (reported, not yet a failure: Q21, Q27)"
+            " (each goes to a person: Q21, Q27)"
         )
     return 1 if schema_problems or unread else 0
