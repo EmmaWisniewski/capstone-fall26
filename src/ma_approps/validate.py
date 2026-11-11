@@ -245,7 +245,9 @@ def check_cthru(
     orig = [
         r
         for r in actions
-        if r["funding_action"] == "ORIG" and r["line_item"] and r["section_type"] != "federal_grants"
+        if r["funding_action"] == "ORIG"
+        and r["line_item"]
+        and r["section_type"] != "federal_grants"
     ]
     years = {
         r["primary_fy"]
