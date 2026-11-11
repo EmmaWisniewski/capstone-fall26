@@ -30,7 +30,7 @@ from ma_approps.context import Context
 from ma_approps.paragraphs import ITEM_START_RE, TRAILING_AMOUNT_RE, paragraphs
 
 IMPLEMENTED = True
-READER_VERSION = "0.1.0"
+READER_VERSION = "0.2.0"
 
 # Law types read here; bonds go to read_bonds (A) and interim budgets to read_amendments (C)
 LAW_TYPES = ("gaa", "supplemental", "surplus", "other")
@@ -50,8 +50,11 @@ END_RE = re.compile(r"^Approved,")
 BARE_AMOUNT_RE = re.compile(r"^\$[\d,]+\.?$")
 
 VETO_NOTE_RE = re.compile(r"^(?:The\s+)?(?:Governor|Legislature)\b", re.IGNORECASE)
-# Veto notes are bold in most budgets, but not in 2021-24 and 2022-126
-VETO_WORDS_RE = re.compile(r"following item|overr?ode|disapprov", re.IGNORECASE)
+# A veto note must also use veto words: notes are bold in most budgets but not in 2021-24 and
+# 2022-126, and the bold header "LEGISLATURE." (item 9500-0000) is not a note. "dissaproved" is
+# misspelled in 2025-9.
+VETO_WORDS_RE = re.compile(r"following item|overr?ode|dis+ap+rov|vetoed", re.IGNORECASE)
+DISAPPROVED_RE = re.compile(r"dis+ap+rov|vetoed", re.IGNORECASE)
 FUND_SPLIT_RE = re.compile(
     r"^[.\s]*(?P<fund>[A-Za-z][^$%]*?)\s*(?P<dots>\.{2,})?\s*(?P<pct>\d+(?:\.\d+)?)\s*(?P<sign>%?)$"
 )
@@ -88,6 +91,7 @@ class Item:
     paras: list[dict[str, Any]] = field(default_factory=list)
     splits: list[tuple[str, str]] = field(default_factory=list)
     complete: bool = False
+    printed: str = ""  # the item number as printed, if it was misprinted
 
 
 def _money(s: str | None) -> str:
@@ -138,14 +142,17 @@ def _is_caps(text: str) -> bool:
     return bool(letters) and all(c.isupper() for c in letters)
 
 
-def _veto_kind(notes: list[str]) -> str:
+def _veto_kind(notes: list[str], amount_struck: str) -> str:
+    """`veto_kind_inline` from an item's veto notes (§11.4, Decision Log 2026-11-06)."""
     text = " ".join(notes).lower()
     if "overrode" in text or "overrid" in text:
         return "overridden"
     if "reduced" in text:
         return "reduced_and_wording" if "wording" in text else "reduced"
-    if "disapproved" in text:
-        return "disapproved"
+    if "wording" in text and DISAPPROVED_RE.search(text) and not amount_struck:
+        return "wording_vetoed"  # wording struck, amount unchanged (2020-383 6621-2108)
+    if DISAPPROVED_RE.search(text):
+        return "disapproved"  # whole item, incl. "pocket vetoed the following item"
     return "none"
 
 
@@ -201,6 +208,10 @@ def _row(law_key: str, item: Item, fund: str, fy: str) -> dict[str, str]:
     text, ok = _drop_struck(joined, [s for s in struck if s != f"${first}"])
     if not ok:
         confidence = "medium"
+    if item.printed and item.printed != item.line_item:
+        # misprinted number corrected from config/item_number_fixes.csv
+        text = text[len(item.printed) :] if text.startswith(item.printed) else text
+        confidence = "medium"
     text = ITEM_START_RE.sub("", text, count=1).lstrip(" .")
     rr = RR_CEILING_RE.search(text)
     if not amount and not rr and not struck_amount:
@@ -221,14 +232,31 @@ def _row(law_key: str, item: Item, fund: str, fy: str) -> dict[str, str]:
         "retained_revenue_ceiling": _money(rr.group(1)) if rr else "",
         "fund_splits_raw": ";".join(f"{f}:{p}" for f, p in [*splits, *item.splits]),
         "veto_annotation_raw": " ".join(item.notes),
-        "veto_kind_inline": _veto_kind(item.notes),
+        "veto_kind_inline": _veto_kind(item.notes, struck_amount),
         "reader_version": READER_VERSION,
         "confidence": confidence,
     }
 
 
-def read_law(law_key: str, paras: list[dict[str, Any]]) -> tuple[list[dict], list[dict]]:
+def _item_start(text: str, fixes: dict[str, str]) -> tuple[str, str] | None:
+    """(line item, number as printed) if ``text`` starts an item, else None.
+
+    ``fixes`` maps item numbers misprinted in this law to the right ones
+    (config/item_number_fixes.csv, e.g. "911-1003" -> "5911-1003" in 2024-140).
+    """
+    if m := ITEM_START_RE.match(text):
+        return m.group(1), m.group(1)
+    for printed, line_item in fixes.items():
+        if re.match(rf"{re.escape(printed)}(?!\d)", text):
+            return line_item, printed
+    return None
+
+
+def read_law(
+    law_key: str, paras: list[dict[str, Any]], fixes: dict[str, str] | None = None
+) -> tuple[list[dict], list[dict]]:
     """Items and unread paragraphs of one law, in source order (DESIGN §11.2)."""
+    fixes = fixes or {}
     items: list[dict[str, str]] = []
     unread: list[dict[str, str]] = []
 
@@ -281,17 +309,17 @@ def read_law(law_key: str, paras: list[dict[str, Any]]) -> tuple[list[dict], lis
             continue
 
         if item and not item.complete:
-            if not (ITEM_START_RE.match(text) or VETO_NOTE_RE.match(text) or _is_caps(text)):
+            if not (_item_start(text, fixes) or VETO_NOTE_RE.match(text) or _is_caps(text)):
                 item.paras.append(p)
                 item.complete = _ends_item(text)
                 continue
             close_item()
 
-        if ITEM_START_RE.match(text):
+        if start := _item_start(text, fixes):
             close_item()
             in_preamble = False
-            item = Item(section, p["para_idx"], ITEM_START_RE.match(text).group(1),
-                        secretariat, agency, notes, [p])
+            item = Item(section, p["para_idx"], start[0], secretariat, agency, notes, [p],
+                        printed=start[1])
             item.complete = _ends_item(text)
             notes = []
         elif BARE_AMOUNT_RE.match(text) and item and not item.splits:
@@ -302,7 +330,7 @@ def read_law(law_key: str, paras: list[dict[str, Any]]) -> tuple[list[dict], lis
         elif item and _is_header(text) and _fund_split(following):
             # "Underground Storage Tank Petroleum" / "Product Cleanup Fund … 100%"
             fund_prefix = text
-        elif VETO_NOTE_RE.match(text) and (p["bold"] or VETO_WORDS_RE.search(text)):
+        elif VETO_NOTE_RE.match(text) and VETO_WORDS_RE.search(text):
             close_item()
             notes.append(text)
         elif _is_header(text):
@@ -344,17 +372,33 @@ def laws_to_read(ctx: Context) -> list[dict[str, str]]:
     ]
 
 
+def item_number_fixes(ctx: Context) -> dict[str, dict[str, str]]:
+    """config/item_number_fixes.csv as {law_key: {printed: line_item}} (DESIGN §7.17)."""
+    path = ctx.config_dir / "item_number_fixes.csv"
+    fixes: dict[str, dict[str, str]] = {}
+    if path.exists():
+        for r in schemas.read_csv(path)[1]:
+            fixes.setdefault(r["law_key"], {})[r["printed"]] = r["line_item"]
+    return fixes
+
+
 def run(ctx: Context) -> int:
     items: list[dict] = []
     unread: list[dict] = []
     missing = 0
+    all_fixes = item_number_fixes(ctx)
     for law in laws_to_read(ctx):
         path = ctx.raw_dir / "sessionlaws" / law["acts_year"] / f"{law['chapter']}.json"
         if not path.exists():
             missing += 1
             continue
         html = json.loads(path.read_text("utf-8"))["ChapterText"]
-        law_items, law_unread = read_law(law["law_key"], paragraphs(law["law_key"], html))
+        fixes = all_fixes.get(law["law_key"], {})
+        law_items, law_unread = read_law(law["law_key"], paragraphs(law["law_key"], html), fixes)
+        found = {r["line_item"] for r in law_items}
+        for printed, line_item in fixes.items():
+            if line_item not in found:
+                print(f"  warning: fix {law['law_key']} {printed} -> {line_item} was not used")
         items += law_items
         unread += law_unread
     _write(ctx.interim_dir / "items_raw.csv", schemas.columns("items_raw"), items)

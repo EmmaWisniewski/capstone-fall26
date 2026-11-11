@@ -97,3 +97,7 @@ GAA): 2023 ch. 77 §50, which §35 cites, amends it there ("said chapter 24", re
 2022 ch. 24 (a Northampton conservation easement act) doesn't contain the item. So §35 means 2021 ch. 24.
 `read_amendments` follows the text, so it attaches this date extension (2024 → 2025) to 2022-24; the
 target needs correcting on that side. 2022-24 is excluded from the law list.
+
+Corrected on the reading side by Emily H., 2026-11-09: `config/citation_fixes.csv` (DESIGN §7.18) maps
+2024-248 §35's citation of 2022-24 to 2021-24, so reader 0.10.0 attaches the date extension to
+2021-24 with `medium` confidence.
