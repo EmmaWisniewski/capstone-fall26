@@ -1,7 +1,8 @@
 """Stage 6 `combine`: build funding_actions.csv, fund_splits.csv, running_amounts.csv (DESIGN §5,
 §7.6–§7.8).
 
-Stub. Owner: everyone (Putting it together), coordinated by E. GAA rows come from
+A owns the shared core (decided 2026-11-10): it collects each piece's rows, keeps in-scope
+laws, assigns Record IDs, decides counts_toward_total and splits rows by fund. GAA rows come from
 cthru_line_items.csv; everything else from items_raw, bond_items_raw, amendments_raw and the
 manual_rows escape hatch. C owns the running-amounts logic; E owns the CTHRU comparison that sets
 veto_status. Use schemas.record_id_prefix / assign_record_ids.
@@ -23,15 +24,17 @@ Where GAA amounts come from when CTHRU has none (Mario, 2026-11-04):
   them non-zero fee-revenue caps ($632–704M a year).
 """
 
+import csv
 import re
 from collections.abc import Mapping
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from ma_approps import schemas
 from ma_approps.context import Context
 
-IMPLEMENTED = False
+IMPLEMENTED = True
 
 # -- Running amounts and the struck-figure check (workstream C; DESIGN §5.5, §13 check 3) --------
 
@@ -286,19 +289,7 @@ def bond_rows(
                 "reader_version": item["reader_version"],
             }
         )
-    prefixes = [
-        schemas.record_id_prefix(
-            int(laws[r["law_key"]]["acts_year"]),
-            laws[r["law_key"]]["chapter"],
-            r["section"],
-            r["line_item"],
-            "CAP",
-        )
-        for r in out
-    ]
-    for r, record_id in zip(out, schemas.assign_record_ids(prefixes), strict=True):
-        r["record_id"] = record_id
-    return [{c: r[c] for c in schemas.columns("funding_actions")} for r in out]
+    return [{c: r.get(c, "") for c in schemas.columns("funding_actions")} for r in out]
 
 
 def capital_total(rows: list[Mapping[str, Any]]) -> int:
@@ -312,5 +303,303 @@ def capital_total(rows: list[Mapping[str, Any]]) -> int:
     return total
 
 
+# -- Shared core (workstream A; DESIGN §5, §7.6–§7.8, §9.6, §10) ------------------------------
+#
+# Each piece of the work split (docs/Combine-Export-Work-Split.md) is one row builder: a function
+# taking the loaded inputs (``load_inputs``) and the settings, and returning funding-action rows
+# (§7.7) in source order. It may leave ``record_id`` and ``counts_toward_total`` empty: the core
+# sets both. A row may also carry two extra keys for the fund splits, which aren't written:
+# ``fund_splits_raw`` (items_raw's ``Fund name:percent;…``) and ``fund_numbers`` (CTHRU's
+# ``;``-separated fund numbers). A row without either uses ``section_fund_default`` if it has one.
+
+INPUTS = {
+    "law_list": ("config", "law_list.csv"),
+    "funds": ("config", "funds.csv"),
+    "manual_rows": ("config", "manual_rows.csv"),
+    "items_raw": ("interim", "items_raw.csv"),
+    "bond_items_raw": ("interim", "bond_items_raw.csv"),
+    "bond_authorizations_raw": ("interim", "bond_authorizations_raw.csv"),
+    "amendments_raw": ("interim", "amendments_raw.csv"),
+    "cthru_line_items": ("interim", "cthru_line_items.csv"),
+}
+
+# §10: what never counts toward the operating total, whatever the funding action's default.
+NOT_COUNTED_SECTIONS = ("isf", "federal_grants", "trust_transfer", "interim")
+NOT_COUNTED_KINDS = (
+    "bond_authorization",
+    "transfer",
+    "interim",
+    "prior_appropriation_continued",
+    "none",
+)
+NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer", "fund_transfer_chain")
+
+
+def load_inputs(ctx: Context) -> dict[str, list[dict[str, str]]]:
+    """Every input table as rows; a file that doesn't exist yet gives no rows."""
+    dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
+    out = {}
+    for name, (where, filename) in INPUTS.items():
+        path = dirs[where] / filename
+        out[name] = schemas.read_csv(path)[1] if path.exists() else []
+    return out
+
+
+def _bond_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    return bond_rows(
+        inputs["bond_items_raw"],
+        inputs["bond_authorizations_raw"],
+        inputs["law_list"],
+        settings["sources"]["session_law_url"],
+    )
+
+
+# One entry per piece of the work split; ``None`` until its owner adds the builder.
+BUILDERS = {
+    "annual budget rows (E)": None,
+    "supplemental rows (B)": None,
+    "§2D federal grant rows (B)": None,
+    "amendment rows (C)": None,
+    "bond rows (A)": _bond_builder,
+}
+
+
+def manual_rows(rows: list[Mapping[str, str]]) -> list[dict[str, Any]]:
+    """The escape hatch (§7.6) as funding-action rows: ``amount_source = manual``, flagged."""
+    out = []
+    for r in rows:
+        row = {c: r.get(c, "") for c in schemas.columns("funding_actions")}
+        row["amount_source"] = "manual"
+        flags = [f for f in row["flags"].split(";") if f]
+        if "manual_row" not in flags:
+            flags.append("manual_row")
+        row["flags"] = ";".join(flags)
+        out.append(row)
+    return out
+
+
+def counts_toward_total(row: Mapping[str, Any]) -> bool:
+    """Whether a row counts toward the operating total (§10). A partly federal row counts and the
+    totals leave out its federal share; a wholly federal one doesn't count (Q1; Emma, 2026-11-10).
+    """
+    flags = str(row.get("flags") or "").split(";")
+    if (
+        row["section_type"] in NOT_COUNTED_SECTIONS
+        or row["amount_kind"] in NOT_COUNTED_KINDS
+        or any(f in flags for f in NOT_COUNTED_FLAGS)
+        or float(row.get("federal_share") or 0) >= 1
+    ):
+        return False
+    return schemas.FUNDING_ACTION_COUNTS_TOWARD_TOTAL[row["funding_action"]]
+
+
+def operating_total(rows: list[Mapping[str, Any]]) -> int:
+    """Net new appropriation authority (§10): counted rows, less their federal shares."""
+    total = 0
+    for r in rows:
+        if str(r["counts_toward_total"]) == "true" and r["amount"] not in ("", None):
+            total += round(int(r["amount"]) * (1 - float(r["federal_share"] or 0)))
+    return total
+
+
+def _fund_key(name: str) -> str:
+    name = re.sub(r"\s+", " ", name).strip().lower()
+    return re.sub(r"^the ", "", name)
+
+
+def fund_splits(
+    row: Mapping[str, Any], funds: list[Mapping[str, str]]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """A row's fund splits (§5.6, §7.8) without ``record_id``, plus any problems.
+
+    The law's printed split comes first, then CTHRU's fund numbers, then the fund named in the
+    section preamble. CTHRU's numbers carry no shares, so several of them without a printed split
+    give the funds with empty shares (Emma, 2026-11-10). A fund that isn't in ``config/funds.csv``
+    is kept but reported, and not taken as federal.
+    """
+    by_name = {_fund_key(f["fund_name"]): f for f in funds}
+    by_number = {f["fund_number"]: f for f in funds if f["fund_number"]}
+    found: list[tuple[Mapping[str, str], str, float | str]] = []  # (funds.csv row, name, share)
+    problems = []
+    if row.get("fund_splits_raw"):
+        for part in str(row["fund_splits_raw"]).split(";"):
+            name, _, pct = part.rpartition(":")
+            found.append((by_name.get(_fund_key(name), {}), name, float(pct) / 100))
+    elif row.get("fund_numbers"):
+        numbers = [n for n in str(row["fund_numbers"]).split(";") if n]
+        share: float | str = 1.0 if len(numbers) == 1 else ""
+        if len(numbers) > 1:
+            problems.append(f"several CTHRU funds and no printed split: {';'.join(numbers)}")
+        for n in numbers:
+            found.append((by_number.get(n, {"fund_number": n}), n, share))
+    elif row.get("section_fund_default"):
+        name = str(row["section_fund_default"])
+        found.append((by_name.get(_fund_key(name), {}), name, 1.0))
+    out = []
+    for fund, name, share in found:
+        if "fund_name" not in fund:
+            problems.append(f"fund not in config/funds.csv: {name}")
+        out.append(
+            {
+                "fund_name": fund.get("fund_name", name),
+                "fund_number": fund.get("fund_number", ""),
+                "share": share,
+                "is_federal": fund.get("is_federal", "false"),
+            }
+        )
+    return out, problems
+
+
+def _apply_splits(row: dict[str, Any], splits: list[Mapping[str, Any]]) -> None:
+    """Main fund, federal share and federal flags from the splits (§5.6, §9.5). A row whose builder
+    already set a federal share (bond rows, from their borrowing limit) keeps it."""
+    known = [s for s in splits if s["share"] != ""]
+    if known:
+        row["fund_primary"] = max(known, key=lambda s: s["share"])["fund_name"]
+    elif len(splits) == 1:
+        row["fund_primary"] = splits[0]["fund_name"]
+    if row.get("federal_share") not in ("", None) or not known:
+        return
+    share = sum(s["share"] for s in known if s["is_federal"] == "true")
+    if not share:
+        return
+    row["federal_share"] = round(share, 6)
+    flags = [f for f in str(row.get("flags") or "").split(";") if f]
+    for f in ["federal"] + (["federal_mixed"] if share < 1 else []):
+        if f not in flags:
+            flags.append(f)
+    row["flags"] = ";".join(flags)
+
+
+def assign_ids(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sort rows by law, section and position in the law, then give each its Record ID (§9.6).
+    The sort is stable, so rows at the same position keep their builders' order."""
+
+    def order(r: Mapping[str, Any]) -> tuple:
+        para = str(r.get("source_para_start") or "")
+        return (
+            _law_order(r["law_key"]),
+            _section_order(r["section"]),
+            int(para) if para.isdigit() else -1,
+        )
+
+    rows = sorted(rows, key=order)
+    prefixes = []
+    for r in rows:
+        year, chapter = _law_order(r["law_key"])
+        prefixes.append(
+            schemas.record_id_prefix(
+                year, chapter, r["section"], r["line_item"], r["funding_action"]
+            )
+        )
+    for r, record_id in zip(rows, schemas.assign_record_ids(prefixes), strict=True):
+        r["record_id"] = record_id
+    return rows
+
+
+def combine_rows(
+    pieces: Mapping[str, list[dict[str, Any]]],
+    law_list: list[Mapping[str, str]],
+    funds: list[Mapping[str, str]],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Every piece's rows as the funding actions table, with its fund splits and problems.
+
+    Rows from laws that aren't ``in_scope`` are left out: reference-only laws are read only to
+    look things up (§1). Returns (funding actions, fund splits, problems), ready to write.
+    """
+    roles = {r["law_key"]: r["role"] for r in law_list}
+    rows, problems = [], []
+    for piece, piece_rows in pieces.items():
+        for r in piece_rows:
+            if roles.get(r["law_key"]) != "in_scope":
+                problems.append(_problem(r, f"{piece}: the law isn't in scope, row left out"))
+                continue
+            rows.append(dict(r))
+    rows = assign_ids(rows)
+    splits = []
+    for r in rows:
+        row_splits, row_problems = fund_splits(r, funds)
+        _apply_splits(r, row_splits)
+        r["counts_toward_total"] = "true" if counts_toward_total(r) else "false"
+        splits += [{"record_id": r["record_id"], **s} for s in row_splits]
+        problems += [_problem(r, p) for p in row_problems]
+    columns = schemas.columns("funding_actions")
+    return [{c: r.get(c, "") for c in columns} for r in rows], splits, problems
+
+
+PROBLEM_COLUMNS = ("record_id", "law_key", "section", "line_item", "problem")
+
+
+def _problem(row: Mapping[str, Any], problem: str) -> dict[str, Any]:
+    return {c: row.get(c, "") for c in PROBLEM_COLUMNS[:-1]} | {"problem": problem}
+
+
+def running_amounts(
+    rows: list[Mapping[str, Any]], amounts: list[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """``running_amounts.csv`` (§7.8): each amount from ``amendment_amounts`` (C), tied to the
+    funding action that made it. Amendments with no funding-action row yet are left out."""
+    by_key: dict[tuple, str] = {}
+    for r in rows:
+        key = (r["law_key"], r["section"], r["line_item"], r["target_law_key"])
+        by_key.setdefault(key, r["record_id"])
+    out = []
+    for a in amounts:
+        record_id = by_key.get((a["law_key"], a["section"], a["target_item"], a["target_law_key"]))
+        if record_id and a["amount_after"] not in ("", None):
+            out.append(
+                {
+                    "target_law_key": a["target_law_key"],
+                    "section": a["target_section"],
+                    "line_item": a["target_item"],
+                    "as_of_event": record_id,
+                    "amount_after": a["amount_after"],
+                }
+            )
+    return out
+
+
+def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[Mapping]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(columns), lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+
+
 def run(ctx: Context) -> int:
-    raise NotImplementedError
+    inputs = load_inputs(ctx)
+    pieces = {}
+    for piece, builder in BUILDERS.items():
+        if builder is None:
+            print(f"  {piece}: not built yet")
+            continue
+        pieces[piece] = builder(inputs, ctx.settings)
+        print(f"  {piece}: {len(pieces[piece])} rows")
+    pieces["manual rows"] = manual_rows(inputs["manual_rows"])
+    rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
+    amounts = running_amounts(
+        rows,
+        amendment_amounts(
+            inputs["items_raw"] + inputs["bond_items_raw"],
+            inputs["amendments_raw"],
+            inputs["law_list"],
+        ),
+    )
+    bad = 0
+    for table, table_rows in (
+        ("funding_actions", rows),
+        ("fund_splits", splits),
+        ("running_amounts", amounts),
+    ):
+        path = ctx.interim_dir / f"{table}.csv"
+        _write(path, schemas.columns(table), table_rows)
+        bad += len(schemas.validate_file(table, path))
+    _write(ctx.reports_dir / "combine_problems.csv", PROBLEM_COLUMNS, problems)
+    print(
+        f"  funding actions: {len(rows)} ({len(pieces['manual rows'])} manual); fund splits: "
+        f"{len(splits)}; running amounts: {len(amounts)}; format problems: {bad}"
+    )
+    print(f"  problems: {len(problems)} (reports/combine_problems.csv)")
+    print(f"  operating total: ${operating_total(rows):,}; capital total: ${capital_total(rows):,}")
+    return 1 if bad else 0
