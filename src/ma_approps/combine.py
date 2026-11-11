@@ -90,6 +90,43 @@ def _figures(text: str) -> set[int]:
     return {int(f.replace(",", "")) for f in re.findall(r"\$\s*(\d[\d,]*)", text)}
 
 
+def item_sections(items: list[Mapping[str, str]]) -> dict[tuple[str, str], set[str]]:
+    """(law, line item) -> the sections that print it."""
+    sections: dict[tuple[str, str], set[str]] = {}
+    for r in items:
+        sections.setdefault((r["law_key"], r["line_item"]), set()).add(r["section"])
+    return sections
+
+
+def target_section(a: Mapping[str, str], sections: Mapping[tuple[str, str], set[str]]) -> str:
+    """The section of the target law that holds the amended item. A law sometimes names the wrong
+    one: 2019-142 §48 strikes 1595-1068 from "section 2" of the FY2020 GAA, which prints it in
+    §2E. Then the item's only section in that law is used, if it has one."""
+    found = sections.get((a["target_law_key"], a["target_item"]), set())
+    if a["target_section"] not in found and len(found) == 1:
+        return next(iter(found))
+    return a["target_section"]
+
+
+def manual_items(rows: list[Mapping[str, str]]) -> list[dict[str, str]]:
+    """``config/manual_rows.csv`` rows (§7.6) as items with a starting amount, for laws no stage
+    reads: 1993-52, kept by hand, prints item 4000-8200 at $50,000,000, which 2024-150 §60 restates
+    (issue #41). Only rows for the law's own items (``target_law_key`` = ``law_key``)."""
+    return [
+        {
+            "law_key": r["law_key"],
+            "section": r["section"],
+            "line_item": r["line_item"],
+            "amount": r["amount"],
+            "retained_revenue_ceiling": "",
+            "item_text": r["item_text"],
+            "fy_stated": "",
+        }
+        for r in rows
+        if r["line_item"] and r["amount"] and r["target_law_key"] in ("", r["law_key"])
+    ]
+
+
 def amendment_amounts(
     items: list[dict[str, str]], amendments: list[dict[str, str]], laws: list[dict[str, str]]
 ) -> list[dict]:
@@ -112,11 +149,7 @@ def amendment_amounts(
             text[key] = r["item_text"]
         if r["amount"] and r["fy_stated"]:
             supplement.setdefault((r["law_key"], r["line_item"], r["fy_stated"]), int(r["amount"]))
-    # A law sometimes names the wrong section: 2019-142 §48 strikes 1595-1068 from "section 2"
-    # of the FY2020 GAA, which prints it in §2E. Use the item's only section in that law, if any.
-    sections: dict[tuple[str, str], set[str]] = {}
-    for law_key, section, item in amount:
-        sections.setdefault((law_key, item), set()).add(section)
+    sections = item_sections(items)
 
     order = sorted(
         (a for a in amendments if a["action_type"] in AMOUNT_ACTIONS and a["target_item"]),
@@ -129,9 +162,8 @@ def amendment_amounts(
     out = []
     for a in order:
         kind, key = a["action_type"], (a["target_law_key"], a["target_section"], a["target_item"])
-        found = sections.get((key[0], key[2]), set())
-        if key not in amount and len(found) == 1:
-            key = (key[0], next(iter(found)), key[2])
+        if key not in amount:  # not printed there, nor inserted there by an earlier amendment
+            key = (key[0], target_section(a, sections), key[2])
         before = amount.get(key)
         known = before is not None
         old, new = _int(a["old_figure"]), _int(a["new_figure"])
@@ -188,6 +220,190 @@ def amendment_amounts(
                 "check": check,
                 "review": "true" if check not in ("", "match") or note else "false",
                 "note": note,
+            }
+        )
+    return out
+
+
+# -- Amendment rows (workstream C; DESIGN §5.4, §5.5, §7.7, §10, §11.3; issue #41) -------------
+
+# Actions whose funding action doesn't depend on an amount: action_type -> (funding_action,
+# amount_kind). The amount actions (AMOUNT_ACTIONS) are worked out from the running amounts.
+AMENDMENT_ACTIONS = {
+    "text_insert": ("PURP", "none"),
+    "text_strike": ("PURP", "none"),
+    "purpose_change": ("PURP", "none"),
+    "date_extend": ("REAUTH", "none"),
+    "transfer": ("XFER", "transfer"),
+    "direct_appropriation": ("NEW", "appropriation"),
+}
+# What the amended item is, from its section in the target law (§9.4), so an amendment counts the
+# way the item does (§10): a change to a §2B chargeback, a §2D federal grant or a §2E trust
+# transfer doesn't count. Any other section, or no item: an outside section.
+TARGET_SECTION_TYPES = {
+    "2": ("approp_main", ()),
+    "2A": ("approp_new", ()),
+    "2B": ("isf", ("isf_chargeback",)),
+    "2D": ("federal_grants", ("federal",)),
+    "2E": ("trust_transfer", ("trust_transfer",)),
+    "2F": ("surtax", ()),
+}
+ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _amount_key(a: Mapping[str, Any]) -> tuple:
+    return tuple(str(a[c] or "") for c in AMOUNT_COLUMNS[:8])
+
+
+def _change(kind: str, a: Mapping[str, str], amount: Mapping[str, Any] | None) -> tuple:
+    """(funding_action, amount_kind, amount, low confidence) for an amount action (§11.3), from its
+    running amount (``amendment_amounts``).
+
+    - A figure change raises (``INC``) or cuts (``RED``) the item by its change. It counts $0 when
+      it doesn't change the item's amount: the struck figure is a cap or earmark in the item's text,
+      or the item already shows the new figure (Q21), or this law's §2 adds the same money (Q27).
+      When the running amount isn't known or doesn't match, the law's own change is used and the
+      row is sent to review.
+    - An inserted item is new money (``NEW``); a struck item is cut by its running amount (``RED``).
+    - A replaced item changes by the new amount less the running amount. At the same amount only
+      its wording changes (``PURP``, $0; Q26 option 1).
+    """
+    check = amount["check"] if amount else "target_not_read"
+    change = amount["change"] if amount else None
+    low = check in ("mismatch", "target_not_read") or change is None
+    if kind == "figure_change":
+        old, new = _int(a["old_figure"]), _int(a["new_figure"])
+        action = "RED" if old is not None and new is not None and new < old else "INC"
+        if check in ("in_item_text", "already_new") or "Q27" in (amount or {}).get("note", ""):
+            return action, "delta", 0, False
+        return action, "delta", change, low
+    if kind == "item_insert":
+        return "NEW", "appropriation", change, low
+    if kind == "item_strike":
+        return "RED", "delta", change, low
+    if change == 0:
+        return "PURP", "none", 0, False
+    return ("RED" if change is not None and change < 0 else "INC"), "delta", change, low
+
+
+def _bond_available_through(
+    a: Mapping[str, str], section: str, limits: list[Mapping[str, str]]
+) -> str:
+    """A changed bond item's spending end date: from the amending law's borrowing limit for the
+    amending section, if it has one, else from the item's own limit (issue #41)."""
+    for lim in limits:
+        if lim["law_key"] == a["law_key"] and a["section"] in lim["covers_sections"].split(";"):
+            return lim["available_through"]
+    item = {"law_key": a["target_law_key"], "section": section, "line_item": a["target_item"]}
+    return (limit_for(item, limits) or {}).get("available_through", "")
+
+
+def amendment_rows(
+    amendments: list[Mapping[str, str]],
+    amounts: list[Mapping[str, Any]],
+    items: list[Mapping[str, str]],
+    limits: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    session_law_url: str,
+) -> list[dict[str, Any]]:
+    """Funding-action rows (§7.7) for what in-scope laws' outside sections do (amendments_raw),
+    in source order (Combine-Export-Work-Split.md, C).
+
+    - The funding action follows §11.3 (``AMENDMENT_ACTIONS``, ``_change``). An amount comes from
+      the item's running amount (``amendments`` -> ``amounts``, §5.5), so a replaced item counts
+      only its change.
+    - A change to an existing item takes the fiscal year of the act it amends (§5.4,
+      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``).
+    - A change to a **bond** item is a capital authorization: ``CAP`` by the change, never counted
+      (Q5, issue #41); its wording changes are ``PURP``. Bond-item rows use the amending law's
+      fiscal year, like bond rows.
+    - Transfers and direct appropriations take the fiscal year of the law's approval; an interim
+      budget is ``INT``. A transfer's line item is the item it goes to, else the one it comes from.
+    - A date extension's new date, when it is a whole date, is ``available_through``.
+    - Reference-only laws' amendments are left out: they are read only for items' history (§1).
+    """
+    laws = {r["law_key"]: r for r in law_list}
+    sections = item_sections(items)
+    pending: dict[tuple, list[Mapping[str, Any]]] = {}
+    for r in amounts:
+        pending.setdefault(_amount_key(r), []).append(r)
+    out = []
+    for a in amendments:
+        law = laws.get(a["law_key"])
+        if not law or law["role"] != "in_scope":
+            continue
+        kind = a["action_type"]
+        has_target = bool(a["target_item"] or a["target_law_key"]) and kind not in (
+            "transfer",
+            "direct_appropriation",
+        )
+        target = laws.get(a["target_law_key"], {}) if has_target else law
+        bond = has_target and target.get("law_type") == "bond"
+        section = target_section(a, sections) if a["target_item"] else a["target_section"]
+        flags = ["low_confidence_parse"] if a["confidence"] == "low" else []
+        available = ""
+        line_item = a["target_item"]
+        if kind in AMOUNT_ACTIONS and a["target_item"]:
+            queue = pending.get(_amount_key(a))
+            action, amount_kind, amount, low = _change(kind, a, queue.pop(0) if queue else None)
+            if low and "low_confidence_parse" not in flags:
+                flags.append("low_confidence_parse")
+        else:
+            action, amount_kind = AMENDMENT_ACTIONS.get(kind, ("PURP", "none"))
+            amount = _int(a["amount"]) if kind in ("transfer", "direct_appropriation") else None
+            if kind == "date_extend" and ISO_DATE_RE.match(a["new_date"] or ""):
+                available = a["new_date"]
+            if kind == "transfer":
+                line_item = a["to_item"] or a["from_item"]
+        if kind == "direct_appropriation" and law["law_type"] == "interim":
+            action, amount_kind = "INT", "interim"
+        if bond:
+            section_type = "capital"
+            # every change to a bond item's amount, $0 included (a restated item), is a capital
+            # authorization; a wording change stays PURP (issue #41; the $0 label waits on Q26)
+            if kind in AMOUNT_ACTIONS or action != "PURP":
+                action, amount_kind = "CAP", "bond_authorization"
+            available = available or _bond_available_through(a, section, limits)
+        elif has_target and line_item:
+            section_type, section_flags = TARGET_SECTION_TYPES.get(section, ("outside", ()))
+            flags += [f for f in section_flags if f not in flags]
+        else:
+            section_type = "interim" if action == "INT" else "outside"
+        if bond or not has_target or not target.get("primary_fy"):
+            fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
+            if action == "INT" and law.get("primary_fy"):
+                fy, fy_rule = int(law["primary_fy"]), "stated"
+        else:
+            fy, fy_rule = int(target["primary_fy"]), "target_act"
+        if available and "multi_year" not in flags:
+            flags.append("multi_year")
+        funds = [f for f in (a["fund_raw"] or "").split("; ") if f]
+        out.append(
+            {
+                "law_key": a["law_key"],
+                "section": a["section"],
+                "line_item": line_item,
+                "target_law_key": a["target_law_key"] if has_target else a["law_key"],
+                "event_date": law["approved_date"],
+                "calendar_year": int(law["approved_date"][:4]),
+                "fiscal_year": fy,
+                "fy_rule": fy_rule,
+                "available_through": available,
+                "section_type": section_type,
+                "funding_action": action,
+                "amount_kind": amount_kind,
+                "amount": "" if amount is None else amount,
+                "amount_source": "law_text",
+                "veto_status": "none",
+                "federal_share": 1.0 if section_type == "federal_grants" else "",
+                "flags": ";".join(flags),
+                "item_text": a["source_text"],
+                "source_url": session_law_url.format(
+                    acts_year=law["acts_year"], chapter=law["chapter"]
+                ),
+                "reader_version": a["reader_version"],
+                # fund splits (shared core): the one fund the money comes from, if the law names one
+                "section_fund_default": funds[0] if len(funds) == 1 else "",
             }
         )
     return out
@@ -296,7 +512,8 @@ def capital_total(rows: list[Mapping[str, Any]]) -> int:
     """The capital total (New 1): bond amounts minus identified federal shares."""
     total = 0
     for r in rows:
-        if r["funding_action"] != "CAP":
+        # an amendment of a bond item whose amount isn't known yet has none (2024-150 §60)
+        if r["funding_action"] != "CAP" or r["amount"] in ("", None):
             continue
         share = float(r["federal_share"] or 0)
         total += round(int(r["amount"]) * (1 - share))
@@ -556,9 +773,25 @@ def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any
     )
 
 
-def _federal_grant_builder(
-    inputs: Mapping[str, list], settings: Mapping[str, Any]
-) -> list[dict]:
+def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    items = starting_items(inputs)
+    return amendment_rows(
+        inputs["amendments_raw"],
+        amendment_amounts(items, inputs["amendments_raw"], inputs["law_list"]),
+        items,
+        inputs["bond_authorizations_raw"],
+        inputs["law_list"],
+        settings["sources"]["session_law_url"],
+    )
+
+
+def starting_items(inputs: Mapping[str, list]) -> list[dict[str, str]]:
+    """Every item with a starting amount for the running amounts (§5.5): items_raw, bond_items_raw
+    and hand-kept items in manual_rows (issue #41)."""
+    return inputs["items_raw"] + inputs["bond_items_raw"] + manual_items(inputs["manual_rows"])
+
+
+def _federal_grant_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
     return federal_grant_rows(
         inputs["items_raw"], inputs["law_list"], settings["sources"]["session_law_url"]
     )
@@ -568,7 +801,7 @@ BUILDERS = {
     "annual budget rows (E)": None,
     "supplemental rows (B)": _supplemental_builder,
     "§2D federal grant rows (B)": _federal_grant_builder,
-    "amendment rows (C)": None,
+    "amendment rows (C)": _amendment_builder,
     "bond rows (A)": _bond_builder,
 }
 
@@ -789,11 +1022,7 @@ def run(ctx: Context) -> int:
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
     amounts = running_amounts(
         rows,
-        amendment_amounts(
-            inputs["items_raw"] + inputs["bond_items_raw"],
-            inputs["amendments_raw"],
-            inputs["law_list"],
-        ),
+        amendment_amounts(starting_items(inputs), inputs["amendments_raw"], inputs["law_list"]),
     )
     bad = 0
     for table, table_rows in (

@@ -138,9 +138,15 @@ def check_amendment_amounts(ctx: Context) -> list[dict] | None:
     def rows(path: Path) -> list[dict[str, str]]:
         return schemas.read_csv(path)[1] if path.exists() else []
 
-    items = rows(ctx.interim_dir / "items_raw.csv") + rows(ctx.interim_dir / "bond_items_raw.csv")
+    inputs = {
+        "items_raw": rows(ctx.interim_dir / "items_raw.csv"),
+        "bond_items_raw": rows(ctx.interim_dir / "bond_items_raw.csv"),
+        "manual_rows": rows(ctx.config_dir / "manual_rows.csv"),
+    }
     return combine.amendment_amounts(
-        items, rows(ctx.interim_dir / "amendments_raw.csv"), rows(ctx.config_dir / "law_list.csv")
+        combine.starting_items(inputs),
+        rows(ctx.interim_dir / "amendments_raw.csv"),
+        rows(ctx.config_dir / "law_list.csv"),
     )
 
 
