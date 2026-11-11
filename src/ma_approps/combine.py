@@ -735,6 +735,195 @@ def federal_grant_rows(
     return out
 
 
+# -- Annual budget rows (workstream E; DESIGN §3.4, §5.7, §10; Mario's rules at the top) ---------
+
+# What each GAA section is (§9.4): section -> (section_type, flags, CTHRU covers its amounts).
+# §2D is left to federal_grant_rows. CTHRU shows §2B at $0 (§3.4) and has no §2E, so those two
+# take the law's printed amount.
+ANNUAL_SECTIONS = {
+    "2": ("approp_main", (), True),
+    "2B": ("isf", ("isf_chargeback",), False),
+    "2E": ("trust_transfer", ("trust_transfer",), False),
+    "2F": ("surtax", (), True),
+}
+ANNUAL_OTHER_SECTION = ("approp_new", ("low_confidence_parse",), False)
+ANNUAL_SKIPPED_SECTIONS = ("2D",)
+CHARGEBACK_FUND = "0015"  # §2B ISF chargebacks (config/funds.csv): never counted
+
+
+def _annual_veto_status(hint: str, final: int, printed: int, cthru_amount: int) -> tuple[str, bool]:
+    """(veto_status, unexplained difference) for a GAA item CTHRU has money for (§5.7).
+
+    ``final`` is the law's last printed amount (after any veto note), ``printed`` the first
+    (before it). CTHRU agreeing with the final amount confirms what the markup says. CTHRU below
+    the printed amount with no markup is a veto the law text doesn't show (FY2025's doesn't
+    mark them), so it is read from CTHRU. Any other difference, such as 1231-1000 (override
+    printed at $10M, CTHRU $1.5M), is unexplained and goes to review.
+    """
+    marked = SUPPLEMENTAL_VETO_STATUS.get(hint, "unknown")
+    if cthru_amount == final:
+        return marked, False
+    if hint == "none" and cthru_amount < printed:
+        return "reduced", False
+    return marked, True
+
+
+def _gaa_items(
+    items: list[Mapping[str, str]], law_list: list[Mapping[str, str]], with_skipped: bool = False
+) -> list[tuple[Mapping[str, str], Mapping[str, str]]]:
+    """(item, law) for the items of in-scope GAAs, leaving §2D to federal_grant_rows unless
+    ``with_skipped``."""
+    laws = {r["law_key"]: r for r in law_list}
+    return [
+        (item, laws[item["law_key"]])
+        for item in items
+        if item["law_key"] in laws
+        and laws[item["law_key"]]["role"] == "in_scope"
+        and laws[item["law_key"]]["law_type"] == "gaa"
+        and (with_skipped or item["section"] not in ANNUAL_SKIPPED_SECTIONS)
+    ]
+
+
+def _annual_fy(item: Mapping[str, str], law: Mapping[str, str]) -> str:
+    return item["fy_stated"] or law.get("primary_fy", "")
+
+
+def annual_rows(
+    items: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    cthru: list[Mapping[str, str]],
+    session_law_url: str,
+) -> list[dict[str, Any]]:
+    """Original-appropriation rows (``ORIG``, §7.7) for the items of in-scope GAAs, in source
+    order (Combine-Export-Work-Split.md, E; Mario's rules at the top of this file).
+
+    - In a section CTHRU covers (§2, §2F), the amount is CTHRU's ``original_enacted`` for that
+      fiscal year and item (``amount_source = cthru``), which already reflects vetoes; the law's
+      printed amount stays in ``amount_printed``. ``veto_status`` comes from comparing the two,
+      with the inline markup as a hint (``_annual_veto_status``).
+    - No CTHRU amount, and the item lets an agency spend fees it collects: the law's printed ceiling
+      (``retained_revenue_ceiling``, flag ``retained_revenue``). Otherwise it was vetoed to $0.
+    - §2B and §2E items take the law's printed amount. §2B is flagged ``isf_chargeback``, and an
+      item CTHRU books only to fund 0015 is flagged the same wherever it is printed (§10).
+    - CTHRU has one amount per account, so an item printed twice in a law gets it once; both rows
+      are flagged ``cthru_mismatch``. A fiscal year with no CTHRU rows at all (not downloaded yet)
+      falls back to the printed amount, flagged ``cthru_mismatch``, instead of reading as vetoed.
+    """
+    by_cthru = {(r["fiscal_year"], r["line_item"]): r for r in cthru}
+    cthru_years = {r["fiscal_year"] for r in cthru}
+    gaa_items = _gaa_items(items, law_list)
+    copies: dict[tuple[str, str, str], int] = {}
+    for item, law in gaa_items:
+        key = (item["law_key"], _annual_fy(item, law), item["line_item"])
+        copies[key] = copies.get(key, 0) + 1
+    used: set[tuple[str, str, str]] = set()
+    out = []
+    for item, law in gaa_items:
+        section_type, section_flags, covered = ANNUAL_SECTIONS.get(
+            item["section"], ANNUAL_OTHER_SECTION
+        )
+        row = _items_row(item, law, session_law_url)
+        fy = _annual_fy(item, law)
+        if not item["fy_stated"] and fy:
+            row["fiscal_year"], row["fy_rule"] = int(fy), "stated"
+        flags = list(section_flags)
+        hint = item["veto_kind_inline"] or "none"
+        final = int(item["amount"] or 0)
+        printed = int(item["amount_struck"] or item["amount"] or 0)
+        ceiling = int(item["retained_revenue_ceiling"] or 0)
+        status = SUPPLEMENTAL_VETO_STATUS.get(hint, "unknown")
+        source, kind = "law_text", "appropriation"
+        match = by_cthru.get((fy, item["line_item"]))
+        key = (item["law_key"], fy, item["line_item"])
+        if copies[key] > 1 and covered:
+            flags.append("cthru_mismatch")
+        if covered and fy in cthru_years:
+            original = int(match["original_enacted"] or 0) if match else 0
+            if key in used:  # CTHRU's one amount went to this item's first copy
+                amount, source, status = 0, "cthru", "unknown"
+            elif original:
+                used.add(key)
+                amount, source = original, "cthru"
+                status, unexplained = _annual_veto_status(hint, final, printed, original)
+                if unexplained:
+                    flags.append("cthru_mismatch")
+                if ceiling:
+                    flags.append("retained_revenue")
+            elif ceiling:
+                used.add(key)
+                amount, kind = ceiling, "retained_revenue_ceiling"
+                flags += ["retained_revenue"] + (["veto_unverified"] if hint != "none" else [])
+            else:  # CTHRU lists every enacted item, so one missing from it was vetoed to $0
+                used.add(key)
+                amount, source, status = 0, "cthru", "vetoed"
+        else:
+            if covered:  # CTHRU has nothing for this fiscal year yet
+                flags.append("cthru_mismatch")
+            amount = final or ceiling
+            if not final and ceiling:
+                kind = "retained_revenue_ceiling"
+                flags.append("retained_revenue")
+            if hint != "none":
+                flags.append("veto_unverified")
+        if match and match["fund_numbers"] == CHARGEBACK_FUND and "isf_chargeback" not in flags:
+            flags.append("isf_chargeback")
+        if row["available_through"]:
+            flags.append("multi_year")
+        if item["confidence"] == "low" and "low_confidence_parse" not in flags:
+            flags.append("low_confidence_parse")
+        if not item["fund_splits_raw"] and match and match["fund_numbers"]:
+            row["fund_numbers"] = match["fund_numbers"]
+        row.update(
+            section_type=section_type,
+            funding_action="ORIG",
+            amount_kind=kind,
+            amount=amount,
+            amount_source=source,
+            veto_status=status,
+            flags=";".join(dict.fromkeys(flags)),
+        )
+        out.append(row)
+    return out
+
+
+def annual_gaps(
+    items: list[Mapping[str, str]],
+    law_list: list[Mapping[str, str]],
+    cthru: list[Mapping[str, str]],
+) -> list[dict[str, Any]]:
+    """Problems (``combine_problems.csv``) for CTHRU money the annual rows can't carry: an account
+    with enacted money in an in-scope GAA's fiscal year that has no item in that law's text read.
+    Its money is missing from the totals until the reader finds the item."""
+    gaa_laws = {
+        r["primary_fy"]: r["law_key"]
+        for r in law_list
+        if r["role"] == "in_scope" and r["law_type"] == "gaa" and r.get("primary_fy")
+    }
+    # §2D items count as read, though their rows come from federal_grant_rows
+    read = {
+        (_annual_fy(item, law), item["line_item"])
+        for item, law in _gaa_items(items, law_list, with_skipped=True)
+    }
+    problems = []
+    for r in cthru:
+        amount = int(r["original_enacted"] or 0)
+        key = (r["fiscal_year"], r["line_item"])
+        if amount and r["fiscal_year"] in gaa_laws and key not in read:
+            problems.append(
+                {
+                    "record_id": "",
+                    "law_key": gaa_laws[r["fiscal_year"]],
+                    "section": "",
+                    "line_item": r["line_item"],
+                    "problem": (
+                        f"CTHRU FY{r['fiscal_year']} has ${amount:,} for this account but no "
+                        "item was read from the law text: its money is not in the totals"
+                    ),
+                }
+            )
+    return problems
+
+
 def _law_type(laws: Mapping[str, Mapping[str, str]], item: Mapping[str, str]) -> str:
     return laws.get(item["law_key"], {}).get("law_type", "")
 
@@ -824,8 +1013,17 @@ def _federal_grant_builder(inputs: Mapping[str, list], settings: Mapping[str, An
     )
 
 
+def _annual_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
+    return annual_rows(
+        inputs["items_raw"],
+        inputs["law_list"],
+        inputs["cthru_line_items"],
+        settings["sources"]["session_law_url"],
+    )
+
+
 BUILDERS = {
-    "annual budget rows (E)": None,
+    "annual budget rows (E)": _annual_builder,
     "supplemental rows (B)": _supplemental_builder,
     "§2D federal grant rows (B)": _federal_grant_builder,
     "amendment rows (C)": _amendment_builder,
@@ -1047,6 +1245,7 @@ def run(ctx: Context) -> int:
         print(f"  {piece}: {len(pieces[piece])} rows")
     pieces["manual rows"] = manual_rows(inputs["manual_rows"])
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
+    problems += annual_gaps(inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"])
     amounts = running_amounts(
         rows,
         amendment_amounts(starting_items(inputs), inputs["amendments_raw"], inputs["law_list"]),
