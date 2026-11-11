@@ -5,6 +5,11 @@ approved_from = "2021-01-01"
 approved_to = "2025-12-31"
 # Acts volumes scanned by discover (2020 and 2026 for reference-only laws, §1)
 discover_years = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+# Fiscal years the cthru stage downloads from CTHRU (§3.4)
+# Normally left out: the cthru stage works the years out from primary_fy in config/law_list.csv
+# (GAA, supplemental and interim laws that are in scope, plus any GAA), so a new year's laws bring
+# their fiscal year with them. Uncomment to force a specific list instead.
+# cthru_fiscal_years = [2021, 2022, 2023, 2024, 2025, 2026]
 
 [http]
 # Identify the scraper (§3.6). contact_email is Emma's Northeastern address, chosen by the group (Q18, 2026-11-04).

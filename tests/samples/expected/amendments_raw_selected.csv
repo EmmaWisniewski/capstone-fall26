@@ -1,0 +1,15 @@
+law_key,section,action_type,target_law_key,target_section,target_item,old_figure,new_figure,old_date,new_date,amount,from_item,to_item,fund_raw,confidence
+2021-35,1,item_replace,2019-5,2A,8100-1014,,8000000,,,,,,,high
+2023-15,1,direct_appropriation,2023-15,1,,,,,,6660000000,,,,high
+2023-77,41,date_extend,2019-142,2A,7008-1117,,,2023,2024,,,,,high
+2023-77,42,date_extend,2019-142,2A,7008-1117,,,2023,2024,,,,,high
+2023-77,46,date_extend,2021-24,2,1410-1616,,,2023,2024,,,,,high
+2023-77,53,purpose_change,2021-102,2A,1599-2044,,,,,,,,,high
+2023-77,81,figure_change,2022-126,2,3000-7040,320000,520000,,,,,,,high
+2023-77,138,text_insert,2022-126,2,8000-0313,,,,,,,,,high
+2023-77,175,figure_change,2023-28,2,0610-2000,300000,1300000,,,,,,,high
+2023-77,176,item_insert,2023-28,2,1599-4448,,312162361,,,,,,,high
+2023-77,178,figure_change,2023-28,2,2330-0100,9310231,9660231,,,,,,,high
+2023-77,188,text_strike,2023-28,2,7008-1116,,,,,,,,,high
+2023-77,215,transfer,,,,,,,,10000000,,,General Fund,medium
+2023-77,219,transfer,,,,,,,,192650000,,,Transitional Escrow Fund,medium

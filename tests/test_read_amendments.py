@@ -215,6 +215,93 @@ def test_transfer_source_with_to_in_its_description():
     ]
 
 
+def test_other_transfer_wordings():
+    # Comptroller transfers in wordings the two transfer patterns miss (shortened)
+    html = (
+        # 2021-22 §3: cents, and words between the figure and "from"
+        "<p>SECTION 3. Notwithstanding any general or special law to the contrary, the comptroller"
+        " shall transfer $4,891,987,249.40 allocated to the commonwealth from the Coronavirus State"
+        " Fiscal Recovery Fund pursuant to section 602 of Title VI of the federal Social Security"
+        " Act, 42 U.S.C. 802, to the federal COVID-19 response fund.</p>"
+        # 2021-33 §2: a list, with no source
+        "<p>SECTION 4. The comptroller shall, not later than October 15, 2021, establish a monthly"
+        " schedule transferring no less than: (i) $350,000,000 to the Student Opportunity Act"
+        " Investment Fund; and (ii) $250,000,000 into the Commonwealth's Pension Liability Fund;"
+        " provided, however, that the comptroller shall prorate said transfers.</p>"
+        # 2021-102 §84: a list, with sources
+        "<p>SECTION 5. The comptroller shall transfer: (i) an amount not to exceed $10,000,000 from"
+        " the Transitional Escrow Fund to the Massachusetts Life Sciences Investment Fund; and (ii)"
+        " an amount not to exceed $20,000,000 from the General Fund to the Massachusetts Community"
+        " Preservation Trust Fund.</p>"
+        # 2022-126 §163: an estimate; the deposits listed in (b) aren't transfers
+        "<p>SECTION 6. (a) The comptroller shall transfer $1,399,699,283, or such amount as may be"
+        " required, to the Commonwealth Stabilization Fund. (b) In addition, the following are"
+        " expected to be deposited in the fund: (i) $21,722,876 from gaming revenues.</p>"
+        # 2025-73 §191: the figure is for each of two years
+        "<p>SECTION 7. The comptroller shall transfer in both fiscal year 2026 and 2027 $50,000,000"
+        " each such fiscal year from the Commonwealth Care Trust Fund established in section 2OOO"
+        " of chapter 29 of the General Laws to the Health Safety Net Trust Fund.</p>"
+        # 2022-268 §265: the source is the General Fund, not an "undesignated fund"
+        "<p>SECTION 8. The comptroller shall transfer up to $100,000,000 of the undesignated fund"
+        " balance in the General Fund to the Unemployment Compensation Fund.</p>"
+    )
+    rows, unread = read_amendments.read_law("2099-1", "supplemental", html)
+    assert [(r["section"], r["amount"], r["fund_raw"], r["confidence"]) for r in rows] == [
+        ("3", 4_891_987_249, "Coronavirus State Fiscal Recovery Fund", "medium"),
+        ("4", 350_000_000, None, "medium"),
+        ("4", 250_000_000, None, "medium"),
+        ("5", 10_000_000, "Transitional Escrow Fund", "medium"),
+        ("5", 20_000_000, "General Fund", "medium"),
+        ("6", 1_399_699_283, None, "low"),
+        ("7", 50_000_000, "Commonwealth Care Trust Fund", "low"),
+        ("8", 100_000_000, "General Fund", "medium"),
+    ]
+    assert unread == []
+
+
+def test_transfer_figure_must_follow_the_verb():
+    # 2024-140 §224 reduces a transfer by up to $375,000,000; it doesn't transfer that amount
+    html = (
+        "<p>SECTION 224. Notwithstanding any general or special law to the contrary, the"
+        " comptroller shall reduce any transfers attributable to capital gains tax collections"
+        " required pursuant to section 5G of chapter 29 of the General Laws during fiscal year 2025"
+        " by an amount not to exceed $375,000,000 if the secretary makes a determination.</p>"
+    )
+    assert read_amendments.read_law("2024-140", "gaa", html) == ([], [])
+
+
+def test_unread_transfer_is_listed():
+    # A transfer between funds names no item or appropriation; 2021-22 §3 was once missed silently
+    html = (
+        "<p>SECTION 9. Section 58 of chapter 228 of the acts of 2018 is hereby amended by striking"
+        " out subsection (b) and inserting in place thereof the following subsection:-</p>"
+        "<p>(b) The comptroller shall transfer $5,000,000 to the Massachusetts Tourism Trust"
+        " Fund.</p>"
+    )
+    rows, unread = read_amendments.read_law("2099-1", "supplemental", html)
+    assert rows == []
+    assert [u["reason"] for u in unread] == [
+        "mentions dollars and a transfer by the comptroller but matched no pattern"
+    ]
+
+
+def test_misprinted_citation_is_corrected():
+    # 2024-248 §35 cites "chapter 24 of the acts of 2022" for an item of 2021 ch. 24 (§7.18)
+    html = (
+        "<p>SECTION 35. Item 8200-0200 of section 2 of chapter 24 of the acts of 2022 is hereby"
+        ' amended by striking out the figure "2024", inserted by section 50 of chapter 77 of the'
+        " acts of 2023, and inserting in place thereof the following figure:- 2025.</p>"
+    )
+    assert read_amendments.read_law("2024-248", "supplemental", html)[0][0]["target_law_key"] == (
+        "2022-24"
+    )
+    fixes = read_amendments.citation_fixes(Context(root=ROOT))["2024-248"]
+    rows, _ = read_amendments.read_law("2024-248", "supplemental", html, fixes)
+    assert [
+        (r["target_law_key"], r["target_item"], r["new_date"], r["confidence"]) for r in rows
+    ] == [("2021-24", "8200-0200", "2025", "medium")]
+
+
 def test_misprinted_figure_is_low_confidence():
     # 2022-42 §46 strikes "$15,000,0000", a misprint in 2021 ch. 102, not $150,000,000: the row
     # would otherwise read as a $135,000,000 cut
@@ -279,6 +366,140 @@ def test_outside_section_listing_items_is_listed():
     # read_items reads §2 of an "other" law, so its items aren't listed here
     other = html.replace("SECTION 3.", "SECTION 2.")
     assert read_amendments.read_law("2020-316", "other", other)[1] == []
+    # The real 2023-2 also borrows for §3 (§77), so read_bonds reads its items (Q25): not listed
+    borrowing = (
+        "<p>SECTION 77. Notwithstanding any general or special law to the contrary, to meet the"
+        " expenditures necessary in carrying out section 3, the state treasurer shall, upon receipt"
+        " of a request by the governor, issue and sell bonds of the commonwealth in an amount to be"
+        " specified by the governor from time to time but not exceeding, in the aggregate,"
+        " $400,000,000.</p>"
+    )
+    assert read_amendments.read_law("2023-2", "supplemental", html + borrowing) == ([], [])
+
+
+def test_run_reports_only_in_scope_laws_and_skips_hand_kept(root, tmp_path, capsys):
+    # A reference-only law is read for its items' history, but its unread sections don't affect
+    # the dataset, so they're counted, not reported. A hand-kept law has no cached text.
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "settings.toml").write_bytes((root / "config" / "settings.toml").read_bytes())
+    header = ",".join(schemas.columns("law_list"))
+    laws = [
+        "2024-150,2024,150,2024-11-14,,,,bond,in_scope,,,,auto,",
+        "2002-244,2002,244,2002-08-10,,,,bond,reference_only,,,,auto,",
+        "1993-52,1993,52,1993-05-21,,,,bond,reference_only,,,,manual,",
+    ]
+    (config / "law_list.csv").write_text("\n".join([header, *laws]) + "\n", "utf-8")
+    (config / "citation_fixes.csv").write_text(
+        "law_key,section,printed,target_law_key,evidence\n2024-150,5,2020-1,2021-1,a test\n",
+        "utf-8",
+    )
+    unmatched = (
+        "<p>SECTION 5. The department may make grants of up to $10,000 from the appropriation in"
+        " section 2 for supportive services.</p>"
+    )
+    wording = (
+        "<p>SECTION 15. Item 4000-8200 of section 2 of chapter 52 of the acts of 1993 is hereby"
+        ' amended by striking out the word "thirty" and inserting in place thereof the following'
+        " figure:- 50.</p>"
+    )
+    for acts_year, chapter, html in (
+        ("2024", "150", unmatched),
+        ("2002", "244", unmatched + wording),
+    ):
+        path = tmp_path / "raw" / "sessionlaws" / acts_year / f"{chapter}.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps({"ChapterText": html}), "utf-8")
+    ctx = Context(
+        root=tmp_path,
+        raw_dir=tmp_path / "raw",
+        interim_dir=tmp_path / "interim",
+        reports_dir=tmp_path / "reports",
+        offline=True,
+    )
+    assert read_amendments.run(ctx) == 0
+    _, unread = schemas.read_csv(tmp_path / "reports" / "unread_sections.csv")
+    assert [(r["law_key"], r["section"]) for r in unread] == [("2024-150", "5")]
+    _, rows = schemas.read_csv(tmp_path / "interim" / "amendments_raw.csv")
+    assert [(r["law_key"], r["section"], r["target_item"]) for r in rows] == [
+        ("2002-244", "15", "4000-8200")
+    ]
+    out = capsys.readouterr().out
+    assert "1 unread sections in reference-only laws (not reported)" in out
+    assert "no cached text" not in out
+    assert "citation fix 2024-150 §5 (2020-1) not used" in out
+
+
+def test_general_laws_named_in_other_ways():
+    # None of these amend an appropriation act, so they give no rows and nothing unread: a bare
+    # "Chapter 40R" (2020-358 §45), "The General Laws" (§56), "as so appearing" (§58), a chapter
+    # with a half and the "Official Edition" (2020-383 §8), and a resolve (2022-126 §105)
+    html = (
+        "<p>SECTION 45. Chapter 40R is hereby amended by striking out section 14 and inserting in"
+        " place thereof the following section:-</p>"
+        "<p>Section 14. The fund may receive $5,000 appropriated in item 1599-0001.</p>"
+        "<p>SECTION 56. The General Laws are hereby amended by inserting after chapter 40W the"
+        " following chapter:-</p><p>Chapter 40X. Any appropriation of $1,000 for this purpose.</p>"
+        "<p>SECTION 58. Section 6I of said chapter 62, as so appearing, is hereby amended by"
+        ' striking out the figure "$20,000,000" and inserting in place thereof the following'
+        " figure:- $40,000,000.</p>"
+        "<p>SECTION 60. Section 1 of chapter 159A1⁄2 of the General Laws, as appearing in the 2018"
+        " Official Edition, is hereby amended by adding the following words:- or an appropriation"
+        " of $6,000,000.</p>"
+        "<p>SECTION 61. Said chapter 159A1⁄2 is hereby further amended by adding the following"
+        " section:-</p><p>Section 13. Item 1599-0002 shall not exceed $10.</p>"
+        "<p>SECTION 105. Chapter 145 of the resolves of 1957 is hereby further amended by"
+        ' inserting after the word "Scott" the following words:- , Elizabeth Johnson, Jr.</p>'
+    )
+    assert read_amendments.read_law("2020-358", "bond", html) == ([], [])
+
+
+def test_item_renumbered():
+    # 2021-102 §46 renumbers an item of a 2018 bond law: no money changes
+    html = (
+        "<p>SECTION 46. Section 2 of chapter 112 of the acts of 2018 is hereby amended by striking"
+        " out the figure “7002-0015” and inserting in place thereof the following figure:-"
+        " 7002-0016.</p>"
+    )
+    rows, unread = read_amendments.read_law("2021-102", "surplus", html)
+    assert [
+        (r["action_type"], r["target_law_key"], r["target_section"], r["target_item"], r["to_item"])
+        for r in rows
+    ] == [("purpose_change", "2018-112", "2", "7002-0015", "7002-0016")]
+    assert unread == []
+
+
+def test_borrowing_sections_of_bond_laws_are_left_to_read_bonds():
+    # 2021-15 §6: a borrowing limit for one item, which read_bonds reads (§7.16)
+    html = (
+        "<p>SECTION 2.</p><p>4000-2026 For a program ...... $10</p>"
+        "<p>SECTION 6. To meet the expenditures necessary in carrying out item 4000-2026 of"
+        " section 2, the state treasurer shall, upon request of the governor, issue and sell"
+        " bonds of the commonwealth in an amount to be specified by the governor from time to time"
+        " but not exceeding, in the aggregate, $10.</p>"
+    )
+    assert read_amendments.read_law("2021-15", "bond", html) == ([], [])
+
+
+def test_section_returned_with_amendment_is_not_law_in_that_chapter():
+    # 2021-24 §102: the Legislature's version became 2021 ch. 33, so this one gives no rows
+    html = (
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 102. Notwithstanding any general or special law to the contrary, the"
+        " comptroller shall, not later than September 1, 2021, transfer $250,000,000 from the"
+        " General Fund to the Commonwealth’s Pension Liability Fund.</s></p>"
+        "<p>The Governor returned the following section with recommendation of amendment, for"
+        " message see House, No. 4004.</p>"
+        "<p><s>SECTION 101A. Section 7 of chapter 62 of the General Laws is hereby amended by"
+        " adding the following words:- or a regulation.</s></p>"
+    )
+    rows, unread = read_amendments.read_law("2021-24", "gaa", html)
+    assert rows == []
+    # listed only when it would have given rows; a wording change to the General Laws isn't
+    assert [(u["section"], u["reason"][:40]) for u in unread] == [
+        ("102", "returned by the Governor with a recommen")
+    ]
 
 
 def test_section_2_heading_in_any_case():
@@ -368,6 +589,25 @@ def test_veto_note_belongs_to_the_following_section(samples_dir):
     sections = {s["section"]: s for s in read_amendments._sections(paras)}
     assert not any("Governor disapproved" in t for t in sections["99"]["texts"])
     assert (sections["99"]["vetoed"], sections["100"]["vetoed"]) == (False, True)
+
+
+def test_samples_match_hand_checked_rows(output):
+    # tests/samples/expected/amendments_raw_selected.csv: a row of each action_type the samples
+    # have (none strikes an item; 2022-268 §228 does, tested above)
+    _, rows = schemas.read_csv(output.interim_dir / "amendments_raw.csv")
+    header, expected = schemas.read_csv(
+        ROOT / "tests" / "samples" / "expected" / "amendments_raw_selected.csv"
+    )
+    assert {e["action_type"] for e in expected} == {r["action_type"] for r in rows}
+    for e in expected:
+        key = (e["law_key"], e["section"], e["action_type"], e["target_item"])
+        found = [
+            r
+            for r in rows
+            if (r["law_key"], r["section"], r["action_type"], r["target_item"]) == key
+        ]
+        assert len(found) == 1, key
+        assert {c: found[0][c] for c in header} == e
 
 
 def test_unread_sections_have_explanation_column(output):
