@@ -214,6 +214,8 @@ def main_rows(
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """The main file (§7.13): the funding-action rows inside the approval-date window, bonds left
     out (they go to the capital file), sorted by Record ID, with corrections (§7.11) applied.
+    Wording-only changes to bond items (``PURP`` rows with ``section_type = capital``) are left
+    out of both files and belong in the extended file only (Decision Log, 2026-11-11).
 
     Returns (rows, warnings). A correction is skipped, with a warning, when its field isn't an
     export column or its ``expected_old_value`` no longer matches the cell."""
@@ -232,6 +234,9 @@ def main_rows(
     warnings, out = [], []
     for row in sorted(funding_actions, key=lambda r: r["record_id"]):
         if row["funding_action"] == "CAP":
+            continue
+        if row.get("section_type") == "capital":
+            # a wording-only change to a bond item: the extended file only (2026-11-11)
             continue
         if not first <= date.fromisoformat(str(row["event_date"])) <= last:
             continue

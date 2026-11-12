@@ -102,3 +102,11 @@ def test_a_correction_of_an_unknown_column_is_reported():
     (row,), warnings = build([fa("a")], corrections=[fix("Nope", "x")])
     assert row["Human review status"] == "Not human reviewed"
     assert len(warnings) == 1 and "unknown column" in warnings[0]
+
+
+def test_wording_changes_to_bond_items_are_left_out():
+    # 2024-150 §71 rewords 1993 bond item 4000-8200: extended file only (2026-11-11)
+    bond_wording = dict(fa("w", action="PURP", amount=""), section_type="capital")
+    operating_wording = dict(fa("p", action="PURP", amount=""), section_type="approp_main")
+    rows, _ = build([bond_wording, operating_wording])
+    assert [r["Record ID"] for r in rows] == ["p"]
