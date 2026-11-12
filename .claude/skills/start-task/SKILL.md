@@ -9,16 +9,21 @@ The student wants to start useful work quickly. Keep each step's report to a few
 
 If the student named a task ($ARGUMENTS), steps 1–4 still come first; you deal with the task in step 5.
 
+**First, work out which student you're talking to.** Compare their GitHub login (`gh api user -q .login`) and git name (`git config user.name`) with the names in DESIGN §16. If that doesn't make it clear, ask. Lawrence is a facilitator, not a student, and has no workstream. Knowing the student lets you suggest work in their own workstream (step 5).
+
 ## 1. Get the latest main, or pick up work in progress
 - If there are uncommitted changes, or the session is on a branch other than `main`, say in plain words what's there. Ask whether the student wants to **continue that work** or **start something new**. Never throw work away without a yes.
 - **Continuing:** if there are uncommitted changes, commit them on their branch first (with the student's yes), so switching branches is safe. Still do steps 2–3 on `main`, so the docs stay current. Then switch back to the branch, bring in the latest `main`, remind the student what the branch was for, and go to step 7's plan. If bringing in `main` causes a conflict, stop and explain it (WORKFLOW §7). Don't pick a side yourself.
 - **Starting new**, or already on a clean `main`: switch to `main` and pull.
+- If the student wants to continue work that's in an open pull request but not on this computer (`/finish-task` switches back to `main`), check out that pull request's branch from GitHub and treat it as continuing.
 
 ## 2. Merge finished work
 - List open pull requests (`gh pr list`) and branches that aren't merged yet (`git branch -r --no-merged origin/main`).
 - Give one line for each: what it does in plain words, and whether GitHub's automatic checks (CI) pass.
 - Finished work sitting in an open pull request helps nobody (WORKFLOW Step 2). Offer to merge each one whose checks pass, one at a time, with the student's yes for each. A quick look first is optional. If one has a problem, offer to fix it and merge it. If a merge causes a conflict, stop and explain it (WORKFLOW §7).
+- Merge with `gh pr merge <number> --merge --delete-branch`, so the merged branch is deleted on GitHub and on this computer. A merged branch is no longer needed: its work is on `main`.
 - Pull again after merging.
+- **Tidy up old branches.** List branches already merged into `main`, on GitHub (`git branch -r --merged origin/main`) and on this computer (`git branch --merged main`), leaving out `main`. If there are any, say how many and offer to delete them. Their work is safely on `main`. Delete them only after the student says yes. Never delete a branch that isn't merged.
 
 ## 3. Make sure main describes itself accurately
 This is WORKFLOW Step 3. `main` now holds everyone's merged work, and its docs should say so before anyone plans from them.
@@ -43,7 +48,7 @@ This is WORKFLOW Step 3. `main` now holds everyone's merged work, and its docs s
   - how it serves the goal (one sentence): a more complete or correct file, or a program that's easier for someone else to run
   - rough size (it should fit in a day or less, or be split)
 
-  If the student has a different idea, take it seriously.
+  When several tasks are about equally pressing, prefer one in the student's own workstream: it's where they have context. Workstreams are starting places, not limits, so a more urgent task elsewhere still comes first. If the student has a different idea, take it seriously.
 
 ## 6. Check the chosen task isn't already being done
 Once a task is agreed, compare it with the pull requests and branches from step 2, recent commits on `main` and the Status Board notes.
