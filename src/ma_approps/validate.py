@@ -233,14 +233,16 @@ def _compare(
     ours: dict[tuple[str, str], list[dict[str, str]]],
     cthru: dict[tuple[str, str], int],
     amount_of,
+    partial_years: frozenset[str] = frozenset(),
 ) -> tuple[int, list[dict[str, str | int]]]:
     """Compare our rows with CTHRU's amount for every fiscal year × line item that has either.
     Returns (number that match, one report row for each that doesn't).
 
-    Status of a difference: ``flagged`` (a row already carries `cthru_mismatch`), ``several_laws``
-    (supplementals only: several laws touch the item, so the difference can't be attributed),
-    ``missing_in_data`` (CTHRU has money and we have no row), ``not_in_cthru`` (we have money and
-    CTHRU has none) or ``unexplained``."""
+    Status of a difference: ``flagged`` (a row already carries `cthru_mismatch`),
+    ``earlier_laws`` (a year in ``partial_years``, where CTHRU's total also holds laws approved
+    before the window, and ours is below it), ``missing_in_data`` (CTHRU has money and we have no
+    row), ``not_in_cthru`` (we have money and CTHRU has none) or ``unexplained``. Several laws
+    touching one item isn't an explanation: CTHRU's figure is the total of all of them."""
     matched, report = 0, []
     for key in sorted(set(ours) | set(cthru)):
         rows = ours.get(key, [])
@@ -252,8 +254,8 @@ def _compare(
         laws = sorted({r["law_key"] for r in rows})
         if any("cthru_mismatch" in _flags(r) for r in rows):
             status = "flagged"
-        elif check == "supplemental" and len(laws) > 1:
-            status = "several_laws"
+        elif key[0] in partial_years and our_amount < cthru_amount:
+            status = "earlier_laws"
         elif not rows:
             status = "missing_in_data"
         elif not cthru_amount:
@@ -283,8 +285,11 @@ def check_cthru(
     cthru_rows: list[dict[str, str]],
     law_list: list[dict[str, str]],
 ) -> tuple[int, list[dict[str, str | int]]]:
-    """§13 check 4 (workstream E). Only the fiscal years of an in-scope GAA are compared, so CTHRU
-    years whose budget law is outside the window (FY2021) don't show as missing money.
+    """§13 check 4 (workstream E). The fiscal years of an in-scope GAA are compared in full. A
+    year whose budget law is outside the window (FY2021) isn't, so it doesn't show as missing
+    money, but its supplemental items are: laws approved in 2021 still change FY2021 items. There
+    only the items we have rows for are compared, and a shortfall is ``earlier_laws``, because
+    CTHRU's total also holds supplementals approved before 2021.
 
     - ``gaa``: ORIG appropriations vs CTHRU ``original_enacted``.
     - ``supplemental``: NEW + INC + RED amounts vs ``supplemental``. Every row counts, whether or
@@ -323,12 +328,15 @@ def check_cthru(
         for r in law_list
         if r["role"] == "in_scope" and r["law_type"] == "gaa" and r.get("primary_fy")
     }
-    years &= {r["fiscal_year"] for r in cthru_rows}
+    cthru_years = {r["fiscal_year"] for r in cthru_rows}
+    years &= cthru_years
 
-    def group(rows: list[dict[str, str]]) -> dict[tuple[str, str], list[dict[str, str]]]:
+    def group(
+        rows: list[dict[str, str]], yrs: set[str] = years
+    ) -> dict[tuple[str, str], list[dict[str, str]]]:
         out: dict[tuple[str, str], list[dict[str, str]]] = {}
         for r in rows:
-            if r["fiscal_year"] in years:
+            if r["fiscal_year"] in yrs:
                 out.setdefault((r["fiscal_year"], r["line_item"]), []).append(r)
         return out
 
@@ -345,6 +353,15 @@ def check_cthru(
     def in_ceiling_group(r: dict[str, str]) -> bool:
         return (r["fiscal_year"], r["line_item"]) in ceiling_keys
 
+    supplemental = [r for r in deltas if not in_ceiling_group(r)]
+    partial = {r["fiscal_year"] for r in supplemental} & (cthru_years - years)
+    ours_partial = group(supplemental, partial)
+    theirs_partial = {
+        (r["fiscal_year"], r["line_item"]): _int(r["supplemental"])
+        for r in cthru_rows
+        if (r["fiscal_year"], r["line_item"]) in ours_partial and _int(r["supplemental"])
+    }
+
     parts = [
         _compare(
             "gaa",
@@ -354,9 +371,10 @@ def check_cthru(
         ),
         _compare(
             "supplemental",
-            group([r for r in deltas if not in_ceiling_group(r)]),
-            theirs("supplemental"),
+            group(supplemental) | ours_partial,
+            theirs("supplemental") | theirs_partial,
             amount,
+            frozenset(partial),
         ),
         _compare(
             "retained_revenue",
