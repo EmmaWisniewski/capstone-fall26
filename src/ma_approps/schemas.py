@@ -390,6 +390,18 @@ SCHEMAS["corrections"] = _cols(
     "note",
 )
 
+# §7.19 review/unread_explanations.csv (human-edited; why an unread row needs no code; Q22)
+# `report` is the report's file name, as PR #50 decided (e.g. `unread_sections.csv`)
+UNREAD_REPORTS = ("unread_paragraphs.csv", "unread_paragraphs_bonds.csv", "unread_sections.csv")
+SCHEMAS["unread_explanations"] = _cols(
+    Col("report", "enum", UNREAD_REPORTS, required=True),
+    Col("law_key", required=True),
+    Col("section", required=True),
+    Col("explanation", required=True),
+    Col("explained_by", required=True),
+    Col("date", "date", required=True),
+)
+
 # §7.18 config/citation_fixes.csv (human-curated; laws misprinted in an amending section's citation)
 SCHEMAS["citation_fixes"] = _cols(
     Col("law_key", required=True),
@@ -405,17 +417,6 @@ SCHEMAS["funds"] = _cols(
     "fund_number",
     Col("is_federal", "bool", required=True),
     "notes",
-)
-
-# §7.19 review/unread_explanations.csv (human-edited; why an unread-report row needs no reading,
-# Q22, decided 2026-11-11)
-SCHEMAS["unread_explanations"] = _cols(
-    Col("report", required=True),
-    Col("law_key", required=True),
-    Col("section", required=True),
-    Col("explanation", required=True),
-    Col("explained_by", required=True),
-    Col("date", "date", required=True),
 )
 
 # §7.17 config/item_number_fixes.csv (human-curated; item numbers misprinted in a law)
