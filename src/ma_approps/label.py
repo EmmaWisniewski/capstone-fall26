@@ -494,7 +494,33 @@ def label_rows(
             new_or_reapprop=new_or_reapprop(r),
         )
         out.append(label)
+    bond_change_areas(funding_rows, out)
     return sorted(out, key=lambda r: r["record_id"])
+
+
+def bond_change_areas(funding_rows: list[Row], labels: list[dict[str, str]]) -> None:
+    """A later law's change to a bond item (a ``CAP`` row whose ``target_law_key`` is another
+    law, e.g. 2021-25 §3 raising 2020-383 item 6121-2118) with no policy area of its own takes
+    the policy area of the item it changes, the way it takes that item's agency. MassDOT's
+    capital lines aren't in CTHRU, so the department lookup often finds nothing for them."""
+    by_id = {r["record_id"]: r for r in funding_rows}
+    original = {
+        (r["law_key"], r["line_item"]): label
+        for label in labels
+        if (r := by_id[label["record_id"]])["funding_action"] == "CAP"
+        and r["law_key"] == r["target_law_key"]
+        and label["policy_area"]
+    }
+    for label in labels:
+        r = by_id[label["record_id"]]
+        if label["policy_area"] or r["funding_action"] != "CAP":
+            continue
+        if not r["target_law_key"] or r["target_law_key"] == r["law_key"]:
+            continue
+        item = original.get((r["target_law_key"], r["line_item"]))
+        if item:
+            label["policy_area"] = item["policy_area"]
+            label["policy_area_method"] = item["policy_area_method"]
 
 
 def write_labels(path: Path, rows: list[dict[str, str]]) -> None:

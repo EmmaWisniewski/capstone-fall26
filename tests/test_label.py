@@ -378,3 +378,23 @@ def test_run_reports_missing_inputs_and_carries_on(tmp_path, capsys):
     assert label.run(ctx) == 0
     assert "funding_actions.csv is missing (run the combine stage first)" in capsys.readouterr().out
     assert schemas.validate_file("labels", tmp_path / "data" / "interim" / "labels.csv") == []
+
+
+def test_a_later_bond_change_takes_the_policy_area_of_the_item_it_changes():
+    # 2021-25 §3 raises 2020-383 item 6121-2118; amendment rows print no department heading
+    original = action("2020-383-S2-6121-2118-CAP-1", "6121-2118", 2021, "CAP")
+    original.update(law_key="2020-383", target_law_key="2020-383")
+    change = action("2021-025-S3-6121-2118-CAP-1", "6121-2118", 2022, "CAP")
+    change.update(law_key="2021-25", target_law_key="2020-383")
+    restated = action("2024-150-S60-4000-8200-CAP-1", "4000-8200", 2025, "CAP")
+    restated.update(law_key="2024-150", target_law_key="1993-52")  # 1993-52 isn't labeled
+    labels = [dict(record_id=original["record_id"], policy_area="Transportation",
+                   policy_area_method="department")]
+    labels += [dict(record_id=r["record_id"], policy_area="", policy_area_method="")
+               for r in (change, restated)]
+    label.bond_change_areas([original, change, restated], labels)
+    assert [(lab["policy_area"], lab["policy_area_method"]) for lab in labels] == [
+        ("Transportation", "department"),
+        ("Transportation", "department"),
+        ("", ""),
+    ]
