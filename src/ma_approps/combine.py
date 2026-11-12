@@ -305,6 +305,7 @@ def amendment_rows(
     limits: list[Mapping[str, str]],
     law_list: list[Mapping[str, str]],
     session_law_url: str,
+    cthru: list[Mapping[str, str]] = (),
 ) -> list[dict[str, Any]]:
     """Funding-action rows (§7.7) for what in-scope laws' outside sections do (amendments_raw),
     in source order (Combine-Export-Work-Split.md, C).
@@ -313,17 +314,27 @@ def amendment_rows(
       the item's running amount (``amendments`` -> ``amounts``, §5.5), so a replaced item counts
       only its change.
     - A change to an existing item takes the fiscal year of the act it amends (§5.4,
-      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``).
+      ``fy_rule = target_act``) and counts the way that item does (``TARGET_SECTION_TYPES``). When
+      that act has no single fiscal year (a surplus law), it takes the amending law's own year
+      (``stated``), else the approval's (Q28).
     - A change to a **bond** item is a capital authorization: ``CAP`` by the change, never counted
       (Q5, issue #41); its wording changes are ``PURP``. Bond-item rows use the amending law's
       fiscal year, like bond rows.
     - Transfers and direct appropriations take the fiscal year of the law's approval; an interim
       budget is ``INT``. A transfer's line item is the item it goes to, else the one it comes from.
+      Money moved from a fund into an item is an ``INC`` to that item, flagged
+      ``fund_transfer_chain``, and counts: it is the appropriation out of the fund (Q24).
     - A date extension's new date, when it is a whole date, is ``available_through``.
+    - Fund: a transfer's is the one fund it comes from. A change to an operating item takes the
+      item's fund as supplemental items do: the law's printed split, else the one fund CTHRU books
+      the item to that year, else the item's section fund (Q33: 2022-42 §47 adds $24,000,000 to
+      1599-2026, which CTHRU books to the federal Fund 2005, so the row is federal).
     - Reference-only laws' amendments are left out: they are read only for items' history (§1).
     """
     laws = {r["law_key"]: r for r in law_list}
     sections = item_sections(items)
+    by_item = {(i["law_key"], i["section"], i["line_item"]): i for i in items}
+    cthru_funds = _cthru_funds(cthru)
     pending: dict[tuple, list[Mapping[str, Any]]] = {}
     for r in amounts:
         pending.setdefault(_amount_key(r), []).append(r)
@@ -355,6 +366,11 @@ def amendment_rows(
                 available = a["new_date"]
             if kind == "transfer":
                 line_item = a["to_item"] or a["from_item"]
+                if a["to_item"] and not a["from_item"] and a["fund_raw"]:
+                    # money moved from a fund into a line item is the appropriation out of that
+                    # fund, so it counts (Q24: 2024-88 §25, Transitional Escrow Fund to 1599-0514)
+                    action, amount_kind = "INC", "delta"
+                    flags.append("fund_transfer_chain")
         if kind == "direct_appropriation" and law["law_type"] == "interim":
             action, amount_kind = "INT", "interim"
         if bond:
@@ -369,15 +385,32 @@ def amendment_rows(
             flags += [f for f in section_flags if f not in flags]
         else:
             section_type = "interim" if action == "INT" else "outside"
-        if bond or not has_target or not target.get("primary_fy"):
+        if bond or not has_target:
             fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
             if action == "INT" and law.get("primary_fy"):
                 fy, fy_rule = int(law["primary_fy"]), "stated"
-        else:
+        elif target.get("primary_fy"):
             fy, fy_rule = int(target["primary_fy"]), "target_act"
+        elif law.get("primary_fy"):
+            # the amended act has no single fiscal year (a surplus law): the amending budget's own
+            # year, as CTHRU books it (2023-77 §167 adds $4,000,000 to 2022-268's 1599-6063: FY2023)
+            fy, fy_rule = int(law["primary_fy"]), "stated"
+        else:
+            fy, fy_rule = enactment_fy(law["approved_date"]), "enactment_fy"
         if available and "multi_year" not in flags:
             flags.append("multi_year")
         funds = [f for f in (a["fund_raw"] or "").split("; ") if f]
+        # fund splits (shared core): the one fund the money comes from, if the law names one;
+        # else, for an operating item, the item's own fund (Q33)
+        fund = {"section_fund_default": funds[0] if len(funds) == 1 else ""}
+        if line_item and not bond and not funds and kind != "transfer":
+            item = by_item.get((a["target_law_key"] or a["law_key"], section, line_item), {})
+            if item.get("fund_splits_raw"):
+                fund["fund_splits_raw"] = item["fund_splits_raw"]
+            elif (str(fy), line_item) in cthru_funds:
+                fund["fund_numbers"] = cthru_funds[(str(fy), line_item)]
+            else:
+                fund["section_fund_default"] = item.get("section_fund_default", "")
         out.append(
             {
                 "law_key": a["law_key"],
@@ -402,8 +435,7 @@ def amendment_rows(
                     acts_year=law["acts_year"], chapter=law["chapter"]
                 ),
                 "reader_version": a["reader_version"],
-                # fund splits (shared core): the one fund the money comes from, if the law names one
-                "section_fund_default": funds[0] if len(funds) == 1 else "",
+                **fund,
             }
         )
     return out
@@ -990,11 +1022,32 @@ NOT_COUNTED_KINDS = (
     "prior_appropriation_continued",
     "none",
 )
-NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer", "fund_transfer_chain")
+# fund_transfer_chain is a marker only (Q24): a move into a fund already doesn't count, by its
+# amount_kind (transfer), and the move out of the fund into an item does
+NOT_COUNTED_FLAGS = ("isf_chargeback", "trust_transfer")
+
+
+# The stage that writes each interim input, for the message when one is missing (Q33)
+INPUT_STAGES = {
+    "items_raw": "read_items",
+    "bond_items_raw": "read_bonds",
+    "bond_authorizations_raw": "read_bonds",
+    "amendments_raw": "read_amendments",
+    "cthru_line_items": "cthru",
+}
+
+
+def missing_inputs(ctx: Context) -> list[str]:
+    """The input files that don't exist yet (Q33): their rows would be silently missing."""
+    dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
+    return [
+        name for name, (where, filename) in INPUTS.items() if not (dirs[where] / filename).exists()
+    ]
 
 
 def load_inputs(ctx: Context) -> dict[str, list[dict[str, str]]]:
-    """Every input table as rows; a file that doesn't exist yet gives no rows."""
+    """Every input table as rows; a file that doesn't exist yet gives no rows (see
+    ``missing_inputs``, which ``run`` reports)."""
     dirs = {"config": ctx.config_dir, "interim": ctx.interim_dir}
     out = {}
     for name, (where, filename) in INPUTS.items():
@@ -1031,6 +1084,7 @@ def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) 
         inputs["bond_authorizations_raw"],
         inputs["law_list"],
         settings["sources"]["session_law_url"],
+        inputs["cthru_line_items"],
     )
 
 
@@ -1241,18 +1295,35 @@ def _problem(row: Mapping[str, Any], problem: str) -> dict[str, Any]:
     return {c: row.get(c, "") for c in PROBLEM_COLUMNS[:-1]} | {"problem": problem}
 
 
+# Funding actions an amount action (AMOUNT_ACTIONS) can become (§11.3, ``_change``)
+AMOUNT_FUNDING_ACTIONS = ("INC", "RED", "NEW", "CAP", "PURP")
+
+
 def running_amounts(
     rows: list[Mapping[str, Any]], amounts: list[Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
     """``running_amounts.csv`` (§7.8): each amount from ``amendment_amounts`` (C), tied to the
-    funding action that made it. Amendments with no funding-action row yet are left out."""
-    by_key: dict[tuple, str] = {}
-    for r in rows:
+    funding action that made it. Amendments with no funding-action row yet are left out.
+
+    When one section changes an item more than once, each change has its own row (in source
+    order, like the amounts), so each amount gets its own Record ID (Q33). Rows that don't change
+    an amount (wording changes, date extensions, transfers) aren't events here."""
+    by_key: dict[tuple, list[str]] = {}
+    for r in rows:  # in Record ID order, which keeps each builder's source order
+        if r["funding_action"] not in AMOUNT_FUNDING_ACTIONS:
+            continue
+        if r["funding_action"] == "PURP" and r["amount"] in ("", None):
+            continue  # a wording change; a replaced item at the same amount is PURP $0
         key = (r["law_key"], r["section"], r["line_item"], r["target_law_key"])
-        by_key.setdefault(key, r["record_id"])
+        by_key.setdefault(key, []).append(r["record_id"])
+    used: dict[tuple, int] = {}
     out = []
     for a in amounts:
-        record_id = by_key.get((a["law_key"], a["section"], a["target_item"], a["target_law_key"]))
+        key = (a["law_key"], a["section"], a["target_item"], a["target_law_key"])
+        ids = by_key.get(key, [])
+        n = used.get(key, 0)
+        used[key] = n + 1
+        record_id = ids[n] if n < len(ids) else ""
         if record_id and a["amount_after"] not in ("", None):
             out.append(
                 {
@@ -1276,6 +1347,11 @@ def _write(path: Path, columns: list[str] | tuple[str, ...], rows: list[Mapping]
 
 def run(ctx: Context) -> int:
     inputs = load_inputs(ctx)
+    missing = missing_inputs(ctx)
+    for name in missing:
+        stage = INPUT_STAGES.get(name)
+        hint = f" (run the {stage} stage first)" if stage else ""
+        print(f"  WARNING: {INPUTS[name][1]} is missing{hint}: rows that need it are left out")
     pieces = {}
     for piece, builder in BUILDERS.items():
         if builder is None:
@@ -1285,6 +1361,16 @@ def run(ctx: Context) -> int:
         print(f"  {piece}: {len(pieces[piece])} rows")
     pieces["manual rows"] = manual_rows(inputs["manual_rows"])
     rows, splits, problems = combine_rows(pieces, inputs["law_list"], inputs["funds"])
+    problems += [
+        {
+            "record_id": "",
+            "law_key": "",
+            "section": "",
+            "line_item": "",
+            "problem": f"input {INPUTS[name][1]} is missing: rows that need it are left out",
+        }
+        for name in missing
+    ]
     problems += annual_gaps(
         inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"], rows
     )

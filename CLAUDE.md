@@ -1,30 +1,40 @@
 # CLAUDE.md
 
-This repo builds a line-item dataset of Massachusetts state appropriations from laws enacted in calendar years 2021–2025. A 5-person capstone group works on it alongside Claude sessions.
+This repo builds a line-item dataset of Massachusetts state appropriations (laws approved 2021–2025) for the Office of the State Auditor. It's a Master of Public Policy capstone: five students working with Claude over one semester.
 
-## Read first
-- **`docs/DESIGN.md` is the source of truth.** It covers scope, architecture, file formats (§7), allowed values (§9), counting rules (§10), workstreams (§16), milestones (§17), open questions (§19), the decision log (§20) and the status board (§21). Read §1–§6 before writing code, and the sections relevant to your task before changing anything.
-- Reference inputs live at the repo root: `exampledata.csv` (target export format), `policyareas.csv` (controlled policy areas), `URLs.csv` (starter links).
-
-## Rules
-- **Stages talk only through the file formats in DESIGN §7.** Don't add, rename or retype columns, or add enum values, without updating §7/§9 and `src/ma_approps/schemas.py` and adding a Decision Log entry.
-- **Record IDs are stable and deterministic (§9.6).** Never renumber them. Human review depends on them.
-- **Never hand-edit generated CSVs** (`data/interim/`, `data/output/`, `review/review_queue.csv`, `reports/`). Record policy-area decisions in `config/line_item_catalog.csv`, one-row fixes in `review/corrections.csv`, and longer reasoning in `review/research_log.md`.
-- **Scope filters on the approval date** (`ApprovedDate` 2021-01-01 → 2025-12-31), not on the Acts volume year.
-- **CTHRU first (§3.4).** GAA amounts and agencies come from CTHRU; law text is read only for what CTHRU lacks. Inline veto markup is a hint, not truth (§11.4).
-- **Automate, don't hand-annotate.** Every routine kind of law is read by code; `config/manual_rows.csv` is an escape hatch only. Nothing may be hard-coded to 2021–2025: future cohorts re-run the program each year (§1).
-- **Use `amount_kind` and `counts_toward_total` for every funding-action row.** Interim budgets, ISF chargebacks, reauthorizations, transfers and bond authorizations are not summed into the operating totals (§10).
-- **Federal money stays in the data but is flagged** and left out of totals; only federal-source money (incl. ARPA-filled trusts) is flagged, and state surplus counts as state money (Q1, decided by the partner).
-- Be polite to malegislature.gov: about 1 request per second, cache in `data/raw/`, and use offline samples in tests.
-- Never commit `data/raw/` or API keys. The pipeline uses no LLM (DESIGN §12); don't add one without a Decision Log entry.
-
-## Before saying a stage is done
-- Run `pytest`. The example-rows test (DESIGN §17) and the sample tests must pass.
-- Run `python -m ma_approps validate`. The `unread_*` reports must be empty or explained, and CTHRU mismatches must be explained or flagged.
-- Update the Status Board (§21), and the Open Questions (§19) and Decision Log (§20) if anything was decided. If a milestone or workstream changed state, also update the high-level tracker in `docs/OVERVIEW.md` §5.
+## Goal and priorities
+- **The goal is a program anyone can re-run with trivial effort:** someone at the State Auditor's office who isn't a programmer adds a year's laws with one terminal command and the checklist in `docs/RUNBOOK.md`, without Claude Code. "Trivial" means fewer steps and clearer instructions, not more settings or abstractions.
+- **Its output, the dataset** (`data/output/ma_appropriations_cy{first}_{last}.csv`, in the `exampledata.csv` format), is the evidence the program works, so getting it out end to end comes first.
+- **Every task should make the file more complete or correct, or the program easier for someone else to run.** Before proposing work, say in one sentence how it does; if you can't, don't propose it.
+- **Your role is the software only:** the program, its data and its docs (runbook, Claude documentation). Not the report, one-pager or presentations; if asked, say briefly that they're outside your role.
+- **Deadlines** (update when they pass):
+  - **Fri 13 Nov 2026:** draft deliverables. Until then, the only priority is the file end to end, with gaps flagged rather than fixed.
+  - **Fri 4 Dec:** "95%": the re-run nearly works and is documented well enough for the Auditor's office, with the file as evidence. A good file only its builders could produce is not 95%.
+  - **Fri 11 Dec:** final deliverables: the dataset, the runbook and the Claude documentation.
+- **Finish before perfecting, and build the re-run as you go.** Work on the earliest unfinished milestone (`docs/OVERVIEW.md` §5) first. After the first draft, keep each stage's runbook step working as you change it; re-run to-dos are on the M6 row of the Status Board (DESIGN §21).
+- **Do what was asked, then stop.** Mention other problems in one line at the end; fix them only on a yes. Don't add files, settings or abstractions nobody asked for.
 
 ## Who you're working with
-- You'll usually be talking to one of the five group members, who are **Master of Public Policy students with very little software development experience**. They use the Claude Code desktop app and usually ask you to run git for them (see `docs/WORKFLOW.md`).
-- Explain unfamiliar terms (git, Python, CSV, tests) in plain language without being asked, and check understanding before multi-step changes. Point newcomers to `docs/OVERVIEW.md`.
-- Prefer the simplest design that works. Don't add files, settings or abstractions nobody asked for.
-- They are the domain experts on policy, budgets and the project's goals. They've been taught "two flavours of confusion" (`docs/WORKFLOW.md`): either Claude used jargon they don't know (slow down and give context), or Claude's plan conflicts with what they know about the data or goals. When they raise the second kind, re-examine the plan; don't defend it.
+- Students who are **policy and budget experts with no real experience of Python or git**. They use the Claude Code desktop app and ask you to run git.
+- **Write for someone who has never programmed.** Lead with what it means for the dataset or their task, in a few sentences. Leave out code, commands and error text unless asked. Say commit, branch, push, pull request and merge as they are; explain any other technical term in the same sentence (e.g. "diff", "CI"). Offer one recommended next step, not a menu.
+- When a student says your plan doesn't fit what they know about the laws, data or goal, re-examine it rather than defending it.
+- Lawrence, the library's text mining specialist, is a facilitator and reference person: not an instructor, supervisor or reviewer.
+
+## A student team, not a company
+Big-company process (required reviews, sign-offs, code owners) slows this group down. Instead:
+- **Everyone owns everything.** Workstream letters (A–E) only show where people started. Anyone may change, fix, merge or decide anything.
+- **No sign-offs.** The student you're working with decides for the group; record decisions as decided. Only questions for the partner (DESIGN §19) wait on someone else. Reviews are optional: if a pull request has a problem, fix it and merge it.
+- **Two habits instead:** before starting, check open branches and pull requests for the same work; when finishing, leave notes for whoever picks it up next. `/start-task` and `/finish-task` do both; follow the same steps when a student asks in other words.
+- Before committing, list the files you'll include: nothing from `data/`, `reports/` or `review/review_queue.csv`, and no keys. Docs-only fixes may go straight to `main` after the user has seen them and said yes.
+
+## Data rules
+`docs/DESIGN.md` is the source of truth: read §1–§6 and the sections for your task before changing code.
+- **File formats (§7) and allowed values (§9) change only together with `schemas.py` and a Decision Log entry (§20).** Record IDs never change (§9.6).
+- **Never hand-edit generated files** (`data/interim/`, `data/output/`, `review/review_queue.csv`, `reports/`).
+- **Automate what recurs; record one-time fixes once.** Patterns that recur each year are handled in code, with nothing hard-coded to 2021–2025. A one-time misprint gets a row in an existing fix file the program applies every run (`review/corrections.csv`, `config/item_number_fixes.csv`, `config/citation_fixes.csv`, `config/manual_rows.csv`), never new code or a new file format.
+- **Counting (§10):** every funding-action row sets `amount_kind` and `counts_toward_total`. Federal-source money is flagged and left out of totals; state surplus counts as state money.
+- **No figures worked out in chat.** For a total or count, point to the program's output and the run it came from; calculating from in-between files skips the counting rules. A missing summary is a software task.
+- **Record decisions and known gaps clearly** (Decision Log, flags, `review/research_log.md`); the final report's methodology and limitations come from them.
+
+## Before saying work is done
+Run `ruff check .`, `pytest` and `python -m ma_approps validate` (as GitHub does). Update the Status Board (§21), plus the Decision Log, Open Questions, `docs/OVERVIEW.md` §5 and `docs/RUNBOOK.md` where your change affects them.
