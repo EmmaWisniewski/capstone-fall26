@@ -38,7 +38,7 @@ This is WORKFLOW Step 3. `main` now holds everyone's merged work, and its docs s
 
 ## 5. Agree on one task
 - **If the student named a task:** say whether it serves the goal now (a re-runnable program, shown by the file it produces; see CLAUDE.md). If it belongs to a later milestone while an earlier one is open, say so kindly and suggest the higher-priority task. The student decides.
-- **If not:** recommend one task, not a menu, in a few sentences:
+- **If not:** recommend one software task (never the report, one-pager or presentations; see CLAUDE.md), not a menu, in a few sentences:
   - what it is
   - how it serves the goal (one sentence): a more complete or correct file, or a program that's easier for someone else to run
   - rough size (it should fit in a day or less, or be split)
