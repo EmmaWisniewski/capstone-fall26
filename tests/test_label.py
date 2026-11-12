@@ -162,6 +162,40 @@ def test_purpose_falls_back_to_the_cthru_account_name():
     assert label.program_purpose(action("b", "", 2024, "INT"), None) == ("", "")
 
 
+def test_amendment_rows_take_the_line_s_own_purpose_and_department():
+    amend = "SECTION 75. Item 7008-1116 of section 2 of chapter 41 of the acts of 2019 is amended"
+    rows = [
+        action("2021-024-S2-7008-1116-ORIG-1", "7008-1116", 2022,
+               text="For the operation of the office of travel and tourism; provided, that"),
+        action("2021-024-S75-7008-1116-REAUTH-1", "7008-1116", 2022, "REAUTH", 0, text=amend),
+        action("2023-077-S9-9999-0001-REAUTH-1", "9999-0001", 2024, "REAUTH", 0,
+               text="SECTION 9. Said item 9999-0001 is hereby amended"),
+    ]
+    cthru_rows = [cthru("7008-1116", 2020, dept="MMP", account="Mass Office of Travel",
+                        dept_name="MASSACHUSETTS MARKETING PARTNERSHIP")]
+    out = {r["record_id"]: r for r in label.label_rows(rows, cthru_rows, [], [])}
+    reauth = out["2021-024-S75-7008-1116-REAUTH-1"]
+    assert reauth["program_purpose"] == "Office of travel and tourism"  # not "SECTION 75. …"
+    assert reauth["agency_office"] == "Office of Travel and Tourism"
+    # Nothing known about the line: blank rather than the amending section's wording
+    assert out["2023-077-S9-9999-0001-REAUTH-1"]["program_purpose"] == ""
+
+
+def test_printed_names_match_cthru_names_loosely():
+    assert label.name_key("Department of Elementary and Secondary Education") == label.name_key(
+        "DEPARTMENT OF ELEMENTARY & SECONDARY EDUCATION")
+    assert label.name_key("Massachusetts Emergency Management Agency") == label.name_key(
+        "EMERGENCY MANAGEMENT AGENCY")
+    # A federal grant line CTHRU doesn't list: the agency is tried before the secretariat
+    cthru_rows = [cthru("4510-0100", 2024, dept="DPH", account="x",
+                        dept_name="DEPARTMENT OF PUBLIC HEALTH"),
+                  cthru("4000-0300", 2024, dept="EHS", account="x",
+                        dept_name="EXECUTIVE OFFICE OF HEALTH and HUMAN SERVICES")]
+    depts = label.Departments(cthru_rows)
+    assert depts.department_code("4570-1010", 2025, (
+        "Department of Public Health", "Executive Office of Health and Human Services")) == "DPH"
+
+
 def test_new_or_reapprop_follows_the_group_rule():
     expected = {
         "ORIG": "New", "NEW": "New", "INC": "New", "RED": "New", "CAP": "New",
@@ -171,6 +205,21 @@ def test_new_or_reapprop_follows_the_group_rule():
     }
     for funding_action, answer in expected.items():
         assert label.new_or_reapprop(action("a", "1234-5678", 2024, funding_action)) == answer
+
+
+def test_rows_with_no_line_item_get_an_area_by_funding_action():
+    # D decided 2026-11-11: fund transfers -> Debt service; interim budgets -> Multiple
+    rows = [
+        action("x", "", 2024, "XFER", text="transfer to the Stabilization Fund"),
+        action("i", "", 2024, "INT", text="interim budget"),
+        action("n", "", 2024, "NEW", text="for a program"),
+    ]
+    out = {r["record_id"]: r for r in label.label_rows(rows, [], [], [])}
+    assert (out["x"]["policy_area"], out["x"]["policy_area_method"]) == (
+        "Debt service, reserves, and statewide finance", "rule")
+    assert (out["i"]["policy_area"], out["i"]["policy_area_method"]) == ("Multiple", "rule")
+    assert (out["n"]["policy_area"], out["n"]["policy_area_method"]) == ("", "")
+    assert not schemas.validate_rows("labels", schemas.columns("labels"), list(out.values()))
 
 
 def test_bond_lines_get_their_department_area_from_the_line_number():
@@ -324,6 +373,28 @@ def test_run_writes_a_valid_labels_file(tmp_path):
     assert ex4["new_or_reapprop"] == "New"  # a supplemental increase (Q3)
 
 
-def test_run_reports_missing_inputs(tmp_path):
+def test_run_reports_missing_inputs_and_carries_on(tmp_path, capsys):
     ctx = Context(root=tmp_path, settings={"scope": {}})
-    assert label.run(ctx) == 1
+    assert label.run(ctx) == 0
+    assert "funding_actions.csv is missing (run the combine stage first)" in capsys.readouterr().out
+    assert schemas.validate_file("labels", tmp_path / "data" / "interim" / "labels.csv") == []
+
+
+def test_a_later_bond_change_takes_the_policy_area_of_the_item_it_changes():
+    # 2021-25 §3 raises 2020-383 item 6121-2118; amendment rows print no department heading
+    original = action("2020-383-S2-6121-2118-CAP-1", "6121-2118", 2021, "CAP")
+    original.update(law_key="2020-383", target_law_key="2020-383")
+    change = action("2021-025-S3-6121-2118-CAP-1", "6121-2118", 2022, "CAP")
+    change.update(law_key="2021-25", target_law_key="2020-383")
+    restated = action("2024-150-S60-4000-8200-CAP-1", "4000-8200", 2025, "CAP")
+    restated.update(law_key="2024-150", target_law_key="1993-52")  # 1993-52 isn't labeled
+    labels = [dict(record_id=original["record_id"], policy_area="Transportation",
+                   policy_area_method="department")]
+    labels += [dict(record_id=r["record_id"], policy_area="", policy_area_method="")
+               for r in (change, restated)]
+    label.bond_change_areas([original, change, restated], labels)
+    assert [(lab["policy_area"], lab["policy_area_method"]) for lab in labels] == [
+        ("Transportation", "department"),
+        ("Transportation", "department"),
+        ("", ""),
+    ]
