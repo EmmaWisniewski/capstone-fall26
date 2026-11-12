@@ -105,6 +105,8 @@ LAWS = [
     _law("2099-8", role="reference_only"),
     _law("2098-1", law_type="bond", approved="2098-08-01"),
     _law("2099-6", law_type="interim", approved="2099-06-28", fy="2100"),
+    _law("2098-7", law_type="surplus", approved="2098-11-10"),  # no single fiscal year
+    _law("2099-4", approved="2099-11-04", fy="2099"),  # a closeout supplemental for FY2099
 ]
 
 
@@ -270,3 +272,84 @@ def test_unknown_bond_change_has_no_amount_and_is_left_out_of_the_capital_total(
         "low_confidence_parse",
     )
     assert combine.capital_total([row]) == 0
+
+
+def test_an_operating_change_takes_the_items_fund():
+    # Q33: a change to an operating item takes the item's fund, as a supplemental item does: the
+    # law's printed split, else the one fund CTHRU books the item to that year, else the section's
+    # fund. 2022-42 §47 adds $24,000,000 to 1599-2026, which CTHRU books to the federal Fund 2005
+    items = [
+        _item("2099-5", "1000-0001", 100) | {"fund_splits_raw": "General Fund:60;Other Fund:40"},
+        _item("2099-5", "1599-2026", 100),
+        _item("2099-5", "1000-0003", 100) | {"section_fund_default": "General Fund"},
+    ]
+    cthru = [{"fiscal_year": "2100", "line_item": "1599-2026", "fund_numbers": "2005"}]
+    amendments = [
+        _amend("10", "figure_change", "1000-0001", 100, 110),
+        _amend("11", "figure_change", "1599-2026", 100, 124),
+        _amend("12", "figure_change", "1000-0003", 100, 130),
+        _amend("13", "transfer", target="", target_section="", amount="5", to_item="1599-2026",
+               fund_raw="General Fund"),
+    ]  # fmt: skip
+    amounts = combine.amendment_amounts(items, amendments, LAWS)
+    rows = combine.amendment_rows(amendments, amounts, items, [], LAWS, URL, cthru)
+    assert [
+        (r.get("fund_splits_raw", ""), r.get("fund_numbers", ""), r["section_fund_default"])
+        for r in rows
+    ] == [
+        ("General Fund:60;Other Fund:40", "", ""),
+        ("", "2005", ""),
+        ("", "", "General Fund"),
+        ("", "", "General Fund"),  # a transfer's fund is the one it comes from
+    ]
+    funds = [
+        {"fund_name": "General Fund", "fund_number": "0010", "is_federal": "false"},
+        {
+            "fund_name": "Federal COVID-19 Response Fund",
+            "fund_number": "2005",
+            "is_federal": "true",
+        },
+    ]
+    out, _, _ = combine.combine_rows({"amendment rows (C)": rows}, LAWS, funds)
+    found = {r["section"]: (r["fund_primary"], r["flags"], r["counts_toward_total"]) for r in out}
+    assert found["11"] == ("Federal COVID-19 Response Fund", "federal", "false")
+    assert found["12"] == ("General Fund", "", "true")
+
+
+def test_a_change_to_a_surplus_law_takes_the_amending_budgets_year():
+    # Q28: 2022-268, a surplus law, has no single fiscal year. 2023-77, the FY2023 closeout
+    # supplemental approved in FY2024, adds $4,000,000 to its item 1599-6063, and CTHRU books it
+    # in FY2023. A law that names no year of its own falls back to the approval's
+    items = [_item("2098-7", "1599-6063", 85_854_000, section="2A")]
+    amendments = [
+        _amend("167", "figure_change", "1599-6063", 85_854_000, 89_854_000, target="2098-7",
+               target_section="2A", law_key="2099-4"),
+        _amend("168", "figure_change", "1599-6063", 89_854_000, 90_000_000, target="2098-7",
+               target_section="2A"),
+    ]  # fmt: skip
+    found = [(r["fiscal_year"], r["fy_rule"], r["amount"]) for r in _rows(amendments, items)]
+    assert found == [(2099, "stated", 4_000_000), (2100, "enactment_fy", 146_000)]
+
+
+def test_money_moved_from_a_fund_into_an_item_counts():
+    # Q24: 2024-88 §25 lets the comptroller move up to $175,000,000 from the Transitional Escrow
+    # Fund into item 1599-0514. That is the appropriation out of the fund, so it counts, as an
+    # increase to the item; moves into a fund, or out of an item, stay uncounted transfers
+    def transfer(section, **kw):
+        return _amend(section, "transfer", target="", target_section="", amount="175", **kw)
+
+    amendments = [
+        transfer("25", to_item="1599-0514", fund_raw="Transitional Escrow Fund"),
+        transfer("26", fund_raw="General Fund", to_fund="Transitional Escrow Fund"),
+        transfer("27", from_item="9110-1455", fund_raw="Health Safety Net Trust Fund"),
+    ]
+    found = [
+        (r["section"], r["line_item"], r["funding_action"], r["amount_kind"], r["flags"],
+         r["counts_toward_total"], r["fiscal_year"], r["fy_rule"])
+        for r in _rows(amendments, [])
+    ]  # fmt: skip
+    assert found == [
+        ("25", "1599-0514", "INC", "delta", "fund_transfer_chain", "true", 2100, "enactment_fy"),
+        ("26", "", "XFER", "transfer", "", "false", 2100, "enactment_fy"),
+        ("27", "9110-1455", "XFER", "transfer", "", "false", 2100, "enactment_fy"),
+    ]
