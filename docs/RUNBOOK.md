@@ -1,5 +1,10 @@
 # Runbook: adding a new year of laws
 
+*To do (Decision Log, 2026-11-11): future users, such as staff at the State Auditor's office, won't have
+Claude Code. They'll run one command in the terminal. This runbook must be rewritten so it doesn't rely
+on Claude Code or the **Say:** lines below. The full list of re-run to-dos is on the M6 row of the
+Status Board (DESIGN §21).*
+
 *For a future group that wants to add the next year's laws to the dataset. Written in plain
 language for readers who are new to programming. You'll work through Claude Code, as the
 fall 2026 group did; the **Say:** lines are things you can type to it. If this runbook and
@@ -147,7 +152,7 @@ Also fill in `law_type` (§9.1), a short `law_name`, `primary_fy` where it has o
 
 **If something's wrong**
 - **Many unread rows of the same kind:** the law format changed. That's a code fix in the stage's
-  reader. Open an issue for its owner (see OVERVIEW §3), with an example.
+  reader. Fix it yourselves, or open an issue (a to-do item on GitHub) with an example.
 - **A misprinted item number** in the law (like "911-1003", which should be 5911-1003): add a row
   to `config/item_number_fixes.csv` (DESIGN §7.17), so the item is read with the right number.
 - **A misprinted law citation** in an amending section (2024 ch. 248 §35 cites 2022 ch. 24 for an
@@ -246,7 +251,7 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 - **Write down your reasoning** in `review/research_log.md` whenever a decision took more than one
   line.
 - **Open a GitHub issue** for anything you can't fix, with the law, the section and what you
-  expected. Assign it to the stage's owner if there still is one.
+  expected.
 
 ---
 

@@ -1,9 +1,10 @@
 """`validate`: the validation suite (DESIGN §13). Owner: workstream E.
 
-M0 implements check 1 (file formats and allowed values) and the coverage check on the
-``unread_*`` reports. The remaining checks land with their milestones:
-example rows (M1), CTHRU comparison (M2/M3), struck-figure (M3), bond totals (M4),
-law status and orphaned corrections (M5).
+Implemented: check 1 (file formats and allowed values), the coverage check on the ``unread_*``
+reports (a row is explained in the report's own column or in review/unread_explanations.csv,
+§7.19, Q22), check 3 (struck figures), check 4 (CTHRU comparison) and check 7 (bond totals).
+Checks 3, 4 and 7 are reported, not failures. Still to come: example rows (M1), law status and
+orphaned corrections (M5).
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("department_policy_areas", ctx.config_dir / "department_policy_areas.csv"),
         ("item_number_fixes", ctx.config_dir / "item_number_fixes.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
+        ("unread_explanations", ctx.review_dir / "unread_explanations.csv"),
         ("citation_fixes", ctx.config_dir / "citation_fixes.csv"),
         ("raw_manifest", ctx.raw_dir / "manifest.csv"),
         *(
@@ -113,18 +115,65 @@ def check_schemas(ctx: Context) -> list[tuple[Path, Problem]]:
     return found
 
 
+def _explanations(ctx: Context) -> tuple[Path, list[dict[str, str]]]:
+    """``review/unread_explanations.csv`` (§7.19, Q22): where a person says why an unread row needs
+    no code. The reports themselves are generated and are never hand-edited."""
+    path = ctx.review_dir / "unread_explanations.csv"
+    return path, (schemas.read_csv(path)[1] if path.exists() else [])
+
+
 def check_unread(ctx: Context) -> list[tuple[Path, Problem]]:
-    """§13.6: unread reports must be empty or every row explained (an `explanation` column)."""
+    """§13.6: unread reports must be empty or every row explained.
+
+    A row is explained by its own `explanation` column or by a row of
+    ``review/unread_explanations.csv`` with the same report (its file name, e.g.
+    ``unread_sections.csv``, as PR #50 decided), law and section and a written explanation. One
+    explanation covers every row of that section, which is what a paragraph report needs.
+    """
+    _, explanations = _explanations(ctx)
+    explained = {
+        (e.get("report", ""), e.get("law_key", ""), e.get("section", ""))
+        for e in explanations
+        if (e.get("explanation") or "").strip()
+    }
     found = []
-    for name in ("unread_paragraphs", "unread_paragraphs_bonds", "unread_sections"):
-        path = ctx.reports_dir / f"{name}.csv"
+    for name in schemas.UNREAD_REPORTS:  # file names, e.g. "unread_sections.csv"
+        path = ctx.reports_dir / name
         if not path.exists():
             continue
         _, rows = schemas.read_csv(path)
         for i, r in enumerate(rows, start=1):
-            if not (r.get("explanation") or "").strip():
-                found.append((path, Problem(name, i, "explanation", "unread row not explained")))
+            if (r.get("explanation") or "").strip():
+                continue
+            if (name, r.get("law_key", ""), r.get("section", "")) in explained:
+                continue
+            table = name.removesuffix(".csv")
+            found.append((path, Problem(table, i, "explanation", "unread row not explained")))
     return found
+
+
+def check_orphaned_explanations(ctx: Context) -> list[tuple[Path, Problem]]:
+    """An explanation that matches no unread row, for example after a reader fix removed the row.
+    Reported, not a failure. Nothing is reported while the unread reports haven't been written,
+    because a missing report says nothing about the explanations."""
+    path, explanations = _explanations(ctx)
+    keys: set[tuple[str, str, str]] = set()
+    any_report = False
+    for name in schemas.UNREAD_REPORTS:
+        report = ctx.reports_dir / name
+        if report.exists():
+            any_report = True
+            keys |= {
+                (name, r.get("law_key", ""), r.get("section", ""))
+                for r in schemas.read_csv(report)[1]
+            }
+    if not any_report:
+        return []
+    return [
+        (path, Problem("unread_explanations", i, "section", "matches no unread row"))
+        for i, e in enumerate(explanations, start=1)
+        if (e.get("report", ""), e.get("law_key", ""), e.get("section", "")) not in keys
+    ]
 
 
 def check_amendment_amounts(ctx: Context) -> list[dict] | None:
@@ -150,6 +199,269 @@ def check_amendment_amounts(ctx: Context) -> list[dict] | None:
     )
 
 
+def _read_rows(path: Path) -> list[dict[str, str]]:
+    return schemas.read_csv(path)[1] if path.exists() else []
+
+
+def _int(value: str | None) -> int:
+    return int(value) if value not in ("", None) else 0
+
+
+def _flags(row: dict[str, str]) -> set[str]:
+    return {f for f in (row.get("flags") or "").split(";") if f}
+
+
+# -- §13 check 4: CTHRU comparison, per fiscal year × line item ---------------------------------
+
+CTHRU_COLUMNS = (
+    "check",
+    "fiscal_year",
+    "line_item",
+    "our_amount",
+    "cthru_amount",
+    "difference",
+    "percent",
+    "status",
+    "laws",
+    "note",
+)
+SUPPLEMENTAL_ACTIONS = ("NEW", "INC", "RED")
+
+
+def _compare(
+    check: str,
+    ours: dict[tuple[str, str], list[dict[str, str]]],
+    cthru: dict[tuple[str, str], int],
+    amount_of,
+) -> tuple[int, list[dict[str, str | int]]]:
+    """Compare our rows with CTHRU's amount for every fiscal year × line item that has either.
+    Returns (number that match, one report row for each that doesn't).
+
+    Status of a difference: ``flagged`` (a row already carries `cthru_mismatch`), ``several_laws``
+    (supplementals only: several laws touch the item, so the difference can't be attributed),
+    ``missing_in_data`` (CTHRU has money and we have no row), ``not_in_cthru`` (we have money and
+    CTHRU has none) or ``unexplained``."""
+    matched, report = 0, []
+    for key in sorted(set(ours) | set(cthru)):
+        rows = ours.get(key, [])
+        our_amount = sum(amount_of(r) for r in rows)
+        cthru_amount = cthru.get(key, 0)
+        if our_amount == cthru_amount:
+            matched += 1
+            continue
+        laws = sorted({r["law_key"] for r in rows})
+        if any("cthru_mismatch" in _flags(r) for r in rows):
+            status = "flagged"
+        elif check == "supplemental" and len(laws) > 1:
+            status = "several_laws"
+        elif not rows:
+            status = "missing_in_data"
+        elif not cthru_amount:
+            status = "not_in_cthru"
+        else:
+            status = "unexplained"
+        diff = our_amount - cthru_amount
+        report.append(
+            {
+                "check": check,
+                "fiscal_year": key[0],
+                "line_item": key[1],
+                "our_amount": our_amount,
+                "cthru_amount": cthru_amount,
+                "difference": diff,
+                "percent": f"{diff / cthru_amount * 100:.1f}" if cthru_amount else "",
+                "status": status,
+                "laws": ";".join(laws),
+                "note": "",
+            }
+        )
+    return matched, report
+
+
+def check_cthru(
+    actions: list[dict[str, str]],
+    cthru_rows: list[dict[str, str]],
+    law_list: list[dict[str, str]],
+) -> tuple[int, list[dict[str, str | int]]]:
+    """§13 check 4 (workstream E). Only the fiscal years of an in-scope GAA are compared, so CTHRU
+    years whose budget law is outside the window (FY2021) don't show as missing money.
+
+    - ``gaa``: ORIG appropriations vs CTHRU ``original_enacted``.
+    - ``supplemental``: NEW + INC + RED amounts vs ``supplemental``. Every row counts, whether or
+      not it counts toward the operating total: CTHRU carries federal and ARPA money too.
+    - ``retained_revenue``: fee-revenue ceilings vs ``retained_revenue_ceiling``. CTHRU shows §2B
+      chargebacks only as ceilings, so those rows go here, not to ``gaa``. A same-year increase
+      to such an item (a supplement, or an amendment of the GAA's figure) is added to its
+      ceiling, because CTHRU folds it in (8100-0102 FY2024: $45M printed + $7M = $52M).
+    §2D federal grant rows are left out: CTHRU doesn't carry them (§10). Known non-law differences
+    (9C cuts) aren't annotated yet. Returns (matches, mismatch rows)."""
+    orig = [
+        r
+        for r in actions
+        if r["funding_action"] == "ORIG"
+        and r["line_item"]
+        and r["section_type"] != "federal_grants"
+    ]
+    deltas = [
+        r
+        for r in actions
+        if r["funding_action"] in SUPPLEMENTAL_ACTIONS
+        and r["amount_kind"] in ("appropriation", "delta")  # INC and RED are deltas
+        and r["line_item"]
+        and r["section_type"] != "federal_grants"
+    ]
+
+    def is_ceiling(r: dict[str, str]) -> bool:
+        return r["amount_kind"] == "retained_revenue_ceiling" or r["section_type"] == "isf"
+
+    ceiling_keys = {(r["fiscal_year"], r["line_item"]) for r in orig if is_ceiling(r)}
+    ceiling_keys |= {
+        (r["fiscal_year"], r["line_item"]) for r in deltas if r["section_type"] == "isf"
+    }
+    years = {
+        r["primary_fy"]
+        for r in law_list
+        if r["role"] == "in_scope" and r["law_type"] == "gaa" and r.get("primary_fy")
+    }
+    years &= {r["fiscal_year"] for r in cthru_rows}
+
+    def group(rows: list[dict[str, str]]) -> dict[tuple[str, str], list[dict[str, str]]]:
+        out: dict[tuple[str, str], list[dict[str, str]]] = {}
+        for r in rows:
+            if r["fiscal_year"] in years:
+                out.setdefault((r["fiscal_year"], r["line_item"]), []).append(r)
+        return out
+
+    def theirs(column: str) -> dict[tuple[str, str], int]:
+        return {
+            (r["fiscal_year"], r["line_item"]): _int(r[column])
+            for r in cthru_rows
+            if r["fiscal_year"] in years and _int(r[column])
+        }
+
+    def amount(r: dict[str, str]) -> int:
+        return _int(r["amount"])
+
+    def in_ceiling_group(r: dict[str, str]) -> bool:
+        return (r["fiscal_year"], r["line_item"]) in ceiling_keys
+
+    parts = [
+        _compare(
+            "gaa",
+            group([r for r in orig if r["amount_kind"] == "appropriation" and not is_ceiling(r)]),
+            theirs("original_enacted"),
+            amount,
+        ),
+        _compare(
+            "supplemental",
+            group([r for r in deltas if not in_ceiling_group(r)]),
+            theirs("supplemental"),
+            amount,
+        ),
+        _compare(
+            "retained_revenue",
+            group([r for r in orig if is_ceiling(r)] + [r for r in deltas if in_ceiling_group(r)]),
+            theirs("retained_revenue_ceiling"),
+            amount,
+        ),
+    ]
+    return sum(m for m, _ in parts), [row for _, rows in parts for row in rows]
+
+
+# -- §13 check 7: bond totals against borrowing limits -------------------------------------------
+
+BOND_COLUMNS = (
+    "law_key",
+    "section",
+    "bond_name",
+    "authorized",
+    "items_total",
+    "items_count",
+    "difference",
+    "status",
+    "line_items",
+    "note",
+)
+
+
+def check_bond_totals(
+    actions: list[dict[str, str]],
+    limits: list[dict[str, str]],
+    law_list: list[dict[str, str]] | None = None,
+) -> tuple[int, list[dict[str, str | int]]]:
+    """§13 check 7 (Q11, decided 2026-11-06): for each borrowing limit (§7.16), the total of the
+    ``CAP`` items it covers (`combine.limit_for`) against what it authorizes. A difference isn't a
+    reader error: it is reported, with a note naming the limit and the gap. A ``CAP`` item that no
+    limit covers is reported too (``no_limit``). Restated items (other laws' ``CAP`` rows) aren't
+    part of a limit. With ``law_list``, limits of laws that aren't ``in_scope`` are skipped: their
+    items are left out of the data on purpose, so they could never match. Returns (limits that
+    match, report rows)."""
+    if law_list is not None:
+        in_scope = {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+        limits = [lim for lim in limits if lim["law_key"] in in_scope]
+    bond = [
+        r
+        for r in actions
+        if r["funding_action"] == "CAP" and r["law_key"] == r["target_law_key"] and r["line_item"]
+    ]
+    covered: dict[int, list[dict[str, str]]] = {id(lim): [] for lim in limits}
+    report: list[dict[str, str | int]] = []
+    for r in bond:
+        lim = combine.limit_for(r, limits)
+        if lim is not None:
+            covered[id(lim)].append(r)
+        else:
+            report.append(
+                {
+                    "law_key": r["law_key"],
+                    "section": r["section"],
+                    "bond_name": "",
+                    "authorized": "",
+                    "items_total": _int(r["amount"]),
+                    "items_count": 1,
+                    "difference": "",
+                    "status": "no_limit",
+                    "line_items": r["line_item"],
+                    "note": f"{r['line_item']} in {r['law_key']} §{r['section']} has no "
+                    "borrowing limit (bond_authorizations_raw)",
+                }
+            )
+    matched = 0
+    for lim in limits:
+        rows = covered[id(lim)]
+        total = sum(_int(r["amount"]) for r in rows)
+        authorized = _int(lim["authorized"])
+        if total == authorized:
+            matched += 1
+            continue
+        gap = total - authorized
+        name = lim["bond_name"] or "borrowing limit"
+        report.append(
+            {
+                "law_key": lim["law_key"],
+                "section": lim["section"],
+                "bond_name": lim["bond_name"],
+                "authorized": authorized,
+                "items_total": total,
+                "items_count": len(rows),
+                "difference": gap,
+                "status": "no_items" if not rows else "differs",
+                "line_items": ";".join(r["line_item"] for r in rows),
+                "note": f"{name} ({lim['law_key']} §{lim['section']}): items add ${total:,} "
+                f"against ${authorized:,} authorized, a gap of ${gap:,}",
+            }
+        )
+    return matched, report
+
+
+def _write_report(path: Path, columns: tuple[str, ...], rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(columns), lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+
+
 def write_problems(path: Path, problems: list[tuple[Path, Problem]], root: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -166,11 +478,18 @@ def run(ctx: Context) -> int:
     unread = check_unread(ctx)
     write_problems(out / "schema_problems.csv", schema_problems, ctx.root)
     write_problems(out / "unread_unexplained.csv", unread, ctx.root)
+    orphaned = check_orphaned_explanations(ctx)
+    write_problems(out / "unread_explanations_orphaned.csv", orphaned, ctx.root)
     for path, p in schema_problems + unread:
         print(f"  {path.name}:{p.row} {p.column}: {p.message}")
     print(
         f"  schema problems: {len(schema_problems)}; unexplained unread rows: {len(unread)}"
     )
+    if orphaned:
+        print(
+            f"  explanations matching no unread row: {len(orphaned)} in "
+            "unread_explanations_orphaned.csv (reported, not a failure)"
+        )
     amounts = check_amendment_amounts(ctx)
     if amounts is not None:
         path = out / "amendment_amounts.csv"
@@ -182,5 +501,30 @@ def run(ctx: Context) -> int:
         print(
             f"  amendment amounts: {len(amounts)} changes, {review} to review in {path.name}"
             " (each goes to a person: Q21, Q27)"
+        )
+    actions = _read_rows(ctx.interim_dir / "funding_actions.csv")
+    cthru_rows = _read_rows(ctx.interim_dir / "cthru_line_items.csv")
+    if actions and cthru_rows:
+        law_list = _read_rows(ctx.config_dir / "law_list.csv")
+        matched, mismatches = check_cthru(actions, cthru_rows, law_list)
+        _write_report(out / "cthru_mismatches.csv", CTHRU_COLUMNS, mismatches)
+        unexplained = sum(m["status"] in ("unexplained", "missing_in_data", "not_in_cthru")
+                          for m in mismatches)
+        print(
+            f"  CTHRU comparison: {matched} match, {len(mismatches)} differ "
+            f"({unexplained} unexplained) in cthru_mismatches.csv (reported, not a failure)"
+        )
+    limits = _read_rows(ctx.interim_dir / "bond_authorizations_raw.csv")
+    if actions and limits:
+        law_list = _read_rows(ctx.config_dir / "law_list.csv")
+        matched, gaps = check_bond_totals(actions, limits, law_list)
+        in_scope_limits = sum(
+            lim["law_key"] in {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+            for lim in limits
+        )
+        _write_report(out / "bond_totals.csv", BOND_COLUMNS, gaps)
+        print(
+            f"  bond totals: {matched} of {in_scope_limits} in-scope limits match their items, "
+            f"{len(gaps)} reported in bond_totals.csv (reported, not a failure: Q11)"
         )
     return 1 if schema_problems or unread else 0

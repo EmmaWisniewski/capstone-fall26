@@ -1,4 +1,0 @@
-# GitHub requests a review from the owner named here on any PR that changes these files.
-# A owns the shared core of combine (Decision Log, 2026-11-10), so each piece plugged into
-# combine.BUILDERS reaches Emma for a check of the combined result. It doesn't block merges.
-src/ma_approps/combine.py @EmmaWisniewski

@@ -1,6 +1,6 @@
 # Project overview (start here)
 
-A plain-language tour of what this project builds, how the program works, who owns which part,
+A plain-language tour of what this project builds, how the program works, who started which part,
 and where things stand. It is deliberately short. For the full detail, see
 [`DESIGN.md`](DESIGN.md), which is the source of truth whenever the two disagree.
 
@@ -23,8 +23,9 @@ $350,000**, and it counts toward **fiscal year 2024** because the item it change
 FY2024 budget.
 
 **Just as important: a program that future researchers can re-run every year.** When the 2026
-laws are all signed, a future cohort should be able to run one command and work through a short
-review checklist to add them. So the program has to be automatic, sturdy, and simple enough for
+laws are all signed, a future cohort or someone at the State Auditor's office should be able to
+run one command in the terminal (no Claude Code needed) and work through a short review checklist
+to add them. So the program has to be automatic, sturdy, and simple enough for
 non-programmers to maintain.
 
 ---
@@ -65,14 +66,14 @@ Each stage is **one Python file** in `src/ma_approps/`. You run them all with
 `python -m ma_approps run --stage all`, or one at a time with `--stage cthru` and so on. Stages
 that haven't been written yet are skipped with a message.
 
-| # | Stage (file) | Its job, in plain words | Owner |
+| # | Stage (file) | Its job, in plain words | Started by |
 |---|---|---|---|
 | 1 | `laws.py` | Finds each year's spending laws for humans to approve, and downloads their text (slowly and politely, saving a copy). [Plain-language guide](plain-language/laws.md) | Emma (A) |
 | 2 | `cthru.py` | Downloads the Comptroller's budget data, saves a dated copy, and lists every line item per year with its amount and agency | Mario (E) |
 | 3 | `read_items.py` | Reads line items in supplemental budgets, and item descriptions in annual budgets | Tierney (B) |
 | 4 | `read_bonds.py` | Reads the items in bond (borrowing) laws, including Chapter 90 road money | Emma (A) |
 | 5 | `read_amendments.py` | Reads sections that change earlier items ("strike out $9,310,231, insert $9,660,231") and lump-sum interim budgets | Emily H. (C) |
-| 6 | `combine.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | Emma (shared core); each piece's rows by its owner |
+| 6 | `combine.py` | Combines everything into one master table, the **funding actions table** (one row per legal action on an item), gives each row its ID, and decides whether it counts toward totals | Emma (shared core); each piece's rows by whoever started that piece |
 | 7 | `label.py` | Fills in agency, program purpose, policy area, and "previously funded?" | Emily R. (D) |
 | 8 | `export.py` | Applies human corrections and writes the final CSV in exactly the `exampledata.csv` format | everyone |
 | — | `validate.py` | Runs the checks: our numbers vs. CTHRU, nothing left unread, IDs unique | Mario (E) |
@@ -110,17 +111,17 @@ Status key: ☐ not started · ◐ in progress · ☑ done
 
 ### Workstreams
 
-Every workstream has something to start on **now**. Each owner also handles the human review
-for their own area.
+Every workstream has something to start on **now**. **Everyone owns everything equally:** the
+names say who started where, not who's in charge, and anyone may change, fix or review any part.
 
-| WS | Owner | Name: what it covers | Start now with… | Status |
+| WS | Started by | Name: what it covers | Start now with… | Status |
 |---|---|---|---|---|
 | **A** | **Emma** | **Law list and bond bills:** which laws are in, downloading them, reading bond laws; later the yearly runbook and the 2026 re-run test | Reviewing every row of `config/law_list.csv`; writing the expected bond rows for the two saved bond samples (2024-139, 2025-17) | ◐ (law list, discovery, `read_bonds`, bond rows, the shared core of `combine` and the capital file merged) |
 | **B** | **Tierney** | **Supplemental budgets:** cleaning law text into paragraphs (used by everyone); reading supplemental items and budget descriptions | `paragraphs.py` on the saved sample laws. Share the paragraph format early, because A and C need it | ◐ (`paragraphs.py` and `read_items` merged; supplemental and §2D rows for `combine` in review) |
 | **C** | **Emily H.** | **Amendments:** sections that change earlier items, interim budgets, each item's running amount | Writing the expected output rows for the 2023-77, 2021-35 and 2023-15 samples by hand | ◐ (`read_amendments`, the running-amounts check, and amendment rows for `combine` with `running_amounts.csv` merged; unread sections explained, and the Q33 and Q28 fixes, merged; Q24's code in review) |
 | **D** | **Emily R.** | **Labels:** agency, purpose, policy area, "previously funded?" | Pulling CTHRU's department list; filling in `department_policy_areas.csv` and seeding the catalog | ◐ (department list, line-item catalog and funds list done; `label.py` merged with bond policy areas and Q3; switching it on in review: 565 of 8,307 rows wait for a catalog review) |
-| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ◐ (CTHRU download merged; annual rows for `combine` in review; the CTHRU comparison in `validate` next) |
-| — | **Emma (core) + everyone** | **Putting it together:** combining the pieces into the final dataset; Emma owns the shared core of `combine` | Waits on the above (milestone M1) | ☐ |
+| **E** | **Mario** | **Annual budgets and checks:** CTHRU data, comparing our numbers with it, the column definitions; leads the **spending-scope discussion** | The CTHRU download and a small saved sample; explaining the 1231-1000 mismatch | ◐ (CTHRU download and annual rows merged; the CTHRU and bond checks and the unread explanations in `validate` in review) |
+| — | **Emma (core) + everyone** | **Putting it together:** combining the pieces into the final dataset; Emma built the shared core of `combine` | Waits on the above (milestone M1) | ☐ |
 
 **Scope decided:** the project covers appropriations (what laws authorized), not what the
 state actually *spent*. Our partner set this at the proposal stage
@@ -132,7 +133,7 @@ state actually *spent*. Our partner set this at the proposal stage
 |---|---|---|
 | **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ☑ (signed off by the group, 2026-11-10) |
 | **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
-| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ◐ (annual rows built for FY2022–FY2026, in review; 3 mismatches and the items read as vetoed still to explain) |
+| **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ◐ (annual rows built and merged for FY2022–FY2026; the CTHRU comparison now lists the differences, and they and the items read as vetoed are still to explain) |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
 | **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ◐ (items, borrowing limits, bond rows and the capital file done; check 7 next) |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |
