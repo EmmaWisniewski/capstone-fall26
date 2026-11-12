@@ -1,9 +1,10 @@
 """Stage 8 `export`: apply review/corrections.csv and write the dataset (DESIGN §7.11–§7.13, §8,
 §14).
 
-Stub for the main file. Owner: everyone (Putting it together), coordinated by E. Writes
-data/output/ma_appropriations_cy2021_2025.csv (schemas.EXPORT_COLUMNS, sorted by record_id), the
-extended export, and review/review_queue.csv.
+Owner: everyone (Putting it together), coordinated by E. Writes
+data/output/ma_appropriations_cy2021_2025.csv (schemas.EXPORT_COLUMNS, sorted by record_id).
+Still to build: the extended export, the data dictionary and review/review_queue.csv, and the
+law-level total note (column 19, from validate's law status) in place of "Total not yet checked."
 
 The capital file (workstream A, Q5/Q16) is built here already: ``capital_rows`` and
 ``write_capital_file``. ``main_columns`` fills the 20 main-export columns from a funding-action row,
@@ -21,7 +22,7 @@ from typing import Any
 from ma_approps import combine, schemas
 from ma_approps.context import Context
 
-IMPLEMENTED = False  # until the main file exists (the example-rows test runs once it's True)
+IMPLEMENTED = True
 
 # Until the label stage (D) writes labels.csv: the placeholders of §8 (partner, 2026-11-06) and the
 # interim rules for bond rows (Emma, 2026-11-10). A labels.csv row replaces them.
@@ -181,7 +182,108 @@ def write_capital_file(ctx: Context) -> Path:
     return path
 
 
+AUTOMATIC = "department list (automatic)"
+
+
+def _catalog_deciders(catalog: list[Mapping[str, str]]) -> dict[str, str]:
+    return {r["line_item"]: (r.get("decided_by") or "").strip() for r in catalog}
+
+
+def human_policy_area(
+    row: Mapping[str, Any], label: Mapping[str, str], deciders: Mapping[str, str]
+) -> bool:
+    """§8 column 17: did a person decide this row's policy area? A catalog row decided by a named
+    person does; one marked ``department list (automatic)`` does not, and neither does the
+    department table (a person chose each department's area, nobody checked the line)."""
+    method = label.get("policy_area_method", "")
+    if method == "human":
+        return True
+    if method == "catalog":
+        who = deciders.get(str(row["line_item"]), "")
+        return bool(who) and who != AUTOMATIC
+    return False
+
+
+def main_rows(
+    funding_actions: list[Mapping[str, Any]],
+    law_list: list[Mapping[str, str]],
+    labels: list[Mapping[str, str]],
+    catalog: list[Mapping[str, str]],
+    corrections: list[Mapping[str, str]],
+    settings: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """The main file (§7.13): the funding-action rows inside the approval-date window, bonds left
+    out (they go to the capital file), sorted by Record ID, with corrections (§7.11) applied.
+    Wording-only changes to bond items (``PURP`` rows with ``section_type = capital``) are left
+    out of both files and belong in the extended file only (Decision Log, 2026-11-11).
+
+    Returns (rows, warnings). A correction is skipped, with a warning, when its field isn't an
+    export column or its ``expected_old_value`` no longer matches the cell."""
+    scope = settings["scope"]
+    first, last = (
+        date.fromisoformat(scope["approved_from"]),
+        date.fromisoformat(scope["approved_to"]),
+    )
+    laws = {r["law_key"]: r for r in law_list}
+    by_id = {r["record_id"]: r for r in labels}
+    deciders = _catalog_deciders(catalog)
+    fixes: dict[str, list[Mapping[str, str]]] = {}
+    for c in corrections:
+        fixes.setdefault(c["record_id"], []).append(c)
+
+    warnings, out = [], []
+    for row in sorted(funding_actions, key=lambda r: r["record_id"]):
+        if row["funding_action"] == "CAP":
+            continue
+        if row.get("section_type") == "capital":
+            # a wording-only change to a bond item: the extended file only (2026-11-11)
+            continue
+        if not first <= date.fromisoformat(str(row["event_date"])) <= last:
+            continue
+        label = by_id.get(row["record_id"], {})
+        cells = main_columns(row, laws[row["law_key"]], label)
+        human = human_policy_area(row, label, deciders)
+        for c in fixes.get(row["record_id"], []):
+            field = c["field"]
+            if field not in schemas.EXPORT_COLUMNS:
+                warnings.append(f"{row['record_id']}: correction of unknown column {field!r}")
+            elif c.get("expected_old_value") and c["expected_old_value"] != str(cells[field]):
+                warnings.append(
+                    f"{row['record_id']}: {field!r} is {cells[field]!r}, not the expected "
+                    f"{c['expected_old_value']!r}; correction skipped"
+                )
+            else:
+                cells[field] = c["new_value"]
+                human = True
+        cells["Human review status"] = "Human reviewed" if human else "Not human reviewed"
+        out.append(cells)
+    return out, warnings
+
+
+def write_main_file(ctx: Context) -> Path:
+    """Write the main file from combine's and label's output; returns its path."""
+    rows, warnings = main_rows(
+        _read(ctx.interim_dir / "funding_actions.csv"),
+        _read(ctx.config_dir / "law_list.csv"),
+        _read(ctx.interim_dir / "labels.csv"),
+        _read(ctx.config_dir / "line_item_catalog.csv"),
+        _read(ctx.review_dir / "corrections.csv"),
+        ctx.settings,
+    )
+    path = ctx.output_dir / output_name("ma_appropriations", ctx.settings)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=schemas.EXPORT_COLUMNS, lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+    for w_ in warnings:
+        print(f"  WARNING: {w_}")
+    reviewed = sum(r["Human review status"] == "Human reviewed" for r in rows)
+    print(f"  main file: {len(rows)} rows ({reviewed} human reviewed): {path.name}")
+    return path
+
+
 def run(ctx: Context) -> int:
+    write_main_file(ctx)
     write_capital_file(ctx)
-    print("  main file (E): not built yet")
     return 0

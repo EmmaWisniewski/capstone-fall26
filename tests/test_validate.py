@@ -49,6 +49,7 @@ def test_empty_pipeline_runs(root, tmp_path):
         raw_dir=tmp_path / "raw",
         reports_dir=tmp_path / "reports",
         interim_dir=tmp_path / "interim",
+        output_dir=tmp_path / "output",  # never the real data/output spreadsheets
         offline=True,
     )
     assert cli.run_stages(ctx, [s for s in cli.STAGE_NAMES if s != "laws"]) == 0
