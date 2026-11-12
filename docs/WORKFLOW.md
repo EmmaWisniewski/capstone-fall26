@@ -27,8 +27,8 @@ The project has two **commands** (Claude Code calls them "skills"). Each one is 
 
 | Command | When | What Claude does with you |
 |---|---|---|
-| **`/start-task`** | When you want to begin a task, or ask what to work on | Steps 1–6: gets the latest `main`, or picks your unfinished branch back up; offers to merge finished pull requests; checks `main`'s docs are up to date and offers to fix them there; finds the most important unfinished task (or checks the one you name); checks nobody is already doing it; makes a branch and proposes a plan |
-| **`/finish-task`** | When the task is done | Steps 7 and 8: shows what changed; checks it doesn't add a yearly hand step for future re-runners; writes handoff notes for teammates and checks every doc your change affects is updated; runs the automatic checks; commits; pushes; opens the pull request |
+| **`/start-task`** | When you want to begin a task, or ask what to work on | Steps 1–6: works out who you are, to suggest work in your workstream; gets the latest `main`, or picks your unfinished branch back up; offers to merge finished pull requests and delete branches that are already merged; checks `main`'s docs are up to date and offers to fix them there; finds the most important unfinished task (or checks the one you name); checks nobody is already doing it; makes a branch and proposes a plan |
+| **`/finish-task`** | When the task is done | Steps 7 and 8: shows what changed; checks it doesn't add a yearly hand step for future re-runners; writes handoff notes for teammates and checks every doc your change affects is updated; runs the automatic checks; commits; pushes; opens the pull request; switches your computer back to `main` |
 
 Good to know:
 - **You can name your task after the command,** e.g. `/start-task bond policy areas`. Without one, Claude recommends a task.

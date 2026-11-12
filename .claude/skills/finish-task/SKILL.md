@@ -63,7 +63,11 @@ Show the final file list and a one-line commit message, and get the student's ye
   - any docs fixed along the way, and `Closes #N` for any to-do item it finishes
   - the check results
 - If `gh` asks to log in, the student runs `gh auth login` in the Terminal app (WORKFLOW §7).
-- Tell the student they can merge it once GitHub's automatic checks pass. Otherwise the next `/start-task`, theirs or a classmate's, will offer to.
 
-## 7. Wrap up
+## 7. Back to main
+Switch this computer back to `main` and pull, so the next session starts clean. The branch stays on GitHub with the pull request. Don't delete it yet: if the pull request needs a fix, the work is on it.
+- **If the student merges the pull request now,** for example once the checks pass, delete the branch on GitHub and on this computer: it's no longer needed. (`gh pr merge <number> --merge --delete-branch` does both, and GitHub's merge page also has a delete button.)
+- Otherwise, the next `/start-task` merges it and deletes the branch.
+
+## 8. Wrap up
 Give a one-line recap, with the pull request link. Suggest starting a fresh session with `/start-task` for the next task.
