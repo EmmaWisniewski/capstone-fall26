@@ -12,8 +12,8 @@ fall 2026 group did; the **Say:** lines are things you can type to it. If this r
 
 *Status: first draft (workstream A, 2026-11-07; updated 2026-11-11 after Tierney's review). Steps
 1–4 describe stages that are built and merged. Step 5 waits on workstream E (the `cthru` stage is
-merged, #21). Step 6 is a placeholder while `combine`, `label` and `export` are built (the shared
-core of `combine` and the capital file are in review, #43 and #44). Milestone M6 is a test of this
+merged, #21). Step 6's labels part is written (workstream D, 2026-11-12, without **Say:** lines);
+its `combine` and `export` parts are still placeholders. Milestone M6 is a test of this
 runbook: someone who didn't write it follows it on the 2026 laws and lists what broke.*
 
 Each step has three parts: **what to do**, **what to check**, and **if something's wrong**.
@@ -212,13 +212,122 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 
 ## 6. Combine, label, review and export
 
-*To be written as the `combine`, `label` and `export` stages are built. It should cover:*
-- *running them;*
-- *working through `review/review_queue.csv` (new line items needing a policy area, CTHRU
-  mismatches, bond-limit differences);*
-- *where fixes go: `config/line_item_catalog.csv` for policy areas that apply every year,
-  `review/corrections.csv` for one-row fixes, `review/research_log.md` for reasoning. Never edit
-  a generated file by hand.*
+*The `combine` and `export` parts are still to be written. They should cover: running them;
+CTHRU mismatches and bond-limit differences; where fixes go (`review/corrections.csv` for one-row
+fixes, `review/research_log.md` for reasoning). Never edit a generated file by hand. The labels
+part below is written (workstream D, 2026-11-12).*
+
+### Labels and policy areas (`label` stage)
+
+The `label` stage fills six columns for every row: Agency / office, Program / purpose, Policy
+area, Previously funded?, One-time or recurring funding, and New funding appropriation or
+re-appropriation. The program works out all six. **Only Policy area sometimes needs a person**,
+and only for line items it hasn't seen before.
+
+**How the program chooses a policy area**, in this order:
+1. **The catalog** (`config/line_item_catalog.csv`): one row per line item, decided once and used
+   in every year. After the first year it covers nearly every row.
+2. **The department's usual area** (`config/department_policy_areas.csv`), for a new line item in
+   a department that isn't marked mixed. A new Division of Marine Fisheries item, for example,
+   gets *Environment and natural resources*.
+3. **Rows with no line item:** a transfer between funds gets *Debt service, reserves, and
+   statewide finance*; an interim budget gets *Multiple*.
+4. **Otherwise a person decides**, and until then the dataset shows **Not classified**. Expect
+   this for new line items in departments that do several things (Health and Human Services,
+   Administration and Finance, Conservation and Recreation, the Treasurer, Revenue), for new
+   federal grants and bond items in those departments, and for every 1599 reserve, which is
+   re-checked every year on purpose.
+
+**What to do**
+1. Run the whole program: `python -m ma_approps run --stage all`. Among its messages, the `label`
+   stage prints a line like `labels: 8307 rows; 318 waiting for a policy-area review`. The second
+   number is how many rows still need a person.
+2. Find those rows. Open the main file (`data/output/ma_appropriations_cy….csv`) in Excel and
+   filter the **Policy area** column to **Not classified**. Do the same in the capital file
+   (`data/output/ma_capital_authorizations_cy….csv`). **Line item**, **Agency / office** and
+   **Program / purpose** say what each one is, and **Source URL** links to the law. *(Planned:
+   `review/review_queue.csv` will list these rows with the reason, DESIGN §7.12. It isn't built
+   yet.)*
+3. Decide a policy area for each, using the definitions in `policyareas.csv` and the rules of
+   thumb below, and write the decision in the right file:
+
+   | What is waiting | Where the decision goes | It applies to |
+   |---|---|---|
+   | A line item (anything but a 1599 reserve) | a new row in `config/line_item_catalog.csv` | that line item, in every year |
+   | A 1599 reserve | a new row in `review/corrections.csv` for each row of the dataset | that row only |
+   | A department the program hasn't seen before | a new row in `config/department_policy_areas.csv` | its new line items |
+   | Reasoning longer than a line, and every use of *Unclassified/other* | a heading in `review/research_log.md` | |
+
+   - **A catalog row** has six values: the line item (`NNNN-NNNN`); the policy area, copied
+     exactly from `policyareas.csv`; `false`; your name; today's date as `YYYY-MM-DD`; and a note
+     with the department code, the item's name and, for a close call, the alternative:
+
+     ```
+     2821-9905,Environment and natural resources,false,Jane Doe,2027-01-15,DCR: Urban and Community Forestry Grant.
+     ```
+
+   - **A correction row for a 1599 reserve** has seven values: the Record ID (from the dataset),
+     `Policy area`, the area you chose, `Not classified` (what the dataset shows now), your name,
+     the date, and a short note:
+
+     ```
+     2021-024-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Jane Doe,2027-01-15,Reserve for municipal improvements.
+     ```
+
+     Reserves hold money for different purposes each year, so they're decided row by row. The
+     catalog's row for each reserve (marked `true`) gives its usual area as a starting point,
+     but read that year's text.
+4. Run the whole program again.
+
+**Edit these files in a plain-text editor, not Excel.** On a Mac use TextEdit (choose Format →
+Make Plain Text first); on Windows use Notepad. Add each decision as a new line at the end of the
+file. When Excel saves a file like this, it quietly changes every `false` to `FALSE` and every
+`2027-01-15` to `1/15/27`, and the program then rejects the file. Put a value in double quotes if
+it contains a comma: `"Arts, culture, and recreation"`.
+
+**What to check**
+- `python -m ma_approps validate` reports `schema problems: 0`. It checks every row of the
+  catalog, the department list and the corrections file, and names the file and row of any
+  problem: a misspelled policy area, a date not written `YYYY-MM-DD`, `TRUE` instead of `true`.
+- In both data files, **Policy area** shows **Not classified** nowhere, and every row you decided
+  says **Human reviewed** under **Human review status**.
+- The `export` stage prints a warning for each correction it skipped. There should be none.
+- Spot-check about one in twenty of the year's new rows that took their department's usual area
+  (they say **Not human reviewed**). If one is wrong, add a catalog row for its line item.
+
+**If something's wrong**
+- **"not an allowed value" for a policy area:** the spelling differs from `policyareas.csv`. Watch
+  the curly apostrophe in *Veterans’ services*, and the quotes around areas that contain commas.
+- **A row still says Not classified after you added a catalog row:** check that the line item is
+  typed exactly (`NNNN-NNNN`, with the hyphen), that the third value is `false`, and that you ran
+  the program again.
+- **A 1599 correction changed nothing:** the Record ID must match the dataset exactly. The program
+  doesn't yet warn about a correction whose Record ID matches no row.
+- **The agency or purpose is wrong for one row:** add a correction with the field `Agency /
+  office` or `Program / purpose`. If many rows are wrong the same way, it's a program bug: report
+  it with two or three Record IDs. (Known in fall 2026: some federal grant rows show the agency
+  printed above them in the law instead of their own, e.g. 4000-0320.)
+- **A line item changed meaning** (renamed, or moved to another department): update its catalog
+  row. The program doesn't flag this yet (DESIGN §12, "catalog drift").
+
+**How to choose a policy area: rules of thumb from the fall 2026 review**
+- **Go by what the money is for, not who spends it.** Addiction treatment in county jails →
+  *Health and public health*; federal education grants run by sheriffs → *Education*; the
+  Department of Revenue's low-income tax clinics → *Courts and legal services*.
+- **Departments that do several things:** Conservation and Recreation's parks, beaches and trails
+  → *Arts, culture, and recreation*; its forests, water, dams and wildfire work → *Environment and
+  natural resources*. MassHealth and behavioral health → *Health and public health*.
+- **Federal grants and bond items** are decided the same way as state money, by purpose. A bond
+  item for one named project takes that project's area (the new Holyoke Soldiers' Home →
+  *Veterans’ services*).
+- **Earmark lists across many areas with no main purpose** → *Multiple*. If the law names a
+  purpose ("local economic development projects"), use it.
+- **Money for cities and towns:** with no set purpose → *General local aid*; with a set purpose,
+  that purpose (municipal cybersecurity grants → *Government administration and oversight*).
+- **Broadband** → *Economic development and workforce* (there's no broadband area).
+- **Close calls:** pick one and write the alternative in the note ("could be Public safety"), so
+  the next reviewer sees your reasoning.
+- ***Unclassified/other*** is a last resort and needs an explanation in `review/research_log.md`.
 
 ---
 
