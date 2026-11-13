@@ -6,7 +6,8 @@ read_amendments all call it, so its output (schemas.PARAGRAPH_KEYS) is a fixed f
 Each paragraph is a dict:
 - ``law_key``: e.g. ``2023-28``
 - ``para_idx``: 0-based position among the law's non-empty paragraphs (deterministic)
-- ``text``: normalized text (§11.1); smart quotes are kept, use ``key()`` for matching
+- ``text``: normalized text (§11.1), in capitals where the HTML shows it in capitals
+  (``text-transform: uppercase``); smart quotes are kept, use ``key()`` for matching
 - ``raw_html``: the source HTML the paragraph came from, for debugging
 - ``classes``: CSS classes on the paragraph's elements (don't rely on them, §11.1)
 - ``struck``: struck-through runs of text, in order (veto evidence)
@@ -69,6 +70,13 @@ def _style_bold(style: str) -> bool:
     return "font-weight:bold" in s or "font-weight:700" in s
 
 
+def _style_upper(style: str, inherited: bool) -> bool:
+    """CSS ``text-transform``: the 2021 and 2022 GAAs type some secretariat headings in lower
+    case and show them in capitals this way ("Executive office of health and human services.")."""
+    m = re.search(r"text-transform:\s*([a-z-]+)", style.lower())
+    return m.group(1) == "uppercase" if m else inherited
+
+
 def _runs(chars: list[tuple[str, bool]]) -> list[str]:
     """Contiguous flagged runs of text, normalized, empties dropped."""
     out, buf = [], []
@@ -91,7 +99,7 @@ class _Parser(HTMLParser):
         self._line_starts = [0]
         for m in re.finditer("\n", html):
             self._line_starts.append(m.end())
-        self.stack: list[tuple[str, bool, bool]] = []  # (tag, struck, bold)
+        self.stack: list[tuple[str, bool, bool, bool]] = []  # (tag, struck, bold, upper)
         self.out: list[dict[str, Any]] = []
         self.in_row = 0
         self._reset(0)
@@ -158,13 +166,14 @@ class _Parser(HTMLParser):
             self.links.append(a["href"])
         if tag in VOID_TAGS:
             return
-        struck, bold = self._state()
+        struck, bold, upper = self._state()
         style = a.get("style", "")
         self.stack.append(
             (
                 tag,
                 struck or tag in STRIKE_TAGS or _style_struck(style),
                 bold or tag in BOLD_TAGS or _style_bold(style),
+                _style_upper(style, upper),
             )
         )
 
@@ -188,11 +197,11 @@ class _Parser(HTMLParser):
             self._boundary(after, after)
 
     def handle_data(self, data: str) -> None:
-        struck, bold = self._state()
-        self.chars.extend((ch, struck, bold) for ch in data)
+        struck, bold, upper = self._state()
+        self.chars.extend((ch, struck, bold) for ch in (data.upper() if upper else data))
 
-    def _state(self) -> tuple[bool, bool]:
-        return (self.stack[-1][1], self.stack[-1][2]) if self.stack else (False, False)
+    def _state(self) -> tuple[bool, bool, bool]:
+        return self.stack[-1][1:] if self.stack else (False, False, False)
 
     def close(self) -> None:
         super().close()

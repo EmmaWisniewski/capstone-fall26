@@ -55,6 +55,17 @@ def test_normalization():
     assert texts("<p>costs… $5</p>") == ["costs... $5"]  # NFKC
 
 
+def test_text_transform_uppercase_is_applied():
+    # 2021-24 and 2022-126 type some secretariat headings in lower case and show them in capitals
+    html = (
+        '<p><strong><span style="font-size: 12.0pt; text-transform: uppercase;">Executive office '
+        "of health and human services.</span></strong></p>"
+        '<p><span style="text-transform:uppercase">a <span style="text-transform: none">b</span>'
+        "</span> c</p>"
+    )
+    assert texts(html) == ["EXECUTIVE OFFICE OF HEALTH AND HUMAN SERVICES.", "A b c"]
+
+
 def test_smart_quotes_kept_in_text_but_not_in_key():
     (text,) = texts("<p>striking out the figure “$9,310,231”</p>")
     assert "“" in text

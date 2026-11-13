@@ -127,6 +127,21 @@ def test_headers():
     ]
 
 
+def test_heading_shown_in_capitals_is_a_secretariat():
+    # 2021-24 §2D: without this, EOHHS grants kept the heading above ("MASSACHUSETTS
+    # DEVELOPMENTAL DISABILITIES COUNCIL.") and got the wrong agency
+    items, _ = read(
+        "<p>SECTION 2.</p><p>MASSACHUSETTS DEVELOPMENTAL DISABILITIES COUNCIL.</p>"
+        "<p>1100-1702 For a grant ...... $5</p>"
+        '<p><span style="text-transform: uppercase;">Executive office of health and human '
+        "services.</span></p><p>Office of the Secretary.</p><p>4000-1315 For a grant ...... $6</p>"
+    )
+    assert [(r["secretariat_header_raw"], r["agency_header_raw"]) for r in items] == [
+        ("MASSACHUSETTS DEVELOPMENTAL DISABILITIES COUNCIL.", ""),
+        ("EXECUTIVE OFFICE OF HEALTH AND HUMAN SERVICES.", "Office of the Secretary."),
+    ]
+
+
 # -- vetoes and fund splits ---------------------------------------------------
 
 
