@@ -132,10 +132,10 @@ state actually *spent*. Our partner set this at the proposal stage
 | Milestone | Done when… | Status |
 |---|---|---|
 | **M0** Foundations | Column definitions, sample laws and a CTHRU sample are agreed and saved; automatic checks pass | ☑ (signed off by the group, 2026-11-10) |
-| **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☐ |
+| **M1** Vertical slice | The four example rows (EX-001…004) come out of the program correctly from start to finish | ☑ (the example-rows test passes since the main export, 2026-11-12) |
 | **M2** All annual budgets | Every FY2022–FY2026 budget item has a row and a description; every CTHRU mismatch is explained | ◐ (annual rows built and merged for FY2022–FY2026; the CTHRU comparison now lists the differences, and they and the items read as vetoed are still to explain) |
 | **M3** Supplementals and interim budgets | All read by code; amendment amounts line up; totals match CTHRU per year | ☐ |
-| **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ◐ (items, borrowing limits, bond rows and the capital file done; check 7 next) |
+| **M4** Bond bills | All read by code; each law's items add up to its stated borrowing total | ◐ (items, borrowing limits, bond rows, the capital file and check 7 done; 8 borrowing-limit differences to review) |
 | **M5** Labels and release | Every row has a policy area; review cleared; final file published | ☐ |
 | **M6** Re-run test | Someone follows the [runbook](RUNBOOK.md) on 2026 laws without changing code, and we list what broke | ◐ (runbook first draft) |
 
