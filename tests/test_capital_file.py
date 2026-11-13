@@ -73,7 +73,10 @@ def test_placeholders_until_labels_exist(capital):
         "One-time",
         "Pending",
         "Not human reviewed",
-        "Total not yet checked.",
+        # the law's total note (§13 check 8): 2024-139 §4's items exceed it by $400,000,000
+        "Total partly checked: Capital authorizations $1,656,989,000 (not counted in operating "
+        "totals); 2 of 3 borrowing limits match their items, and 1 differs by $400,000,000 in "
+        "total.",
     )
 
 

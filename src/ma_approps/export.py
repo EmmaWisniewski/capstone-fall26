@@ -3,8 +3,9 @@
 
 Owner: everyone (Putting it together), coordinated by E. Writes
 data/output/ma_appropriations_cy2021_2025.csv (schemas.EXPORT_COLUMNS, sorted by record_id).
-Still to build: the extended export, the data dictionary and review/review_queue.csv, and the
-law-level total note (column 19, from validate's law status) in place of "Total not yet checked."
+The last column, "Source or calculation for total", is each law's note from
+``validate.law_status`` (§13 check 8). Still to build: the extended export, the data dictionary and
+review/review_queue.csv.
 
 The capital file (workstream A, Q5/Q16) is built here already: ``capital_rows`` and
 ``write_capital_file``. ``main_columns`` fills the 20 main-export columns from a funding-action row,
@@ -19,7 +20,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from ma_approps import combine, schemas
+from ma_approps import combine, schemas, validate
 from ma_approps.context import Context
 
 IMPLEMENTED = True
@@ -52,7 +53,10 @@ def _us_date(value: str) -> str:
 
 
 def main_columns(
-    row: Mapping[str, Any], law: Mapping[str, str], label: Mapping[str, str] | None = None
+    row: Mapping[str, Any],
+    law: Mapping[str, str],
+    label: Mapping[str, str] | None = None,
+    note: str = "",
 ) -> dict[str, Any]:
     """The 20 main-export columns (§8, schemas.EXPORT_COLUMNS) for one funding-action row.
 
@@ -87,7 +91,7 @@ def main_columns(
         ),
         "Human review status": "Not human reviewed",
         "Source URL": row["source_url"],
-        "Source or calculation for total": TOTAL_NOT_CHECKED,
+        "Source or calculation for total": note or TOTAL_NOT_CHECKED,
     }
 
 
@@ -111,6 +115,7 @@ def capital_rows(
     limits: list[Mapping[str, str]],
     law_list: list[Mapping[str, str]],
     labels: list[Mapping[str, str]] = (),
+    notes: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """The capital file (§7.13): every ``CAP`` row, sorted by Record ID, with the 20 main columns
     and the details of the borrowing limit that covers it (Q16).
@@ -138,7 +143,12 @@ def capital_rows(
         split = limit.get("federal_split", "")
         out.append(
             {
-                **main_columns(row, laws[row["law_key"]], by_id.get(row["record_id"])),
+                **main_columns(
+                    row,
+                    laws[row["law_key"]],
+                    by_id.get(row["record_id"]),
+                    (notes or {}).get(row["law_key"], ""),
+                ),
                 "Borrowing limit section": limit.get("section", ""),
                 "Borrowing limit ($)": _money(limit.get("authorized", "")),
                 "Total of items under this limit ($)": _money(limit.get("items_total", "")),
@@ -159,17 +169,31 @@ def capital_rows(
     return out
 
 
+def law_notes(ctx: Context) -> dict[str, str]:
+    """Each in-scope law's total note (§8 column 19), from ``validate.law_status`` on this run's
+    files. ``export`` runs before ``validate``, so it works the notes out itself rather than reading
+    a ``reports/law_status.csv`` from an earlier run; both use the same code, so they agree."""
+    status = validate.law_status(
+        _read(ctx.interim_dir / "funding_actions.csv"),
+        _read(ctx.interim_dir / "cthru_line_items.csv"),
+        _read(ctx.interim_dir / "bond_authorizations_raw.csv"),
+        _read(ctx.config_dir / "law_list.csv"),
+    )
+    return {r["law_key"]: r["note"] for r in status}
+
+
 def _read(path: Path) -> list[dict[str, str]]:
     return schemas.read_csv(path)[1] if path.exists() else []
 
 
-def write_capital_file(ctx: Context) -> Path:
+def write_capital_file(ctx: Context, notes: Mapping[str, str] | None = None) -> Path:
     """Write the capital file from combine's and read_bonds' output; returns its path."""
     rows = capital_rows(
         _read(ctx.interim_dir / "funding_actions.csv"),
         _read(ctx.interim_dir / "bond_authorizations_raw.csv"),
         _read(ctx.config_dir / "law_list.csv"),
         _read(ctx.interim_dir / "labels.csv"),
+        law_notes(ctx) if notes is None else notes,
     )
     path = ctx.output_dir / output_name("ma_capital_authorizations", ctx.settings)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -211,6 +235,7 @@ def main_rows(
     catalog: list[Mapping[str, str]],
     corrections: list[Mapping[str, str]],
     settings: Mapping[str, Any],
+    notes: Mapping[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """The main file (§7.13): the funding-action rows inside the approval-date window, bonds left
     out (they go to the capital file), sorted by Record ID, with corrections (§7.11) applied.
@@ -241,7 +266,9 @@ def main_rows(
         if not first <= date.fromisoformat(str(row["event_date"])) <= last:
             continue
         label = by_id.get(row["record_id"], {})
-        cells = main_columns(row, laws[row["law_key"]], label)
+        cells = main_columns(
+            row, laws[row["law_key"]], label, (notes or {}).get(row["law_key"], "")
+        )
         human = human_policy_area(row, label, deciders)
         for c in fixes.get(row["record_id"], []):
             field = c["field"]
@@ -260,7 +287,7 @@ def main_rows(
     return out, warnings
 
 
-def write_main_file(ctx: Context) -> Path:
+def write_main_file(ctx: Context, notes: Mapping[str, str] | None = None) -> Path:
     """Write the main file from combine's and label's output; returns its path."""
     rows, warnings = main_rows(
         _read(ctx.interim_dir / "funding_actions.csv"),
@@ -269,6 +296,7 @@ def write_main_file(ctx: Context) -> Path:
         _read(ctx.config_dir / "line_item_catalog.csv"),
         _read(ctx.review_dir / "corrections.csv"),
         ctx.settings,
+        law_notes(ctx) if notes is None else notes,
     )
     path = ctx.output_dir / output_name("ma_appropriations", ctx.settings)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -284,6 +312,7 @@ def write_main_file(ctx: Context) -> Path:
 
 
 def run(ctx: Context) -> int:
-    write_main_file(ctx)
-    write_capital_file(ctx)
+    notes = law_notes(ctx)
+    write_main_file(ctx, notes)
+    write_capital_file(ctx, notes)
     return 0
