@@ -340,6 +340,7 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - tests pass, and `validate` reports no problems;
 - every unread report is empty or explained;
 - every CTHRU difference is explained or flagged;
+- `reports/law_status.csv` gives each law's status (`checked`, `partially_checked` or `not_checked`) and the note that fills the spreadsheet's last column, "Source or calculation for total". A `partially_checked` law points you to its differences in `reports/validation/cthru_mismatches.csv` or `bond_totals.csv`;
 - `config/manual_rows.csv` is empty, or each row is justified (see step 8).
 
 **Then record the year:**

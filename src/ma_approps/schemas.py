@@ -392,6 +392,14 @@ SCHEMAS["corrections"] = _cols(
 
 # §7.19 review/unread_explanations.csv (human-edited; why an unread row needs no code; Q22)
 # `report` is the report's file name, as PR #50 decided (e.g. `unread_sections.csv`)
+# §7.20 reports/law_status.csv (written by validate, check 8; decided 2026-11-12)
+LAW_STATUSES = ("checked", "partially_checked", "not_checked")
+SCHEMAS["law_status"] = _cols(
+    Col("law_key", required=True),
+    Col("status", "enum", LAW_STATUSES, required=True),
+    Col("note", required=True),
+)
+
 UNREAD_REPORTS = ("unread_paragraphs.csv", "unread_paragraphs_bonds.csv", "unread_sections.csv")
 SCHEMAS["unread_explanations"] = _cols(
     Col("report", "enum", UNREAD_REPORTS, required=True),

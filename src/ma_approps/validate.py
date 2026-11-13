@@ -3,8 +3,8 @@
 Implemented: check 1 (file formats and allowed values), the coverage check on the ``unread_*``
 reports (a row is explained in the report's own column or in review/unread_explanations.csv,
 §7.19, Q22), check 3 (struck figures), check 4 (CTHRU comparison) and check 7 (bond totals).
-Checks 3, 4 and 7 are reported, not failures. Still to come: example rows (M1), law status and
-orphaned corrections (M5).
+Check 8 (law status) writes reports/law_status.csv, whose note the export repeats in its last
+column. Checks 3, 4 and 7 are reported, not failures. Still to come: orphaned corrections (M5).
 """
 
 from __future__ import annotations
@@ -234,6 +234,7 @@ def _compare(
     cthru: dict[tuple[str, str], int],
     amount_of,
     partial_years: frozenset[str] = frozenset(),
+    matches: list[dict[str, str]] | None = None,
 ) -> tuple[int, list[dict[str, str | int]]]:
     """Compare our rows with CTHRU's amount for every fiscal year × line item that has either.
     Returns (number that match, one report row for each that doesn't).
@@ -242,7 +243,9 @@ def _compare(
     ``earlier_laws`` (a year in ``partial_years``, where CTHRU's total also holds laws approved
     before the window, and ours is below it), ``missing_in_data`` (CTHRU has money and we have no
     row), ``not_in_cthru`` (we have money and CTHRU has none) or ``unexplained``. Several laws
-    touching one item isn't an explanation: CTHRU's figure is the total of all of them."""
+    touching one item isn't an explanation: CTHRU's figure is the total of all of them.
+    With ``matches``, each item that matches is appended to it (check, year, item, laws), for the
+    law status (check 8)."""
     matched, report = 0, []
     for key in sorted(set(ours) | set(cthru)):
         rows = ours.get(key, [])
@@ -250,6 +253,11 @@ def _compare(
         cthru_amount = cthru.get(key, 0)
         if our_amount == cthru_amount:
             matched += 1
+            if matches is not None:
+                laws = ";".join(sorted({r["law_key"] for r in rows}))
+                matches.append(
+                    {"check": check, "fiscal_year": key[0], "line_item": key[1], "laws": laws}
+                )
             continue
         laws = sorted({r["law_key"] for r in rows})
         if any("cthru_mismatch" in _flags(r) for r in rows):
@@ -284,6 +292,7 @@ def check_cthru(
     actions: list[dict[str, str]],
     cthru_rows: list[dict[str, str]],
     law_list: list[dict[str, str]],
+    matches: list[dict[str, str]] | None = None,
 ) -> tuple[int, list[dict[str, str | int]]]:
     """§13 check 4 (workstream E). The fiscal years of an in-scope GAA are compared in full. A
     year whose budget law is outside the window (FY2021) isn't, so it doesn't show as missing
@@ -368,6 +377,7 @@ def check_cthru(
             group([r for r in orig if r["amount_kind"] == "appropriation" and not is_ceiling(r)]),
             theirs("original_enacted"),
             amount,
+            matches=matches,
         ),
         _compare(
             "supplemental",
@@ -375,12 +385,14 @@ def check_cthru(
             theirs("supplemental") | theirs_partial,
             amount,
             frozenset(partial),
+            matches,
         ),
         _compare(
             "retained_revenue",
             group([r for r in orig if is_ceiling(r)] + [r for r in deltas if in_ceiling_group(r)]),
             theirs("retained_revenue_ceiling"),
             amount,
+            matches=matches,
         ),
     ]
     return sum(m for m, _ in parts), [row for _, rows in parts for row in rows]
@@ -472,6 +484,193 @@ def check_bond_totals(
     return matched, report
 
 
+# -- §13 check 8: law status, the note in the export's last column -----------------------------
+
+LAW_STATUS_COLUMNS = ("law_key", "status", "note")
+# Differences that carry a known reason (§13 check 4): they don't stop a law being "checked"
+EXPLAINED_STATUSES = ("flagged", "earlier_laws")
+EXCLUDES = (
+    "Excludes §2B chargebacks, interim budgets, reauthorizations, carried-over money and "
+    "transfers; federal money flagged, not counted."
+)
+
+
+def _dollars(n: int) -> str:
+    return f"${n:,}"
+
+
+def _years(keys: set[str]) -> str:
+    years = sorted(keys)
+    if not years:
+        return ""
+    return "FY" + years[0] if len(years) == 1 else "FY" + "–FY".join((years[0], years[-1]))
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n:,} {one if n == 1 else many}"
+
+
+def _is_federal_share(gap: dict, limits: dict) -> bool:
+    lim = limits.get((str(gap["law_key"]), str(gap["section"])), {})
+    share = lim.get("federal_share") or ""
+    return (
+        lim.get("federal_split") == "identified"
+        and share != ""
+        and int(gap["difference"]) == int(share)
+    )
+
+
+def law_status(
+    actions: list[dict[str, str]],
+    cthru_rows: list[dict[str, str]],
+    limits: list[dict[str, str]],
+    law_list: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """§13 check 8 (decided by Emma, 2026-11-12): one row per in-scope law with funding actions:
+    ``checked``, ``partially_checked`` or ``not_checked``, and a note that the export repeats on
+    each of the law's rows (§8 column 19).
+
+    The note states only what was checked. Budget and supplemental items are compared with CTHRU
+    exactly, to the dollar, with no tolerance (check 4): the note gives how many match, and the
+    dollar gap of those that differ. An item several laws touch is counted for each of them; when
+    it differs, the gap can't be attributed to one law, so it is counted as shared, without a
+    dollar figure. A difference with a known reason (``flagged``, ``earlier_laws``) doesn't count
+    against the law. Bond items are checked against their borrowing limits instead (check 7).
+    A law is ``checked`` when nothing compared differs without a reason, ``partially_checked``
+    when something does, and ``not_checked`` when nothing could be compared.
+    """
+    in_scope = {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+    by_law: dict[str, list[dict[str, str]]] = {}
+    for r in actions:
+        if r["law_key"] in in_scope:
+            by_law.setdefault(r["law_key"], []).append(r)
+
+    matches: list[dict[str, str]] = []
+    mismatches: list[dict[str, str | int]] = []
+    if cthru_rows:
+        _, mismatches = check_cthru(actions, cthru_rows, law_list, matches)
+    _, bond_gaps = check_bond_totals(actions, limits, law_list) if limits else (0, [])
+
+    compared: dict[str, dict[str, list]] = {}
+    for m in matches:
+        for law in str(m["laws"]).split(";"):
+            compared.setdefault(law, {"match": [], "differ": []})["match"].append(m)
+    for m in mismatches:
+        laws = [law for law in str(m["laws"]).split(";") if law]
+        for law in laws:
+            compared.setdefault(law, {"match": [], "differ": []})["differ"].append(
+                dict(m, shared=len(laws) > 1)
+            )
+    limits_by_law: dict[str, int] = {}
+    for lim in limits:
+        if lim["law_key"] in in_scope:
+            limits_by_law[lim["law_key"]] = limits_by_law.get(lim["law_key"], 0) + 1
+    limit_by_key = {(lim["law_key"], lim["section"]): lim for lim in limits}
+    gaps_by_law: dict[str, list[dict[str, str | int]]] = {}
+    for g in bond_gaps:
+        gaps_by_law.setdefault(str(g["law_key"]), []).append(g)
+
+    out = []
+    for law in sorted(by_law, key=combine._law_order):
+        rows = by_law[law]
+        sentences, problem, anything = [], False, False
+        operating = [r for r in rows if r["funding_action"] != "CAP"]
+        capital = [r for r in rows if r["funding_action"] == "CAP"]
+        if operating and capital and all(r["amount"] in ("", None) for r in operating):
+            operating = []  # only wording changes beside the bond items: nothing to say
+        if operating:
+            money = [r for r in operating if r["amount"] not in ("", None)]
+            first = (
+                f"{_plural(len(money), 'row', 'rows')} with an amount, net new "
+                f"{_dollars(combine.operating_total(operating))}"
+            )
+            seen = compared.get(law, {"match": [], "differ": []})
+            n_match, differ = len(seen["match"]), seen["differ"]
+            if n_match or differ:
+                anything = True
+                years = _years({str(m["fiscal_year"]) for m in seen["match"] + differ})
+                total = n_match + len(differ)
+                explained = [d for d in differ if d["status"] in EXPLAINED_STATUSES]
+                own = [d for d in differ if d not in explained and not d["shared"]]
+                shared = [d for d in differ if d not in explained and d["shared"]]
+                if not differ and total == 1:
+                    first += f"; the 1 item compared matches CTHRU {years} (difference $0)"
+                elif not differ:
+                    first += f"; all {total:,} items compared match CTHRU {years} (difference $0)"
+                else:
+                    compared_items = _plural(total, "item compared", "items compared")
+                    first += f"; {n_match:,} of {compared_items} match CTHRU {years}"
+                parts = []
+                if own:
+                    gap = sum(abs(int(d["difference"])) for d in own)
+                    parts.append(
+                        f"{_plural(len(own), 'item differs', 'items differ')} by "
+                        f"{_dollars(gap)} in total"
+                    )
+                if shared:
+                    parts.append(
+                        f"{_plural(len(shared), 'item differs', 'items differ')} but "
+                        f"{'is' if len(shared) == 1 else 'are'} shared with other laws, so the "
+                        "gap can't be attributed to this law"
+                    )
+                if explained:
+                    parts.append(
+                        f"{_plural(len(explained), 'difference has', 'differences have')} a "
+                        "known reason"
+                    )
+                if parts:
+                    first += "; " + "; ".join(parts)
+                problem = problem or bool(own or shared)
+            else:
+                first += "; no item could be compared with CTHRU"
+            sentences.append(first + ".")
+            sentences.append(EXCLUDES)
+        if capital:
+            text = (
+                f"Capital authorizations {_dollars(combine.capital_total(capital))} "
+                "(not counted in operating totals)"
+            )
+            n_limits = limits_by_law.get(law, 0)
+            differ = [g for g in gaps_by_law.get(law, []) if g["status"] != "no_limit"]
+            # a gap that is exactly the limit's identified federal share is that share (§10, New 1)
+            federal = [g for g in differ if _is_federal_share(g, limit_by_key)]
+            gaps = [g for g in differ if g not in federal]
+            if n_limits:
+                anything = True
+                n_ok = n_limits - len(differ)
+                if n_limits == 1 and not differ:
+                    text += "; the 1 borrowing limit matches its items"
+                elif not differ:
+                    text += f"; all {n_limits:,} borrowing limits match their items"
+                else:
+                    text += f"; {n_ok:,} of {n_limits:,} borrowing limits match their items"
+                if gaps:
+                    gap = sum(abs(int(g["difference"])) for g in gaps)
+                    text += (
+                        f", and {_plural(len(gaps), 'differs', 'differ')} by "
+                        f"{_dollars(gap)} in total"
+                    )
+                    problem = True
+                if federal:
+                    text += (
+                        f"; {_plural(len(federal), 'limit is', 'limits are')} below "
+                        f"{'its' if len(federal) == 1 else 'their'} items by exactly the "
+                        "identified federal share, which is left out of the capital total"
+                    )
+            else:
+                text += "; no borrowing limit of this law to compare with"
+            sentences.append(text + ".")
+        if not anything:
+            status = "not_checked"
+            lead = "Total not checked against CTHRU."
+        elif problem:
+            status, lead = "partially_checked", "Total partly checked:"
+        else:
+            status, lead = "checked", "Total checked:"
+        out.append({"law_key": law, "status": status, "note": " ".join([lead, *sentences])})
+    return out
+
+
 def _write_report(path: Path, columns: tuple[str, ...], rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -544,5 +743,14 @@ def run(ctx: Context) -> int:
         print(
             f"  bond totals: {matched} of {in_scope_limits} in-scope limits match their items, "
             f"{len(gaps)} reported in bond_totals.csv (reported, not a failure: Q11)"
+        )
+    if actions:
+        law_list = _read_rows(ctx.config_dir / "law_list.csv")
+        status = law_status(actions, cthru_rows, limits, law_list)
+        _write_report(ctx.reports_dir / "law_status.csv", LAW_STATUS_COLUMNS, status)
+        counts = {s: sum(r["status"] == s for r in status) for s in schemas.LAW_STATUSES}
+        print(
+            f"  law status: {counts['checked']} checked, {counts['partially_checked']} partly "
+            f"checked, {counts['not_checked']} not checked, in reports/law_status.csv"
         )
     return 1 if schema_problems or unread else 0
