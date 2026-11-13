@@ -1,1 +1,319 @@
 record_id,field,new_value,expected_old_value,reviewer,review_date,note
+2021-024-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-0093-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-0105-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-1970-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-1977-ORIG-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-2003-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-3234-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-3384-ORIG-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-3856-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-4417-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-6903-ORIG-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2-1599-7104-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,UMass Dartmouth College of Visual and Performing Arts facilities; catalog says Arts.
+2021-024-S2-1599-7106-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2B-1599-2040-ORIG-1,Policy area,"Debt service, reserves, and statewide finance",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2B-1599-3100-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2B-1599-3101-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S2E-1599-6152-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-024-S89-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-029-S2A-1599-1210-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-029-S2A-1599-1211-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-076-S2-1599-3384-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-076-S2A-1599-0766-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-076-S2A-1599-1214-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-076-S2A-1599-4448-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-076-S2A-1599-8910-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2-1599-6903-INC-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2020-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2021-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2022-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2023-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2024-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2025-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2026-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2027-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2028-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2029-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2030-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,"Parks, open space, farms and forests, like 1599-6075; catalog says Arts."
+2021-102-S2A-1599-2031-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2032-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2033-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2034-NEW-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2035-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2036-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2037-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2038-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2039-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2041-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2042-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2043-NEW-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,Mass Cultural Council grants to cultural organizations and artists; catalog says Economic development.
+2021-102-S2A-1599-2044-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2045-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2046-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2047-NEW-1,Policy area,Children and families,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2048-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2049-NEW-1,Policy area,Children and families,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2050-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,"Food security (farms, fisheries, food banks); catalog says Government administration."
+2021-102-S2A-1599-2051-NEW-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2052-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2053-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2054-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2055-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2056-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2057-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S2A-1599-2058-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2021-102-S61-1599-9817-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-022-S2A-1599-0080-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-022-S2A-1599-0767-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-022-S2A-1599-0768-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S2-1599-6903-INC-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S2-1599-9817-INC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S2A-1599-0766-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S2A-1599-0793-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S2A-1599-4448-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S32-1599-9817-PURP-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S45-1599-2026-PURP-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S46-1599-2026-RED-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S47-1599-2026-INC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S48-1599-2049-PURP-1,Policy area,Children and families,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S49-1599-2049-PURP-1,Policy area,Children and families,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S50-1599-2050-PURP-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,"Food security (farms, fisheries, food banks); catalog says Government administration."
+2022-042-S51-1599-2056-PURP-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S52-1599-2056-PURP-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S53-1599-2056-PURP-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S54-1599-2056-PURP-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S55-1599-2056-PURP-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-042-S56-1599-2058-PURP-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-103-S2A-1599-4195-NEW-1,Policy area,Veterans’ services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S130-1599-2058-PURP-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S131-1599-2058-PURP-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-0093-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-0105-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-0107-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,Mental illness treatment pilot in prisons and jails; catalog says Economic development.
+2022-126-S2-1599-1211-ORIG-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-1970-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-1971-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-1977-ORIG-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-2003-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-3234-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-3384-ORIG-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-3856-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-4417-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-6903-ORIG-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-7104-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,UMass Dartmouth College of Visual and Performing Arts facilities; catalog says Arts.
+2022-126-S2-1599-7106-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-7114-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2-1599-8909-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2B-1599-2040-ORIG-1,Policy area,"Debt service, reserves, and statewide finance",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2B-1599-3100-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2B-1599-3101-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-126-S2E-1599-6152-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-140-S5-1599-2031-PURP-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S171-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S172-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2-1599-0793-INC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2-1599-2051-INC-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2-1599-3384-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2-1599-4195-INC-1,Policy area,Veterans’ services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2-1599-4448-INC-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S220-1599-2023-PURP-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S221-1599-2026-PURP-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S222-1599-2026-PURP-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S223-1599-2037-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S229-1599-0026-PURP-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S230-1599-9817-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-0122-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,"Immigrant and refugee needs via the refugee office, like 1599-0925; catalog says Housing."
+2022-268-S2A-1599-1410-NEW-1,Policy area,Veterans’ services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6059-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6060-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6062-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6063-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6064-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6066-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6067-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6068-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6069-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6070-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6071-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6072-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6073-NEW-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6074-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6075-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6076-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6077-NEW-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6078-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6079-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6080-NEW-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6081-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6082-NEW-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6083-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6084-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6085-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6086-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6087-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6088-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,"Various economic development projects, like 1599-1017; catalog says Multiple."
+2022-268-S2A-1599-6089-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6090-NEW-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-6091-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2A-1599-8910-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2CI-1599-0080-PAC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2CI-1599-0768-PAC-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2CI-1599-1210-PAC-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2022-268-S2CI-1599-1211-PAC-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S2-1599-3384-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S2-1599-4448-INC-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S2A-1599-0924-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,Homeless families and individuals; catalog says Human services.
+2023-002-S2A-1599-0925-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S2A-1599-3068-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S45-1599-2051-REAUTH-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S60-1599-6063-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S61-1599-6077-PURP-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S62-1599-6088-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,"Various economic development projects, like 1599-1017; catalog says Multiple."
+2023-002-S63-1599-6089-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S64-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-002-S76-1599-6077-XFER-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-026-S2A-1599-2302-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-0093-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-0105-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-0107-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,Mental illness treatment pilot in prisons and jails; catalog says Economic development.
+2023-028-S2-1599-1211-ORIG-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-1970-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-1977-ORIG-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-2003-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-3234-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-3384-ORIG-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-3856-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-4417-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-6903-ORIG-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-7106-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2-1599-7114-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2B-1599-2040-ORIG-1,Policy area,"Debt service, reserves, and statewide finance",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2B-1599-3100-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2B-1599-3101-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S2E-1599-6152-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S73-1599-6077-PURP-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-028-S74-1599-6090-REAUTH-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S166-1599-6063-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S167-1599-6063-INC-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S168-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S169-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S170-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S174-1599-2302-PURP-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S176-1599-4448-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-0012-NEW-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-0514-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-1101-NEW-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-1214-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-2301-NEW-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-2303-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-4449-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2A-1599-8910-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-0080-PAC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-0793-PAC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-1971-PAC-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-4448-PAC-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-8909-PAC-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S2CI-1599-9817-PAC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S48-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S53-1599-2044-PURP-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S54-1599-2051-REAUTH-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S62-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S63-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S64-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S65-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2023-077-S66-1599-7104-REAUTH-1,Policy area,Education,Not classified,Emily R.,2026-11-12,UMass Dartmouth College of Visual and Performing Arts facilities; catalog says Arts.
+2023-077-S67-1599-8909-REAUTH-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-088-S2-1599-3384-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-088-S25-1599-0514-INC-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-088-S2A-1599-1213-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S165-1599-2032-PURP-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S172-1599-6090-REAUTH-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S173-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S174-1599-0026-PURP-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-0093-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-0105-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-0107-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,Mental illness treatment pilot in prisons and jails; catalog says Economic development.
+2024-140-S2-1599-1211-ORIG-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-1970-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-1977-ORIG-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-2003-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-3234-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-3384-ORIG-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-3856-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-4417-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-6903-ORIG-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-7106-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1599-7114-ORIG-1,Policy area,Education,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2B-1599-2040-ORIG-1,Policy area,"Debt service, reserves, and statewide finance",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2B-1599-3100-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2B-1599-3101-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2E-1599-6152-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S2-1599-0793-INC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S2-1599-6073-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S2-1599-9817-INC-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S20-1599-2025-PURP-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S22-1599-9817-REAUTH-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S28-1599-6077-PURP-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S29-1599-6077-PURP-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S30-1599-6077-PURP-1,Policy area,"Arts, culture, and recreation",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-206-S31-1599-6084-PURP-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S120-1599-4448-NEW-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2-1599-0026-INC-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2A-1599-0640-NEW-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2A-1599-1214-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2A-1599-6263-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2A-1599-8910-NEW-1,Policy area,Public safety and corrections,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2CI-1599-1971-PAC-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2CI-1599-4448-PAC-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S2CI-1599-6903-PAC-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S32-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S42-1599-6063-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S43-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S44-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S54-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S55-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S56-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S57-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S58-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S59-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-248-S60-1599-0026-INC-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-001-S2A-1599-2625-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-001-S6-1599-1213-PURP-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-0026-ORIG-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-0093-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-0105-ORIG-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-1970-ORIG-1,Policy area,Transportation,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-1977-ORIG-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-2003-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-3234-ORIG-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-3384-ORIG-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-4417-ORIG-1,Policy area,Government administration and oversight,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2-1599-6903-ORIG-1,Policy area,Human services and income support,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2B-1599-2040-ORIG-1,Policy area,"Debt service, reserves, and statewide finance",Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2B-1599-3100-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2B-1599-3101-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S2E-1599-6152-ORIG-1,Policy area,Public employee pensions and benefits,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-009-S95-1599-2050-PURP-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,"Food security (farms, fisheries, food banks); catalog says Government administration."
+2025-009-S99-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-014-S2-1599-3384-INC-1,Policy area,Courts and legal services,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-014-S2A-1599-1778-NEW-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,"Senior housing (Brooke House, Mattapan); catalog says Public safety."
+2025-073-S100-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S160-1599-2625-PURP-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S2-1599-0093-INC-1,Policy area,Environment and natural resources,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S2A-1599-0300-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,Health coverage reporting rules outreach and enrollment; catalog says Human services.
+2025-073-S2A-1599-1214-NEW-1,Policy area,Health and public health,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S2CI-1599-4448-PAC-1,Policy area,Multiple,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S80-1599-6090-PURP-1,Policy area,Economic development and workforce,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S88-1599-0514-PURP-1,Policy area,Housing and homelessness,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S92-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S93-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S94-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S95-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S96-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S97-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S98-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2025-073-S99-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
