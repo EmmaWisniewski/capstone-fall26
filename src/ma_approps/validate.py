@@ -4,7 +4,8 @@ Implemented: check 1 (file formats and allowed values), the coverage check on th
 reports (a row is explained in the report's own column or in review/unread_explanations.csv,
 §7.19, Q22), check 3 (struck figures), check 4 (CTHRU comparison) and check 7 (bond totals).
 Check 8 (law status) writes reports/law_status.csv, whose note the export repeats in its last
-column. Checks 3, 4 and 7 are reported, not failures. Still to come: orphaned corrections (M5).
+column. Checks 3, 4 and 7 are reported, not failures. Still to come: orphaned corrections
+(task list, docs/OVERVIEW.md §5).
 """
 
 from __future__ import annotations

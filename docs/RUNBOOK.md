@@ -1,20 +1,10 @@
 # Runbook: adding a new year of laws
 
-*To do (Decision Log, 2026-11-11): future users, such as staff at the State Auditor's office, won't have
-Claude Code. They'll run one command in the terminal. This runbook must be rewritten so it doesn't rely
-on Claude Code or the **Say:** lines below. The full list of re-run to-dos is on the M6 row of the
-Status Board (DESIGN §21).*
-
-*For a future group that wants to add the next year's laws to the dataset. Written in plain
-language for readers who are new to programming. You'll work through Claude Code, as the
-fall 2026 group did; the **Say:** lines are things you can type to it. If this runbook and
-[`DESIGN.md`](DESIGN.md) disagree, DESIGN is correct, and please fix the runbook.*
-
-*Status: first draft (workstream A, 2026-11-07; updated 2026-11-11 after Tierney's review). Steps
-1–4 describe stages that are built and merged. Step 5 waits on workstream E (the `cthru` stage is
-merged, #21). Step 6's labels part is written (workstream D, 2026-11-12, without **Say:** lines);
-its `combine` and `export` parts are still placeholders. Milestone M6 is a test of this
-runbook: someone who didn't write it follows it on the 2026 laws and lists what broke.*
+*For an analyst at the State Auditor's office adding a new year of laws to the dataset, without
+Claude Code. This runbook is being rewritten for that reader by 11 December 2026 (see the task list
+in [`OVERVIEW.md`](OVERVIEW.md) §5); until then, some steps still assume Claude Code (the **Say:**
+lines) and steps 5 and 6 are partly placeholders. If this runbook and [`DESIGN.md`](DESIGN.md)
+disagree, DESIGN is correct, and please fix the runbook.*
 
 Each step has three parts: **what to do**, **what to check**, and **if something's wrong**.
 
@@ -23,8 +13,7 @@ Each step has three parts: **what to do**, **what to check**, and **if something
 ## 0. Before you start
 
 **What to do**
-1. Read [`OVERVIEW.md`](OVERVIEW.md) (15 minutes) and the first half of
-   [`WORKFLOW.md`](WORKFLOW.md) (how branches, commits and pull requests work).
+1. Read this runbook through once.
 2. Set up your computer:
    > **Say:** "Set up this repo for me following the Quickstart in README.md, and run the tests."
 3. **Replace the contact email.** The program tells malegislature.gov who is downloading, using
@@ -57,7 +46,7 @@ decision. The program's own run takes minutes.
 - decide with your group whether the dataset's **approval window** (`approved_from`,
   `approved_to`) grows to include the new year. The capital file's name (`…_cy2021_2025.csv`)
   follows the window automatically; check that the main file's name does too. That's one of the
-  things M6 is meant to find.
+  things the re-run test on the 2026 laws (task list, `OVERVIEW.md` §5) is meant to find.
 
 **What to check:** nothing else in the code mentions a year. The program is meant to have no
 years written into it (CLAUDE.md, "Nothing may be hard-coded to 2021–2025"). If you find one,
@@ -198,14 +187,14 @@ borrowing the survey had missed; spending end dates that differ by section).
 **If something's wrong**
 - **A difference with no explanation:** read the law around the items and the borrowing section.
   Record what you find in `review/research_log.md`.
-- **A new kind of borrowing or wording:** open an issue for workstream A's `read_bonds`, with the
+- **A new kind of borrowing or wording:** open an issue about `read_bonds`, with the
   law and section.
 
 ---
 
 ## 5. Annual budgets from the Comptroller (`cthru` stage)
 
-*To be written by workstream E (the `cthru` stage is merged, #21). It should cover: running it,
+*Still to be written (task list, `OVERVIEW.md` §5; the `cthru` stage is merged, #21). It should cover: running it,
 the dated snapshot it saves, and how to read its comparison with the law text.*
 
 ---
@@ -215,7 +204,7 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 *The `combine` and `export` parts are still to be written. They should cover: running them;
 CTHRU mismatches and bond-limit differences; where fixes go (`review/corrections.csv` for one-row
 fixes, `review/research_log.md` for reasoning). Never edit a generated file by hand. The labels
-part below is written (workstream D, 2026-11-12).*
+part below is written (2026-11-12).*
 
 ### Labels and policy areas (`label` stage)
 
@@ -345,7 +334,7 @@ it contains a comma: `"Arts, culture, and recreation"`.
 
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
-- update the Status Board (§21) and the tracker in OVERVIEW §5;
+- update the task list in `OVERVIEW.md` §5;
 - share the work as a pull request (WORKFLOW §2, Step 8).
 
 ---

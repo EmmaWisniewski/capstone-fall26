@@ -15,7 +15,7 @@ from pathlib import Path
 
 from ma_approps.context import Context
 
-# (stage name, module, workstream owner) in DESIGN §6 order. "all" = Putting it together.
+# (stage name, module, workstream owner) in DESIGN §6 order.
 STAGES = (
     ("laws", "ma_approps.laws", "A"),
     ("cthru", "ma_approps.cthru", "E"),
