@@ -12,32 +12,33 @@ The student wants this work checked, documented for teammates and shared. Keep e
 - Summarize in plain words what changed and why, and list the files.
 - Flag anything that doesn't belong in a commit: files under `data/`, `reports/` or `review/review_queue.csv`, keys or passwords. Leave them out.
 - If some changes aren't part of this task, say so and offer to leave them out (changes from steps 2–3 belong in it). Small, single-purpose pull requests are easier for teammates to follow.
-- If you're on `main`, make a branch first (letter plus a few words, e.g. `d/bond-policy-areas`).
+- If you're on `main`, make a branch first (the kind of work plus a few words, e.g. `check/random-review`).
 
-## 2. No new hand steps for future re-runners
-The goal is a program someone at the State Auditor's office can re-run with one terminal command and the runbook's checklist, without Claude Code (CLAUDE.md). Check whether this change adds anything they'd have to do by hand each year, such as:
+## 2. No new hand steps for the analyst
+Next year an analyst at the State Auditor's office, who isn't a programmer and won't have Claude Code, clones the repo and follows the runbook (CLAUDE.md). Check whether this change adds anything they'd have to do by hand each year, such as:
 - editing code
 - editing settings that could be worked out automatically
 - using Claude Code
+- extra steps or commands beyond what the runbook already asks
 - making a judgement the runbook doesn't explain
 
-If it does, say so plainly. Then either automate the step in this pull request (if it's small) or add it to the runbook's checklist (step 3). If neither fits now, add it to the re-run to-dos on the M6 row of the Status Board. If this change clears one of those to-dos, remove it from the list.
+If it does, say so plainly. Then either automate the step in this pull request (if it's small) or add it to the runbook (step 3). If neither fits now, add a row to the "Re-run and documentation" table of the task list (`docs/OVERVIEW.md` §5). If this change finishes one of those rows, mark it ☑.
 
 ## 3. Update the docs, in this pull request
 The docs should change in the same pull request as the work they describe, so `main` never claims something that hasn't arrived yet.
 
 **Handoff notes for this task.** Teammates will pick up where this left off, and there are no sign-offs to catch gaps. Make sure the docs tell the next person:
-- **Status Board** (DESIGN §21): this item's row says what's done, what's left and anything surprising.
-- **`docs/OVERVIEW.md` §5** if a milestone or workstream changed state.
-- **Decision Log** (§20) and **Open Questions** (§19) if anything was decided or newly asked. Record decisions as decided, not "pending sign-off".
+- **The task's row in the task list** (`docs/OVERVIEW.md` §5): its status, and notes saying what's done, what's left and anything surprising. Add a row for any new task this work turned up, and tick any deadline checklist item it finishes.
+- **Decision Log** (DESIGN §20) and **Open Questions** (§19) if anything was decided or newly asked. Record decisions as decided, not "pending sign-off", and make each one durable: say what rule the code now follows (or which fix-file row handles a one-off), so next year's run needs no one to decide it again. Add an open question only if it has an instance in the data and changes the file (CLAUDE.md, "Ambiguities").
 - **`docs/RUNBOOK.md`** if the steps to run a stage changed.
 - If the work affects a piece a teammate will pick up, say plainly what they need to know.
 
 **Every doc this change affects.** (`/start-task` already checked that `main`'s docs were current, so look only at what this change touches.) Go through the diff (the list of changed lines) and check each doc that describes something it changed:
 - file formats or allowed values: DESIGN §7/§9 and `schemas.py`
+- export columns, allowed values, counting rules or flags: `docs/CODEBOOK.md` (once it exists)
 - counting rules (§10) or parsing patterns (§11)
-- how to run a stage: README and `docs/RUNBOOK.md`
-- plain-language guides in `docs/plain-language/` and `docs/OVERVIEW.md`
+- how to run a stage, or setup: README and `docs/RUNBOOK.md`
+- how the program works, in plain words: `docs/OVERVIEW.md`
 - the to-do items on GitHub (`gh issue list`): if this pull request finishes one, note it for the description (step 6) so it closes on merge
 
 List any doc that still describes the old behaviour, and fix it in this pull request. If everything is covered, say so in one line.
@@ -58,7 +59,7 @@ Show the final file list and a one-line commit message, and get the student's ye
 - Description, in plain words:
   - what changed
   - how it serves the goal: a more complete or correct file, or an easier re-run
-  - any new hand step it added to the runbook or the re-run to-dos
+  - any new hand step it added to the runbook or to the task list's "Re-run and documentation" rows
   - what's left or what a teammate needs to know
   - any docs fixed along the way, and `Closes #N` for any to-do item it finishes
   - the check results

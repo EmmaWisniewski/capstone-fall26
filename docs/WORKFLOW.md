@@ -27,11 +27,11 @@ The project has two **commands** (Claude Code calls them "skills"). Each one is 
 
 | Command | When | What Claude does with you |
 |---|---|---|
-| **`/start-task`** | When you want to begin a task, or ask what to work on | Steps 1–6: works out who you are, to suggest work in your workstream; gets the latest `main`, or picks your unfinished branch back up; offers to merge finished pull requests and delete branches that are already merged; checks `main`'s docs are up to date and offers to fix them there; finds the most important unfinished task (or checks the one you name); checks nobody is already doing it; makes a branch and proposes a plan |
-| **`/finish-task`** | When the task is done | Steps 7 and 8: shows what changed; checks it doesn't add a yearly hand step for future re-runners; writes handoff notes for teammates and checks every doc your change affects is updated; runs the automatic checks; commits; pushes; opens the pull request; switches your computer back to `main` |
+| **`/start-task`** | When you want to begin a task, or ask what to work on | Steps 1–6: gets the latest `main`, or picks your unfinished branch back up; offers to merge finished pull requests and delete branches that are already merged; checks `main`'s docs are up to date and offers to fix them there; finds the most pressing unfinished task in the task list (`OVERVIEW.md` §5), or checks the one you name; checks nobody is already doing it; makes a branch and proposes a plan |
+| **`/finish-task`** | When the task is done | Steps 7 and 8: shows what changed; checks it doesn't add a yearly hand step for the analyst who re-runs it next year; updates the task list and writes handoff notes for teammates and checks every doc your change affects is updated; runs the automatic checks; commits; pushes; opens the pull request; switches your computer back to `main` |
 
 Good to know:
-- **You can name your task after the command,** e.g. `/start-task bond policy areas`. Without one, Claude recommends a task.
+- **You can name your task after the command,** e.g. `/start-task random-row review`. Without one, Claude recommends a task.
 - **Claude still asks before anything important.** It waits for your yes before merging a pull request, before starting to edit, and before committing. Each command reports in a few plain sentences at each step, so you can stop it or change direction.
 - **`/start-task` may start on its own** if you just ask "what should I work on?". **`/finish-task` only runs when you type it**, so Claude never commits or opens a pull request unless you asked.
 - **Two docs checks, one at each end.** `/start-task` makes sure `main`'s docs describe what's actually on `main`, and fixes them there after your yes. `/finish-task` makes sure your change updated every doc it affects. Those updates go in your pull request, so the docs and the work they describe arrive on `main` together.
@@ -65,21 +65,21 @@ Then, for each PR:
 
 ### Step 3: Make sure docs are up to date
 > **Say:** "Check whether our project documents still match the work that's been finished: the
-> progress tracker, the status board, the open questions, the runbook, and the to-do items on GitHub.
+> task list and deadlines in OVERVIEW §5, the open questions, the runbook, and the to-do items on GitHub.
 > List anything that's out of date and suggest fixes. Don't change anything yet."
 
 Docs fixes shouldn't wait for a review. Once you agree with the fixes:
 > **Say:** "Make these fixes directly in the group's shared version and upload them."
 
 ### Step 4: Choose the task that matters most
-Pick the next open task that most directly moves us toward the final goal, the released dataset.
-> **Say:** "Look at our milestones, the progress tracker, the to-do items on GitHub, and the changes
-> waiting for review. What unfinished task matters most for getting our final dataset done? If it's in
-> my area, or nobody has taken it, explain it to me."
+Pick the open task that matters most for the nearest deadline (the task list in `OVERVIEW.md` §5).
+> **Say:** "Look at the deadlines and the task list in OVERVIEW §5, the to-do items on GitHub, and the
+> changes waiting for review. Which unfinished task that nobody is on matters most right now? Explain
+> it to me."
 
 ### Step 5: Start a separate copy for this task (make a branch)
-Claude names it with your workstream letter and a few words, like `a/bond-sample` or
-`b/paragraphs`. Use **one branch per task**, kept small: roughly a day or two of work.
+Claude names it for the kind of work plus a few words, like `check/random-review` or
+`rerun/settings`. Use **one branch per task**, kept small: roughly a day or two of work.
 > **Say:** "Start a new branch for this task."
 
 ### Step 6: Plan the change, then make it
@@ -173,7 +173,7 @@ What Claude checks:
 - ☐ The changes match what the description says.
 - ☐ No generated files were edited by hand (`data/`, `reports/`, `review/review_queue.csv`).
 - ☐ No new or renamed columns or allowed values unless `DESIGN.md` §7/§9 and `schemas.py` were updated too.
-- ☐ The tracker in `OVERVIEW.md` or DESIGN §21 is updated if a milestone changed.
+- ☐ The task's row in the task list (`OVERVIEW.md` §5) is updated.
 
 If it's fine, merge it. If something's wrong, have Claude fix it and then merge it, and leave a
 short comment saying what you changed (Step 2).

@@ -4,10 +4,10 @@ A line-item dataset of every Massachusetts state appropriation in laws approved
 2021-01-01 → 2025-12-31.
 
 ## Quick links
-- [`docs/OVERVIEW.md`](docs/OVERVIEW.md): how the program works, who started what, and where things stand
+- [`docs/OVERVIEW.md`](docs/OVERVIEW.md): what the project is, how the program works, and what's left before 11 Dec
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md): working with Claude Code and git (branches, commits, pull requests)
 - [`docs/DESIGN.md`](docs/DESIGN.md): the full design and source of truth
-- [`docs/RUNBOOK.md`](docs/RUNBOOK.md): adding a new year of laws (for future groups; first draft)
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md): re-running the program each year (for the State Auditor's office analyst; being rewritten)
 
 ## Quickstart
 
@@ -23,7 +23,6 @@ If `pytest` passes but `python -m ma_approps` says `No module named ma_approps`,
 `.venv` hidden and Python 3.13+ skips hidden `.pth` files. Fix it with `chflags -R nohidden .venv`.
 
 Run stages with `python -m ma_approps run --stage {laws…validate|all} [--law 2023-28] [--offline]`.
-Unimplemented stages are skipped with a message.
 
 ## Where things live
 

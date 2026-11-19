@@ -151,3 +151,40 @@ row. 1993 ch. 52 predates the Legislature's API, so no reader can read it (its t
 item its starting amount: `combine` leaves it out of the funding actions because 1993-52 is
 reference-only, and uses it in the running amounts, so 2024 ch. 150 §60, which replaces the item at
 the same $50,000,000, becomes a `CAP` row of $0 (2026-11-06 decision; Q26, decided 2026-11-11, keeps a restated bond item as `CAP` $0, labeled "New" and "One-time").
+
+## How the data was made: notes moved from the Status Board
+Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
+dataset were built that aren't recorded elsewhere; counts are as of the date given.
+
+- **Policy-area catalog** (`config/line_item_catalog.csv`, Emily R., 2026-11-07): 1,173 line items at
+  first. 259 lines from mixed departments and flagged exceptions were decided by hand; 914 were
+  generated from the department table and marked `department list (automatic)`. A random 46 of those
+  (5%) were spot-checked and 2 changed (7008-0250 → Arts; 2511-0103 → Government administration); 18
+  more changed after Emma's review (14 jail addiction-treatment lines → Health; 3 elder housing lines
+  and 7503-0101 → Housing), leaving 850 marked automatic. 124 1599 reserves are `label_every_year`.
+  The 2026-11-12 review decided 89 more lines by hand (72 operating lines in mixed departments or with
+  no CTHRU department, mostly §2D federal grants; 17 bond items), for 1,262 in all.
+- **Labels on real data** (2026-11-12): 8,307 rows; policy area from the catalog 5,240, the department
+  2,704, a rule 45; all 318 rows left were 1599 reserves, each decided by Emily R. in
+  `review/corrections.csv`. 10 reserve lines (17 rows) differ from the catalog's usual area because
+  1599 numbers are reused for other purposes (e.g. 1599-1778: senior housing, not a reentry program).
+- **Agency fix** (PR #65, 2026-11-12): headings shown in capitals only by the web page's styling were
+  missed, so 142 rows had the agency printed above them; fixed in `paragraphs.py`. No amount, total,
+  row count or policy area changed. Two misprinted headings in the laws ("XECUTIVE" in 2024-140,
+  "ENVIROMENTAL" in 2022-126) are fixed by 12 rows in `review/corrections.csv`.
+- **`config/funds.csv`** (2026-11-02): 24 funds with CTHRU fund numbers; 5 federal (General Federal
+  Grants, Federal COVID-19 Response, Coronavirus Relief, and the ARPA-filled Broadband Innovation and
+  Behavioral Health trust funds), per the partner's Q1 rule.
+- **Law list review** (Emma, 2026-11-03): all 52 rows then on the list reviewed; each law's note is in
+  the `notes` column of `config/law_list.csv`.
+- **Hand-checked expected rows** (`tests/samples/expected/`): 14 amendment rows from 2023-77, 2021-35
+  and 2023-15 (Emily H., 2026-11-08); 18 item rows from 2025-3, 2023-77, 2023-28 and 2024-140
+  (Tierney); all 16 bond-sample line items checked against the official text (Emma, 2026-10-29).
+- **Bond laws** (2026-11-06): on all downloaded bond laws, 191 items and 47 borrowing limits, 0 unread;
+  identified federal shares $7,470,657,157 (2020-383 §32, 2022-176 §41 and §47); the split is `unknown`
+  for 2020-383 §34, 2021-15 §6, 2022-176 §48 and 2024-139 §4. 2020-383 totals $16,229,698,500 after
+  leaving out its 2 pocket-vetoed items.
+- **Amendments** (Emily H.): every `read_amendments` row on the six samples was checked against the law
+  text (2026-11-04). On all 58 law-list laws (2026-11-08), the struck-figure check found no mismatches.
+- **Annual rows** (2026-11-11): the rows equal CTHRU's total `original_enacted` to the dollar for FY2023
+  to FY2026; FY2022 is $300,000,000 lower because 1599-9817 is counted once, through 2021-102 §61.

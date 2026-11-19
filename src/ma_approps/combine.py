@@ -308,7 +308,7 @@ def amendment_rows(
     cthru: list[Mapping[str, str]] = (),
 ) -> list[dict[str, Any]]:
     """Funding-action rows (§7.7) for what in-scope laws' outside sections do (amendments_raw),
-    in source order (Combine-Export-Work-Split.md, C).
+    in source order (workstream C; see "Shared core" below).
 
     - The funding action follows §11.3 (``AMENDMENT_ACTIONS``, ``_change``). An amount comes from
       the item's running amount (``amendments`` -> ``amounts``, §5.5), so a replaced item counts
@@ -651,7 +651,7 @@ def supplemental_rows(
     session_law_url: str,
 ) -> list[dict[str, Any]]:
     """Funding-action rows (§7.7) for the items of in-scope supplemental, surplus and other laws,
-    in source order (Combine-Export-Work-Split.md, B).
+    in source order (workstream B; see "Shared core" below).
 
     - Each section's action comes from its preamble (``SUPPLEMENTAL_SECTIONS``). §2 adds "to any
       amounts previously appropriated", so its items are increases (``INC``) of items that already
@@ -734,7 +734,7 @@ def federal_grant_rows(
     items: list[Mapping[str, str]], law_list: list[Mapping[str, str]], session_law_url: str
 ) -> list[dict[str, Any]]:
     """Funding-action rows (§7.7) for the §2D federal grant items of in-scope GAAs, in source
-    order (Combine-Export-Work-Split.md, B; Mario's rules at the top of this file).
+    order (workstream B; see "Shared core" below; Mario's rules at the top of this file).
 
     CTHRU has no §2D items, so the amount is the law's printed one (``amount_source = law_text``).
     The money is federal (Q1): ``federal_share`` 1, flagged ``federal``, never counted. CTHRU can't
@@ -839,7 +839,7 @@ def annual_rows(
     session_law_url: str,
 ) -> list[dict[str, Any]]:
     """Original-appropriation rows (``ORIG``, §7.7) for the items of in-scope GAAs, in source
-    order (Combine-Export-Work-Split.md, E; Mario's rules at the top of this file).
+    order (workstream E; see "Shared core" below; Mario's rules at the top of this file).
 
     - In a section CTHRU covers (§2, §2E, §2F), the amount is CTHRU's ``original_enacted`` for that
       fiscal year and item (``amount_source = cthru``), which already reflects vetoes; the law's
@@ -995,12 +995,12 @@ def _law_type(laws: Mapping[str, Mapping[str, str]], item: Mapping[str, str]) ->
 
 # -- Shared core (workstream A; DESIGN §5, §7.6–§7.8, §9.6, §10) ------------------------------
 #
-# Each piece of the work split (docs/Combine-Export-Work-Split.md) is one row builder: a function
-# taking the loaded inputs (``load_inputs``) and the settings, and returning funding-action rows
-# (§7.7) in source order. It may leave ``record_id`` and ``counts_toward_total`` empty: the core
-# sets both. A row may also carry two extra keys for the fund splits, which aren't written:
-# ``fund_splits_raw`` (items_raw's ``Fund name:percent;…``) and ``fund_numbers`` (CTHRU's
-# ``;``-separated fund numbers). A row without either uses ``section_fund_default`` if it has one.
+# Each piece is one row builder: a function taking the loaded inputs (``load_inputs``) and the
+# settings, and returning funding-action rows (§7.7) in source order. It may leave ``record_id``
+# and ``counts_toward_total`` empty: the core sets both. A row may also carry two extra keys for
+# the fund splits, which aren't written: ``fund_splits_raw`` (items_raw's ``Fund name:percent;…``)
+# and ``fund_numbers`` (CTHRU's ``;``-separated fund numbers). A row without either uses
+# ``section_fund_default`` if it has one.
 
 INPUTS = {
     "law_list": ("config", "law_list.csv"),
@@ -1065,7 +1065,7 @@ def _bond_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> li
     )
 
 
-# One entry per piece of the work split; ``None`` until its owner adds the builder.
+# One entry per row builder; ``None`` until the builder is written.
 def _supplemental_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
     return supplemental_rows(
         inputs["items_raw"],
