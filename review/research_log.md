@@ -235,6 +235,29 @@ figure stays (CTHRU first) and the row is flagged `cthru_mismatch`. Unexplained,
 - **FY2026: 48 items ($1,710,130,666) CTHRU has and we don't.** Supplementals approved in 2026, after
   the window (`approved_to` 2025-12-31). A known limitation, not an error.
 
+## The 8 borrowing limits whose items don't add up to them (Q11)
+
+*Tierney, 2026-11-21; `reports/validation/bond_totals.csv` (§13 check 7), all 70 laws.* 39 of 47
+in-scope borrowing limits equal the total of their items. The other 8, by cause:
+
+| Limit | Items vs limit | Why |
+|---|---|---|
+| 2020-383 §32 (§2) | $4,400,000,000 vs $880,000,000 | The law identifies the $3,520,000,000 difference as the federal share (`federal_split = identified`); the capital total leaves it out (§10, New 1). |
+| 2022-176 §41 (§2) | $2,812,457,157 vs $611,800,000 | Same: identified federal share of $2,200,657,157. |
+| 2022-176 §47 (§2G) | $3,500,000,000 vs $1,750,000,000 | Same: identified federal share of $1,750,000,000. |
+| 2020-383 §35 (§2D) | $760,000,000 vs $790,000,000 | **Veto.** The Governor reduced 6621-2117 from $400,000,000 to $370,000,000; the limit kept the passed figure. |
+| 2020-383 §38 (§2G) | $450,000,000 vs $700,000,000 | **Pocket veto** of 6720-2127 (Allston Multimodal Project, $250,000,000). |
+| 2020-383 §40 (§2I) | $2,165,698,500 vs $2,190,698,500 | **Pocket veto** of 6921-2110 (transportation management association grants, $25,000,000). |
+| 2022-176 §48 (§2H) | $25,501,000 vs $8,300,000 | **Unexplained by the law.** One item, 6622-2214 (mobility assistance, intercity bus); it allows Infrastructure Investment and Jobs Act projects but states no federal share. |
+| 2024-139 §4 (§2A, §2B) | $1,455,000,000 vs $1,055,000,000 | **Unexplained by the law.** Five of the six items say federal reimbursements may come in, but none states an amount, and there are no vetoes. |
+
+Decision (Tierney): the Q11 rule stands. The capital total keeps the items' amounts and each gap is
+flagged (the capital file's "Limit difference note"). The veto and federal-share gaps need nothing
+more. The two unexplained gaps ($17,201,000 and $400,000,000) are a known limitation for the
+codebook: the law authorizes more spending than borrowing and doesn't say how the rest is paid
+(possibly federal reimbursement, or items meant to overlap; §1 of each law lets amounts be shifted
+between projects). Their federal split stays `unknown` (the federal-money task's part 2).
+
 ## How the data was made: notes moved from the Status Board
 Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
 dataset were built that aren't recorded elsewhere; counts are as of the date given.
