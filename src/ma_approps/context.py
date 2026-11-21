@@ -24,6 +24,7 @@ class Context:
     interim_dir: Path | None = None
     output_dir: Path | None = None
     reports_dir: Path | None = None
+    review_queue: Path | None = None  # generated (§7.12); see __post_init__
     law: str | None = None  # restrict a run to one law_key
     offline: bool = False  # never touch the network; read only from raw_dir
     settings: dict[str, Any] = field(default_factory=dict)
@@ -31,8 +32,15 @@ class Context:
     def __post_init__(self) -> None:
         self.raw_dir = self.raw_dir or self.root / "data" / "raw"
         self.interim_dir = self.interim_dir or self.root / "data" / "interim"
-        self.output_dir = self.output_dir or self.root / "data" / "output"
+        default_output = self.root / "data" / "output"
+        self.output_dir = self.output_dir or default_output
         self.reports_dir = self.reports_dir or self.root / "reports"
+        # The queue sits in review/ for a normal run. A run that writes its files elsewhere (every
+        # test) keeps the queue with them, so it never overwrites the real one.
+        if self.review_queue is None:
+            in_review = self.output_dir == default_output
+            folder = self.root / "review" if in_review else self.output_dir
+            self.review_queue = folder / "review_queue.csv"
         if not self.settings:
             self.settings = load_settings(self.root / "config" / "settings.toml")
 
