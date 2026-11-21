@@ -22,6 +22,7 @@ data/output/*
 !data/output/.gitkeep
 reports/*
 !reports/.gitkeep
+review/review_queue.csv
 
 # Secrets
 .env
