@@ -444,9 +444,10 @@ SCHEMAS["raw_manifest"] = _cols(
     Col("fetched_at", required=True),  # UTC, YYYY-MM-DDTHH:MM:SSZ
 )
 
-# §7.12 review/review_queue.csv: fixed leading columns, then free context columns
+# §7.12 review/review_queue.csv: fixed leading columns, then free context columns. record_id is
+# blank for a problem with no row in the files (e.g. money CTHRU has and we don't)
 REVIEW_QUEUE_LEADING = _cols(
-    Col("record_id", required=True),
+    Col("record_id"),
     Col("reason", required=True),
     Col("priority", "int"),
 )

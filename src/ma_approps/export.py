@@ -4,8 +4,9 @@
 Owner: everyone (Putting it together), coordinated by E. Writes
 data/output/ma_appropriations_cy2021_2025.csv (schemas.EXPORT_COLUMNS, sorted by record_id).
 The last column, "Source or calculation for total", is each law's note from
-``validate.law_status`` (§13 check 8). Still to build: the extended export, the data dictionary and
-review/review_queue.csv.
+``validate.law_status`` (§13 check 8). It also writes review/review_queue.csv, every row that
+needs a person (§7.12, ``review_queue``). Still to build: the extended export and the data
+dictionary.
 
 The capital file (workstream A, Q5/Q16) is built here already: ``capital_rows`` and
 ``write_capital_file``. ``main_columns`` fills the 20 main-export columns from a funding-action row,
@@ -15,6 +16,7 @@ so the main file can reuse it and both files say the same thing.
 from __future__ import annotations
 
 import csv
+from collections import Counter
 from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
@@ -311,8 +313,186 @@ def write_main_file(ctx: Context, notes: Mapping[str, str] | None = None) -> Pat
     return path
 
 
+# -- review/review_queue.csv (§7.12, §14) --------------------------------------------------------
+
+QUEUE_COLUMNS = (
+    *(c.name for c in schemas.REVIEW_QUEUE_LEADING),
+    "law_key",
+    "fiscal_year",
+    "line_item",
+    "detail",
+    "where_to_record",
+)
+# reason -> (priority, where a person records the decision). 1 changes a total, chart or flag.
+REASONS = {
+    "policy_area": (
+        1,
+        "config/line_item_catalog.csv (review/corrections.csv for a 1599 reserve)",
+    ),
+    "cthru_mismatch": (1, "a fix, or the explanation in review/research_log.md"),
+    "unknown_fund": (1, "config/funds.csv"),
+    "amendment_check": (2, "review/corrections.csv, or review/research_log.md"),
+    "borrowing_limit": (2, "review/research_log.md"),
+    "combine_problem": (3, "depends on the problem; review/research_log.md"),
+}
+UNKNOWN_FUND = "fund not in config/funds.csv"
+
+
+def review_queue(
+    exported: list[Mapping[str, Any]],
+    actions: list[Mapping[str, str]],
+    cthru_rows: list[dict[str, str]],
+    law_list: list[dict[str, str]],
+    limits: list[dict[str, str]],
+    amendments: list[Mapping[str, Any]],
+    problems: list[Mapping[str, str]],
+) -> list[dict[str, Any]]:
+    """Every row of the main and capital files (``exported``, corrections applied) that needs a
+    person, one line per row and reason, most urgent first (§7.12). Built from the checks the
+    program already runs, so it is never out of date:
+
+    - ``policy_area``: the row still has no policy area.
+    - ``cthru_mismatch``: our amount for that fiscal year and item differs from CTHRU's and isn't
+      flagged or explained (``validate.check_cthru``).
+    - ``unknown_fund``: the law names a fund missing from config/funds.csv, so the program can't
+      tell whether it is federal (``combine_problems.csv``); ``combine_problem`` for the rest.
+    - ``amendment_check``: an amendment whose struck figure didn't check out (Q21, Q27).
+    - ``borrowing_limit``: a bond item under a borrowing limit its items don't add up to (Q11).
+
+    A problem with no row in the files (money CTHRU has and we don't, a limit with no items)
+    gets a blank ``record_id``; ``law_key`` and ``line_item`` say where to look."""
+    in_files = {str(r["Record ID"]): r for r in exported}
+    by_id = {r["record_id"]: r for r in actions if r["record_id"] in in_files}
+    out: list[dict[str, Any]] = []
+
+    def add(reason: str, detail: str, row=None, law_key="", fiscal_year="", line_item="") -> None:
+        if row is not None:
+            law_key, fiscal_year, line_item = row["law_key"], row["fiscal_year"], row["line_item"]
+        priority, where = REASONS[reason]
+        out.append(
+            {
+                "record_id": row["record_id"] if row is not None else "",
+                "reason": reason,
+                "priority": priority,
+                "law_key": law_key,
+                "fiscal_year": fiscal_year,
+                "line_item": line_item,
+                "detail": detail,
+                "where_to_record": where,
+            }
+        )
+
+    for rid, r in in_files.items():
+        if r["Policy area"] in ("", PLACEHOLDERS["policy_area"]) and rid in by_id:
+            add("policy_area", "no policy area yet", by_id[rid])
+
+    _, mismatches = validate.check_cthru(list(actions), cthru_rows, law_list)
+    for m in mismatches:
+        if m["status"] in validate.EXPLAINED_STATUSES:
+            continue
+        fy, item = str(m["fiscal_year"]), str(m["line_item"])
+        detail = (
+            f"{m['check']}: ours ${int(m['our_amount']):,}, CTHRU ${int(m['cthru_amount']):,} "
+            f"({str(m['status']).replace('_', ' ')})"
+        )
+        rows = [
+            r
+            for r in by_id.values()
+            if r["fiscal_year"] == fy and r["line_item"] == item and r["law_key"] in m["laws"]
+        ]
+        for r in rows:
+            add("cthru_mismatch", detail, r)
+        if not rows:
+            add("cthru_mismatch", detail, fiscal_year=fy, line_item=item)
+
+    for p in problems:
+        reason = "unknown_fund" if p["problem"].startswith(UNKNOWN_FUND) else "combine_problem"
+        row = by_id.get(p["record_id"])
+        if row is not None:
+            add(reason, p["problem"], row)
+        elif not p["record_id"]:
+            add(reason, p["problem"], law_key=p["law_key"], line_item=p["line_item"])
+
+    in_scope = {r["law_key"] for r in law_list if r["role"] == "in_scope"}
+    for a in amendments:
+        # amendments in reference-only laws (read only to follow an item's amount) aren't data
+        if a["review"] != "true" or a["law_key"] not in in_scope:
+            continue
+        detail = f"§{a['section']} changes {a['target_item']}: {a['check']}"
+        if a.get("note"):
+            detail += f"; {a['note']}"
+        rows = [
+            r
+            for r in by_id.values()
+            if r["law_key"] == a["law_key"]
+            and r["section"] == a["section"]
+            and r["line_item"] == a["target_item"]
+        ]
+        for r in rows:
+            add("amendment_check", detail, r)
+        if not rows:
+            add("amendment_check", detail, law_key=a["law_key"], line_item=a["target_item"])
+
+    _, gaps = validate.check_bond_totals(list(actions), limits, law_list)
+    for g in gaps:
+        items = str(g["line_items"]).split(";") if g["line_items"] else []
+        rows = [
+            r
+            for r in by_id.values()
+            if r["funding_action"] == "CAP"
+            and r["law_key"] == g["law_key"]
+            and r["line_item"] in items
+            and (g["status"] != "no_limit" or r["section"] == g["section"])
+        ]
+        for r in rows:
+            add("borrowing_limit", str(g["note"]), r)
+        if not rows:
+            add("borrowing_limit", str(g["note"]), law_key=str(g["law_key"]))
+
+    seen, unique = set(), []
+    for q in out:
+        key = (q["record_id"], q["reason"], q["detail"], q["law_key"], q["line_item"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(q)
+    return sorted(
+        unique,
+        key=lambda q: (
+            q["priority"],
+            q["reason"],
+            q["fiscal_year"],
+            q["line_item"],
+            q["law_key"],
+            q["record_id"],
+        ),
+    )
+
+
+def write_review_queue(ctx: Context, main_path: Path, capital_path: Path) -> Path:
+    """Write review/review_queue.csv from this run's files; returns its path."""
+    rows = review_queue(
+        _read(main_path) + _read(capital_path),
+        _read(ctx.interim_dir / "funding_actions.csv"),
+        _read(ctx.interim_dir / "cthru_line_items.csv"),
+        _read(ctx.config_dir / "law_list.csv"),
+        _read(ctx.interim_dir / "bond_authorizations_raw.csv"),
+        validate.check_amendment_amounts(ctx) or [],
+        _read(ctx.reports_dir / "combine_problems.csv"),
+    )
+    path = ctx.review_dir / "review_queue.csv"
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=QUEUE_COLUMNS, lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+    counts = Counter(q["reason"] for q in rows)
+    summary = ", ".join(f"{counts[r]} {r}" for r in REASONS if counts[r]) or "nothing"
+    print(f"  review queue: {len(rows)} rows ({summary}): {path.name}")
+    return path
+
+
 def run(ctx: Context) -> int:
     notes = law_notes(ctx)
-    write_main_file(ctx, notes)
-    write_capital_file(ctx, notes)
+    main_path = write_main_file(ctx, notes)
+    capital_path = write_capital_file(ctx, notes)
+    write_review_queue(ctx, main_path, capital_path)
     return 0

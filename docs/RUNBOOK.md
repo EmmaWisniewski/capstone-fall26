@@ -204,7 +204,30 @@ the dated snapshot it saves, and how to read its comparison with the law text.*
 *The `combine` and `export` parts are still to be written. They should cover: running them;
 CTHRU mismatches and bond-limit differences; where fixes go (`review/corrections.csv` for one-row
 fixes, `review/research_log.md` for reasoning). Never edit a generated file by hand. The labels
-part below is written (2026-11-12).*
+part below is written (2026-11-12), and so is the review queue (2026-11-21).*
+
+### The review queue: everything that needs a person
+
+Every run, the `export` stage writes **`review/review_queue.csv`**: one line for each row of the
+dataset that needs a person, with the reason, most urgent first. Its last message says how many,
+e.g. `review queue: 287 rows (183 cthru_mismatch, 62 unknown_fund, …)`. Open it in Excel; don't
+edit it, because the next run rewrites it. Work through it from the top:
+
+| Reason | What it means | What to do |
+|---|---|---|
+| `policy_area` | the row has no policy area yet | see "Labels and policy areas" below |
+| `cthru_mismatch` | our amount for that year and line item differs from the Comptroller's | find why (the law, a misread, a CTHRU quirk); fix it, or write the explanation in `review/research_log.md` under the line item |
+| `unknown_fund` | the law names a fund the program doesn't know, so it can't tell whether the money is federal | add the fund to `config/funds.csv`, with `is_federal` set |
+| `amendment_check` | a change to an earlier item that didn't check out | check the law; fix the row in `review/corrections.csv`, or explain in `review/research_log.md` |
+| `borrowing_limit` | a bond item whose borrowing limit doesn't equal the total of its items | explain the gap in `review/research_log.md` |
+| `combine_problem` | anything else the program noticed | read the `detail` column |
+
+The `detail` column says what was found, and `where_to_record` says where the decision goes. A blank
+**record_id** means there's no row to fix (for example, money the Comptroller shows that no law
+in our list gave): use `law_key`, `fiscal_year` and `line_item` to find it. Re-run the program
+after your fixes: a fixed row leaves the queue. *Known gap:* a CTHRU difference, amendment or
+borrowing limit explained only in `review/research_log.md` stays listed, because the program
+doesn't read that file.
 
 ### Labels and policy areas (`label` stage)
 
@@ -228,15 +251,14 @@ and only for line items it hasn't seen before.
    re-checked every year on purpose.
 
 **What to do**
-1. Run the whole program: `python -m ma_approps run --stage all`. Among its messages, the `label`
-   stage prints a line like `labels: 8307 rows; 318 waiting for a policy-area review`. The second
-   number is how many rows still need a person.
-2. Find those rows. Open the main file (`data/output/ma_appropriations_cy….csv`) in Excel and
-   filter the **Policy area** column to **Not classified**. Do the same in the capital file
+1. Run the whole program: `python -m ma_approps run --stage all`. The `label` stage prints a line
+   like `labels: 8307 rows; 318 waiting for a policy-area review`, but corrections already in
+   `review/corrections.csv` may settle some of them. The rows that still need a person are the
+   `policy_area` lines of `review/review_queue.csv`.
+2. Find those rows: filter the queue's **reason** column to `policy_area`, and look each **record_id**
+   up in the main file (`data/output/ma_appropriations_cy….csv`) or the capital file
    (`data/output/ma_capital_authorizations_cy….csv`). **Line item**, **Agency / office** and
-   **Program / purpose** say what each one is, and **Source URL** links to the law. *(Planned:
-   `review/review_queue.csv` will list these rows with the reason, DESIGN §7.12. It isn't built
-   yet.)*
+   **Program / purpose** say what each one is, and **Source URL** links to the law.
 3. Decide a policy area for each, using the definitions in `policyareas.csv` and the rules of
    thumb below, and write the decision in the right file:
 
