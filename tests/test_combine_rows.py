@@ -216,6 +216,47 @@ def test_only_in_scope_supplemental_surplus_and_other_laws():
 # -- §2D federal grant rows ------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    "text, into_a_fund",
+    [
+        # the five decided by Tierney, 2026-11-21 (Q28)
+        ("For an operating transfer to the Commonwealth’s Pension Liability Fund, established "
+         "in subsection (e) of subdivision (8) of section 22 of chapter 32", True),
+        ("For a transfer to the Fair Housing Fund established in section 2JJJJJJ", True),
+        ("Communications Access Trust Fund Transfer", True),
+        # transfers that are spending, and still count
+        ("For an operating transfer to the Massachusetts Bay Transportation Authority to "
+         "replenish the Massachusetts Bay Transportation Authority deficiency fund", False),
+        ("Commonwealth Transportation Fund Transfer to the MBTA", False),
+        ("For an operating transfer to the Massachusetts Transportation Trust Fund established "
+         "in section 4 of chapter 6C for the construction of municipal ways", False),
+        ("For a reserve to support regional school transportation costs", False),
+    ],
+)
+def test_transfers_into_a_fund(text, into_a_fund):
+    assert combine.transfers_into_a_fund(text) is into_a_fund
+
+
+def test_a_supplemental_transfer_into_a_fund_is_a_trust_transfer():
+    pension = item("2023-77", "2A", "1595-4514", 100000000,
+                   item_text="For an operating transfer to the Commonwealth’s Pension Liability "
+                   "Fund")
+    [row] = supp([pension])
+    assert (row["section_type"], row["flags"]) == ("trust_transfer", "trust_transfer")
+    assert combine.counts_toward_total(row) is False
+
+
+def test_an_increase_to_a_federal_grant_item_is_federal():
+    # 2023-77 §2 adds to 4190-0400, a §2D federal grant item of the FY2023 GAA (Q28)
+    grant = item("2022-126", "2D", "4190-0400", 708240)
+    added = item("2023-77", "2", "4190-0400", 708240)
+    rows = [r for r in supp([grant, added]) if r["law_key"] == "2023-77"]
+    assert [(r["section_type"], r["federal_share"], r["flags"]) for r in rows] == [
+        ("federal_grants", 1.0, "federal")
+    ]
+    assert combine.counts_toward_total(rows[0]) is False
+
+
 def test_federal_grant_rows():
     laws = [GAA, law("2019-41", "gaa", role="reference_only"), SUPP]
     items = [
@@ -298,7 +339,8 @@ def test_samples_rows(sample_rows):
         sections[(r["section"], r["funding_action"], r["counts_toward_total"])] += 1
     assert sections == {
         ("2", "INC", "true"): 12,
-        ("2A", "NEW", "true"): 14,
+        ("2A", "NEW", "true"): 13,
+        ("2A", "NEW", "false"): 1,  # 1595-4514, a transfer into the Pension Liability Fund (Q28)
         ("2CI", "PAC", "false"): 57,
         ("2CII", "REAUTH", "false"): 6,
     }

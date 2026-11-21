@@ -336,6 +336,8 @@ def test_the_stage_on_the_bond_samples(root, samples_dir, tmp_path):
     for table in ("funding_actions", "fund_splits", "running_amounts"):
         assert schemas.validate_file(table, ctx.interim_dir / f"{table}.csv") == []
     _, rows = schemas.read_csv(ctx.interim_dir / "funding_actions.csv")
+    # config/manual_rows.csv applies to every run; this test is about the bond rows
+    rows = [r for r in rows if r["amount_source"] != "manual"]
     _, expected = schemas.read_csv(samples_dir / "expected" / "bond_items.csv")
     assert len(rows) == len(expected)
     assert len({r["record_id"] for r in rows}) == len(rows)
