@@ -479,7 +479,7 @@ def write_review_queue(ctx: Context, main_path: Path, capital_path: Path) -> Pat
         validate.check_amendment_amounts(ctx) or [],
         _read(ctx.reports_dir / "combine_problems.csv"),
     )
-    path = ctx.review_dir / "review_queue.csv"
+    path = ctx.review_queue
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=QUEUE_COLUMNS, lineterminator="\n")
         w.writeheader()

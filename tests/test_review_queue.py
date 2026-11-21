@@ -187,3 +187,11 @@ def test_bond_items_under_a_limit_that_does_not_add_up():
 def test_queue_starts_with_the_leading_columns_of_the_file_format():
     leading = tuple(c.name for c in schemas.REVIEW_QUEUE_LEADING)
     assert export.QUEUE_COLUMNS[: len(leading)] == leading == ("record_id", "reason", "priority")
+
+
+def test_a_run_writing_elsewhere_never_overwrites_the_real_queue(root, tmp_path):
+    from ma_approps.context import Context
+
+    assert Context(root=root).review_queue == root / "review" / "review_queue.csv"
+    test_run = Context(root=root, output_dir=tmp_path / "output")
+    assert test_run.review_queue == tmp_path / "output" / "review_queue.csv"
