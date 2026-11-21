@@ -115,6 +115,23 @@ def test_retained_revenue_ceiling():
     assert (item["amount"], item["retained_revenue_ceiling"]) == ("1175000", "1175000")
 
 
+@pytest.mark.parametrize(
+    "wording",
+    [
+        # the wordings of the FY2022-FY2026 fee-revenue items once read as vetoed (Q29)
+        "which may expend revenues not to exceed $300,503 from license fees",
+        "which may retain not more than $769,824 from registration fees",
+        "which may collect and expend not more than $1,800,000 to provide training",
+        "which may expend revenues collected up to a maximum of $1,175,000 from fees",
+        "which may expend revenues up to $248,000 collected from fees",
+    ],
+)
+def test_retained_revenue_ceiling_wordings(wording):
+    amount = wording.split("$")[1].split(" ")[0]
+    item = one(f"<p>SECTION 2.</p><p>0910-0210 For the office, {wording} ...... ${amount}</p>")
+    assert item["retained_revenue_ceiling"] == amount.replace(",", "")
+
+
 def test_headers():
     items, _ = read(
         "<p>SECTION 2.</p><p>EXECUTIVE OFFICE OF ENERGY AND ENVIRONMENTAL AFFAIRS.</p>"

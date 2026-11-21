@@ -30,7 +30,7 @@ from ma_approps.context import Context
 from ma_approps.paragraphs import ITEM_START_RE, TRAILING_AMOUNT_RE, paragraphs
 
 IMPLEMENTED = True
-READER_VERSION = "0.2.0"
+READER_VERSION = "0.2.1"
 
 # Law types read here; bonds go to read_bonds (A) and interim budgets to read_amendments (C)
 LAW_TYPES = ("gaa", "supplemental", "surplus", "other")
@@ -75,7 +75,13 @@ TYPO_AMOUNT_RE = re.compile(
 # Transportation Fund", "federal COVID-19 response fund")
 FUND_RE = re.compile(r"\bfrom the ((?:[\w'’&-]+\s+){1,8}?[Ff]und)\b")
 FY_RE = re.compile(r"fiscal year (?:ending June 30, )?(\d{4})")
-RR_CEILING_RE = re.compile(r"\bmay expend\b.{0,400}?\bnot more than \$([\d,]+)")
+# A fee-revenue item lets an agency spend what it collects, up to a limit. The laws word the limit
+# several ways: "may expend not more than $X", "may retain not more than $X", "may collect and
+# expend not more than $X", "may expend revenues not to exceed $X", "up to (a maximum of) $X" (Q29)
+RR_CEILING_RE = re.compile(
+    r"\bmay (?:collect and |retain and )?(?:expend|retain)\b.{0,400}?"
+    r"\b(?:not more than|not to exceed|up to(?: a maximum of)?)\s+\$([\d,]+)"
+)
 HEADER_MAX_LEN = 120  # "MASSACHUSETTS Commission on Lesbian, Gay, … Youth." is 92 characters
 CAPS_HEADER_MAX_LEN = 150  # long ALL-CAPS office names (2024-140 "MASSACHUSETTS COMMISSION ON …")
 

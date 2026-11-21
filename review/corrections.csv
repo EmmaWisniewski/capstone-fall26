@@ -329,3 +329,7 @@ record_id,field,new_value,expected_old_value,reviewer,review_date,note
 2025-073-S97-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
 2025-073-S98-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
 2025-073-S99-1599-0026-REAUTH-1,Policy area,General local aid,Not classified,Emily R.,2026-11-12,1599 reserve; law text matches the catalog's usual area.
+2024-140-S2-1231-1000-ORIG-1,Appropriation/change ($),"1,500,000",0,Tierney,2026-11-21,"Q29: passed over veto 30 Jul 2024 (H.4800 bill history, House roll call 151); CTHRU has no FY2025 row for 1231-1000, so the program read it as vetoed to $0."
+2024-140-S2-1231-1000-ORIG-1,Veto status,overridden,vetoed,Tierney,2026-11-21,Q29: passed over veto 30 Jul 2024 (H.4800 bill history).
+2022-126-S2-2300-0100-ORIG-1,Appropriation/change ($),"1,159,379","1,259,379",Tierney,2026-11-21,"Q29: the FY2023 GAA prints $1,159,379; CTHRU's original_enacted already includes 2022-268 §232's +$100,000, which has its own INC row, so the CTHRU figure counted it twice."
+2022-126-S2-7008-1116-ORIG-1,Appropriation/change ($),"17,217,500","17,267,500",Tierney,2026-11-21,"Q29: the FY2023 GAA prints $17,217,500; CTHRU's original_enacted already includes 2022-268 §238's +$50,000, which has its own INC row, so the CTHRU figure counted it twice."

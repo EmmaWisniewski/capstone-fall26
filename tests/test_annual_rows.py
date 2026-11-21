@@ -136,6 +136,32 @@ def test_a_fee_revenue_item_without_a_cthru_amount_takes_the_printed_ceiling():
     assert row["veto_status"] == "none"
 
 
+def test_a_fee_revenue_item_the_reader_missed_takes_cthrus_ceiling_7061_9601():
+    # "which shall expend not more than $2,300,000 … from fees": CTHRU books only a ceiling (Q29)
+    [row] = annual([item("7061-9601", 2300000)], [cthru("7061-9601", 0, ceiling=2300000)])
+    assert (row["amount"], row["amount_kind"], row["amount_source"], row["veto_status"]) == (
+        2300000,
+        "retained_revenue_ceiling",
+        "cthru",
+        "none",
+    )
+    assert flags(row) == ["retained_revenue"]
+
+
+def test_a_trust_transfer_cthru_does_not_list_keeps_its_printed_amount_1595_4512():
+    # never listed by CTHRU and never marked vetoed (Q29); transfers don't count either way
+    [row] = annual([item("1595-4512", 20000000, section="2E")], [cthru("0930-0100", 100)])
+    assert (row["amount"], row["amount_source"], row["veto_status"]) == (
+        20000000,
+        "law_text",
+        "none",
+    )
+    assert "cthru_mismatch" in flags(row)
+    marked = item("1595-4512", 20000000, section="2E", veto_kind_inline="disapproved")
+    [vetoed] = annual([marked], [cthru("0930-0100", 100)])
+    assert (vetoed["amount"], vetoed["veto_status"]) == (0, "vetoed")
+
+
 def test_a_fiscal_year_cthru_has_not_published_falls_back_to_the_printed_amount():
     [row] = annual([item("0930-0100", 6077671)], [cthru("0930-0100", 1, fy="2023")])
     assert (row["amount"], row["amount_source"]) == (6077671, "law_text")
