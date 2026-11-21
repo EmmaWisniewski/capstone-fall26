@@ -846,7 +846,8 @@ def annual_rows(
       printed amount stays in ``amount_printed``. ``veto_status`` comes from comparing the two,
       with the inline markup as a hint (``_annual_veto_status``).
     - No CTHRU amount, and the item lets an agency spend fees it collects: the law's printed ceiling
-      (``retained_revenue_ceiling``, flag ``retained_revenue``). Otherwise it was vetoed to $0.
+      (``retained_revenue_ceiling``, flag ``retained_revenue``), else CTHRU's own fee-revenue limit
+      for it (Q29). Otherwise it was vetoed to $0.
     - §2B items take the law's printed amount and are flagged ``isf_chargeback``; an item CTHRU
       books only to fund 0015 is flagged the same wherever it is printed (§10). §2E items are
       flagged ``trust_transfer``. Neither counts toward the total.
@@ -902,6 +903,19 @@ def annual_rows(
                 used.add(key)
                 amount, kind = ceiling, "retained_revenue_ceiling"
                 flags += ["retained_revenue"] + (["veto_unverified"] if hint != "none" else [])
+            elif match and int(match["retained_revenue_ceiling"] or 0):
+                # CTHRU books it as a fee-revenue limit only, in wording the reader doesn't know
+                # ("which shall expend not more than $2,300,000 … from fees", 7061-9601; Q29)
+                used.add(key)
+                amount, source = int(match["retained_revenue_ceiling"]), "cthru"
+                kind = "retained_revenue_ceiling"
+                flags.append("retained_revenue")
+            elif item["section"] == "2E" and hint == "none":
+                # a trust transfer CTHRU never lists and the law doesn't mark vetoed (1595-4512,
+                # every year; Q29): the printed amount. Transfers never count toward totals.
+                used.add(key)
+                amount = final
+                flags.append("cthru_mismatch")
             else:  # CTHRU lists every enacted item, so one missing from it was vetoed to $0
                 used.add(key)
                 amount, source, status = 0, "cthru", "vetoed"

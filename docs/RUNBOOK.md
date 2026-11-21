@@ -351,6 +351,7 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - tests pass, and `validate` reports no problems;
 - every unread report is empty or explained;
 - every CTHRU difference is explained or flagged;
+- every annual-budget item showing **Veto status** *vetoed* at $0 is a real veto. The program reads an item CTHRU doesn't list as vetoed, so check each against the Governor's veto message for that budget and the bill's history (an item "passed over veto" was overridden). A misread one gets a row in `review/corrections.csv` (amount and veto status), as 1231-1000 in FY2025 did (`review/research_log.md`, Q29);
 - `reports/law_status.csv` gives each law's status (`checked`, `partially_checked` or `not_checked`) and the note that fills the spreadsheet's last column, "Source or calculation for total". A `partially_checked` law points you to its differences in `reports/validation/cthru_mismatches.csv` or `bond_totals.csv`;
 - `config/manual_rows.csv` is empty, or each row is justified (see step 8).
 

@@ -152,6 +152,42 @@ item its starting amount: `combine` leaves it out of the funding actions because
 reference-only, and uses it in the running amounts, so 2024 ch. 150 §60, which replaces the item at
 the same $50,000,000, becomes a `CAP` row of $0 (2026-11-06 decision; Q26, decided 2026-11-11, keeps a restated bond item as `CAP` $0, labeled "New" and "One-time").
 
+## Annual items read as vetoed to $0, and 3 CTHRU mismatches (Q29)
+
+*Tierney, 2026-11-21; all 70 laws, CTHRU snapshot 2026-11-12.* The program read an annual-budget item
+as vetoed to $0 whenever CTHRU had no amount for it: 61 rows (FY2022–FY2026: 11, 10, 9, 19, 12). The
+law text marked none of them vetoed except four FY2026 items. They were:
+
+- **41 fee-revenue items, not vetoes.** The agency "may expend", "may retain" or "may collect and
+  expend" fees up to a limit, worded in ways the reader didn't recognise ("not to exceed", "up to",
+  "may retain not more than"), or "shall expend not more than … from fees" (7061-9601). CTHRU books
+  most of them only as a fee-revenue limit. Fixed in code: `read_items` reads the other wordings
+  (reader 0.2.1), and `combine.annual_rows` takes CTHRU's own limit when the wording still isn't read.
+  They now carry their limit as `retained_revenue_ceiling` rows.
+- **1595-4512, a $12.5M–$20M transfer to the Behavioral Health Outreach, Access and Support Trust
+  Fund (§2E), every year.** CTHRU never lists it and no budget marks it vetoed. Fixed in code: a §2E
+  item CTHRU doesn't list and the law doesn't mark vetoed keeps its printed amount, flagged
+  `cthru_mismatch`. Trust transfers never count toward totals, so no total changes.
+- **1231-1000 in FY2025 (Sewer Rate Relief Fund, $1,500,000): overridden, not vetoed.** H.4800's
+  history shows it passed over veto on 30 Jul 2024; CTHRU has no FY2025 row for it. Fixed by two rows
+  in `review/corrections.csv` (amount and veto status).
+- **10 FY2025 items stay vetoed at $0, to confirm.** The FY2025 text marks no vetoes, and H.4800's
+  history shows only three overrides (1231-1000, 2511-0100, 2511-0111), so these weren't overridden:
+  1599-0107, 1599-3856, 1599-7114, 4000-0051, 4512-2020, 7002-0020, 7010-1194, 7061-9406, 7061-9412,
+  7061-9650. Confirm each against Attachment A of the Governor's FY2025 veto message (not on
+  malegislature.gov's H.4935 page, which covers only Attachments B and C). 7061-9406 was also vetoed
+  in FY2026.
+- **4 FY2026 items are real vetoes:** 3000-1049, 5095-0017, 7008-1300 and 7061-9406, each marked
+  disapproved in 2025-9's text.
+
+**The 3 CTHRU mismatches.** In FY2023, CTHRU's `original_enacted` for **2300-0100** ($1,259,379) and
+**7008-1116** ($17,267,500) already includes 2022-268's later increases (§232 +$100,000, §238
++$50,000), which have their own `INC` rows, so taking the CTHRU figure counted that money twice.
+Fixed by two rows in `review/corrections.csv` that restore the printed amounts. If CTHRU does this
+again in later years, it should become a rule in `combine.annual_rows`. **7061-0033** in FY2025:
+CTHRU has $1,452,605 against $1,450,000 printed, with no supplement behind the $2,605; the CTHRU
+figure stays (CTHRU first) and the row is flagged `cthru_mismatch`. Unexplained, small.
+
 ## How the data was made: notes moved from the Status Board
 Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
 dataset were built that aren't recorded elsewhere; counts are as of the date given.
