@@ -110,3 +110,66 @@ def test_wording_changes_to_bond_items_are_left_out():
     operating_wording = dict(fa("p", action="PURP", amount=""), section_type="approp_main")
     rows, _ = build([bond_wording, operating_wording])
     assert [r["Record ID"] for r in rows] == ["p"]
+
+
+# -- the counting columns (§7.13, decided 2026-11-21) ----------------------------------------
+
+
+def counting(row):
+    return (row["Counts toward total?"], row["Amount counted toward total ($)"])
+
+
+def test_counted_rows_show_their_dollars_and_the_rest_show_zero():
+    rows, _ = build(
+        [
+            {**fa("a"), "counts_toward_total": "true", "federal_share": ""},
+            {**fa("b", amount="500"), "counts_toward_total": "false", "federal_share": "1.0"},
+            {**fa("c", action="PURP", amount=""), "counts_toward_total": "false"},
+        ]
+    )
+    assert [counting(r) for r in rows] == [("Yes", "6,077,671"), ("No", "0"), ("No", "")]
+
+
+def test_a_partly_federal_row_counts_only_its_state_share():
+    rows, _ = build(
+        [{**fa("a", amount="1000"), "counts_toward_total": "true", "federal_share": "0.4"}]
+    )
+    assert counting(rows[0]) == ("Yes", "600")
+
+
+def test_a_bond_item_counts_toward_the_capital_total_less_its_federal_share():
+    row = {
+        **fa("a", action="CAP", amount="1000"),
+        "counts_toward_total": "false",
+        "federal_share": "0.25",
+    }
+    assert export.counted(row) == ("Yes", "750")
+
+
+def test_the_counted_amount_follows_a_corrected_amount():
+    fix = {
+        "record_id": "a",
+        "field": "Appropriation/change ($)",
+        "new_value": "5,000,000",
+        "expected_old_value": "6,077,671",
+        "reviewer": "T",
+        "review_date": "2026-11-21",
+        "note": "",
+    }
+    rows, _ = build(
+        [{**fa("a"), "counts_toward_total": "true", "federal_share": ""}], corrections=[fix]
+    )
+    assert counting(rows[0]) == ("Yes", "5,000,000")
+
+
+def test_the_main_files_counted_column_adds_up_to_the_operating_total():
+    from ma_approps import combine
+
+    actions = [
+        {**fa("a", amount="1000"), "counts_toward_total": "true", "federal_share": ""},
+        {**fa("b", amount="1000"), "counts_toward_total": "true", "federal_share": "0.4"},
+        {**fa("c", amount="999"), "counts_toward_total": "false", "federal_share": ""},
+    ]
+    rows, _ = build(actions)
+    total = sum(int(r["Amount counted toward total ($)"].replace(",", "")) for r in rows)
+    assert total == combine.operating_total(actions) == 1600
