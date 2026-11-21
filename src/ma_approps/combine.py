@@ -578,6 +578,23 @@ SUPPLEMENTAL_SECTIONS = {
 # Any other section: read as new money, flagged for review
 OTHER_SECTION = ("approp_new", "NEW", "appropriation", ("low_confidence_parse",))
 
+
+def transfers_into_a_fund(item_text: str) -> bool:
+    """A supplemental item that only moves money into a fund ("For an operating transfer to the
+    Commonwealth's Pension Liability Fund …", 2023-77 §2A 1595-4514; "Communications Access Trust
+    Fund Transfer", 2025-73 §2). Like a GAA §2E item it is a trust transfer and doesn't count (Q2,
+    Q15; Q28, 2026-11-21). A transfer to an authority (the MBTA) is spending and still counts, and
+    so is one to MassDOT's Massachusetts Transportation Trust Fund for a named program (2025-7 §2A
+    1596-2523, $80,000,000 for municipal ways; Tierney, 2026-11-21)."""
+    text = re.sub(r"\s+", " ", item_text).strip()
+    long = re.match(
+        r"For (?:an operating |a )?transfer to (?:the )?(.{0,150}?)\bfund\b", text, re.I
+    )
+    if long:
+        name = long.group(1).lower()
+        return "authority" not in name and "massachusetts transportation trust" not in name
+    return bool(re.fullmatch(r"[^.;]{0,100}\bFund Transfer", text))
+
 # The reader's veto note (§7.3) -> veto_status (§9.9). Vetoes in supplementals can't be checked
 # against CTHRU (it has no per-law amounts), so any veto is also flagged veto_unverified (§5.7).
 SUPPLEMENTAL_VETO_STATUS = {
@@ -671,6 +688,12 @@ def supplemental_rows(
         (r["fiscal_year"], r["line_item"]) for r in cthru if int(r["original_enacted"] or 0)
     }
     budget_years = {fy for fy, _ in budgeted}
+    # Federal grant items: what that fiscal year's GAA appropriates in §2D (Q28)
+    federal_grants = {
+        (r["fy_stated"], r["line_item"])
+        for r in items
+        if _law_type(laws, r) == "gaa" and r["section"] == "2D"
+    }
     # When each item first appears in a law (approval date), and in CTHRU (fiscal year)
     first_law: dict[str, str] = {}
     for r in items:
@@ -700,7 +723,14 @@ def supplemental_rows(
             item["section"], OTHER_SECTION
         )
         row = _items_row(item, law, session_law_url)
+        if section_type != "trust_transfer" and transfers_into_a_fund(item["item_text"]):
+            section_type, section_flags = "trust_transfer", (*section_flags, "trust_transfer")
         fy = str(row["fiscal_year"])
+        if (fy, item["line_item"]) in federal_grants and section_type != "federal_grants":
+            # adds to a federal grant item of that year's GAA (2023-77 §2 4190-0400, "Consolidated
+            # Appropriations Act"): federal money, like the §2D item itself (Q1, Q28)
+            section_type, section_flags = "federal_grants", (*section_flags, "federal")
+            row["federal_share"] = 1.0
         if (
             action == "INC"
             and fy in budget_years

@@ -188,6 +188,53 @@ again in later years, it should become a rule in `combine.annual_rows`. **7061-0
 CTHRU has $1,452,605 against $1,450,000 printed, with no supplement behind the $2,605; the CTHRU
 figure stays (CTHRU first) and the row is flagged `cthru_mismatch`. Unexplained, small.
 
+## Supplemental differences from CTHRU, FY2021–FY2025 (Q28)
+
+*Tierney, 2026-11-21; all 70 laws, CTHRU snapshot 2026-11-12.* What each supplemental difference in
+`reports/validation/cthru_mismatches.csv` is. **Fixed:**
+
+- **2022-268 §2A: 1599-0122 and 1599-1214.** The law's web page runs one item into the next ("of the
+  total $20,000,000 1599-1214 For a reserve …", no line break and no dotted leader), so the reader
+  gave 1599-0122 the $14,000,000 of 1599-1214 and missed 1599-1214. It is the only such run-in in all
+  70 laws. Fixed once: 1599-1214 is a row in `config/manual_rows.csv` ($14,000,000, General Fund as
+  CTHRU books it, counted), and `review/corrections.csv` gives 1599-0122 its $20,000,000 (federal,
+  not counted). `validate` still lists 1599-0122, because it reads the funding actions before
+  corrections.
+- **Transfers into a trust fund in supplementals no longer count** (decided by Tierney; the Q2/Q15
+  rule the GAAs' §2E already follow): 1595-4514 Pension Liability Fund ($100,000,000, 2023-77), and
+  in 2025: 1595-0604 ($50,000,000), 1595-6153 ($12,500,000), 1595-0605 ($10,000,000), 1595-1779
+  ($1,000,000). In code (`combine.transfers_into_a_fund`). Transfers to the MBTA, and to MassDOT's
+  Massachusetts Transportation Trust Fund for a named program (2025-7 §2A, 7 items), are spending
+  and still count. CTHRU lists none of the five, so 1595-4514 stays on the comparison list.
+- **2023-77 §2 4190-0400 and 4190-0401** (Soldiers' Home in Holyoke, "Consolidated Appropriations
+  Act" $708,240 and "American Rescue Plan Act" $1,714,016) add to items the FY2023 GAA appropriates
+  as §2D federal grants, so they are federal and don't count (in code). CTHRU carries no §2D items.
+
+**Explained, no change:**
+
+- **1599-9817, FY2022 ($300,000,000).** CTHRU books 2021-102 §61's $300,000,000 as `original`, and
+  2022-42 §2's $346,056,813 as `supplemental`; we have both as supplemental rows. Same total, different
+  column (also `combine_problems.csv`).
+- **1599-0514 ($175,000,000): FY2024 here, FY2025 in CTHRU.** 2024-88 §25 lets the comptroller transfer
+  up to $175,000,000 from the Transitional Escrow Fund into this 2023-77 item "following written
+  determination" that it is needed, and names no fiscal year. The row takes the item's year (FY2024);
+  CTHRU books it when the money moved (FY2025). Same money, different year.
+- **1599-6063 (+$100,000) and 1599-6072 (+$1,000,000), FY2022.** 2022-268 §2A ARPA items whose CTHRU
+  amounts differ from the printed ones, with no amendment in our laws that explains it. Federal
+  money, not counted, so no total changes.
+- **2000-0100 (+$100,000) and 2310-0200 (−$100,000), FY2022.** CTHRU shows $100,000 moved from 2310-0200
+  to 2000-0100; 2021-76 §11–§14 change both items, and `read_amendments` reads them as wording
+  changes with no money. Net zero. For C (`read_amendments`) to check whether §12–§14 move the
+  money.
+- **7008-1117, FY2023 (CTHRU $200,000).** A 2019-142 §2A item whose end date later laws extended
+  (`REAUTH` rows, not counted). CTHRU books the carried-over balance as `supplemental`.
+- **2300-0100 and 7008-1116 (FY2023), 4512-0205, 8324-0050 and 1599-0026 (FY2024).** Explained
+  above (Q29) and by Emily H. ("Amendment increases CTHRU doesn't show").
+- **3000-7040, 4590-0913, 8100-0012, FY2021 ($2,564,373).** Supplementals to FY2021 items that CTHRU's
+  FY2021 data doesn't show; FY2021's budget is outside the window. Not yet looked at.
+- **FY2026: 48 items ($1,710,130,666) CTHRU has and we don't.** Supplementals approved in 2026, after
+  the window (`approved_to` 2025-12-31). A known limitation, not an error.
+
 ## How the data was made: notes moved from the Status Board
 Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
 dataset were built that aren't recorded elsewhere; counts are as of the date given.
