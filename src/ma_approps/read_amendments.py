@@ -43,7 +43,7 @@ from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.11.0"
+READER_VERSION = "0.12.0"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -87,10 +87,14 @@ ITEMS_RE = re.compile(rf"items?\s+({ITEM}(?:(?:,\s*|,?\s+and\s+){ITEM})*)")
 # section 2 of chapter 494 of the acts of 1993" (2024-150 §61)
 ITEM_SUBJECT_RE = re.compile(r"(?:clause\s+\([0-9a-z]+\)\s+of\s+)?(?:said\s+)?items?\b", re.I)
 
+# The "$" is sometimes left out of a dollar figure ("striking out the figure “16,181,737”",
+# 2021-76 §14; four sections of 2022-268), so it is optional when the figure has 5 or more
+# characters, which a year ("2021", YEAR_FIGURE_RE) never has (Q28, 2026-11-21)
 FIGURE_RE = re.compile(
-    r'striking out(?P<line>, in lines? [\d ,to]+,)? the figure "\$\s*(?P<old>[\d,]+)"'
+    r'striking out(?P<line>, in lines? [\d ,to]+,)? the figure '
+    r'"(?:\$\s*(?P<old>[\d,]+)|(?P<bare_old>\d[\d,]{4,}))"'
     r"(?P<where>[^\"]*?)\s*and inserting in place thereof(?P<each>, in each instance,)?"
-    r" the following figure:-\s*\$\s*(?P<new>[\d,]+)"
+    r" the following figure:-\s*(?:\$\s*(?P<new>[\d,]+)|(?P<bare_new>\d[\d,]{4,}))"
 )
 YEAR_FIGURE_RE = re.compile(
     r'striking out the figure "(?P<old>\d{4})"[^"]*?and inserting in place thereof'
@@ -347,8 +351,8 @@ def _amendment_actions(
         partial = m["line"] or (where and not everywhere)
         action = {
             "action_type": "figure_change",
-            "old_figure": _int(m["old"]),
-            "new_figure": _int(m["new"]),
+            "old_figure": _int(m["old"] or m["bare_old"]),
+            "new_figure": _int(m["new"] or m["bare_new"]),
             "confidence": "low" if partial else "high",
         }
     elif m := YEAR_FIGURE_RE.search(predicate):

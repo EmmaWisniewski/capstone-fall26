@@ -116,6 +116,21 @@ def test_date_order_text_figures_mismatches_and_strikes():
     ]
 
 
+def test_a_carried_forward_balance_is_not_the_same_money():
+    # 2021-76 §2CI carries $100,000 of 2000-0100 forward; §12's +$100,000 is new money (Q28)
+    laws = [
+        {"law_key": k, "approved_date": d, "primary_fy": "2099", "parse_strategy": "auto"}
+        for k, d in (("2098-1", "2098-07-01"), ("2099-2", "2099-01-15"))
+    ]
+    items = [
+        _item("2098-1", "1000-0001", 100),
+        _item("2099-2", "1000-0001", 10, section="2CI"),
+    ]
+    amendments = [_amend("2099-2", "12", "figure_change", "1000-0001", 100, 110)]
+    [row] = combine.amendment_amounts(items, amendments, laws)
+    assert (row["check"], row["change"], row["note"], row["review"]) == ("match", 10, "", "false")
+
+
 def test_wrong_section_named_and_target_not_read():
     laws = [
         {"law_key": k, "approved_date": d, "primary_fy": "2099", "parse_strategy": "auto"}

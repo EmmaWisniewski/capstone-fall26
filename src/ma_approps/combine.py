@@ -147,7 +147,9 @@ def amendment_amounts(
         if key not in amount:
             amount[key] = _int(r["amount"] or r["retained_revenue_ceiling"])
             text[key] = r["item_text"]
-        if r["amount"] and r["fy_stated"]:
+        # §2CI/§2CII carry an old balance forward: not money the law adds (2021-76 §2CI
+        # 2000-0100, $100,000, isn't §12's +$100,000; Q28, 2026-11-21)
+        if r["amount"] and r["fy_stated"] and r["section"] not in ("2CI", "2CII"):
             supplement.setdefault((r["law_key"], r["line_item"], r["fy_stated"]), int(r["amount"]))
     sections = item_sections(items)
 
