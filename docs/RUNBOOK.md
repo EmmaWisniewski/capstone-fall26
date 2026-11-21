@@ -217,7 +217,7 @@ edit it, because the next run rewrites it. Work through it from the top:
 |---|---|---|
 | `policy_area` | the row has no policy area yet | see "Labels and policy areas" below |
 | `cthru_mismatch` | our amount for that year and line item differs from the Comptroller's | find why (the law, a misread, a CTHRU quirk); fix it, or write the explanation in `review/research_log.md` under the line item |
-| `unknown_fund` | the law names a fund the program doesn't know, so it can't tell whether the money is federal | add the fund to `config/funds.csv`, with `is_federal` set |
+| `unknown_fund` | the law names a fund the program doesn't know, so it can't tell whether the money is federal | add a row to `config/funds.csv`. If it's another name for a fund already listed (spelling differences like "&" or a missing "Fund" are matched already), copy that fund's `fund_number` and say so in `notes`. Otherwise set `is_federal` to `true` only if the money comes from a federal source (federal grants, ARPA, CARES); state surplus and state trust funds are `false` (partner's rule, DESIGN Q1) |
 | `amendment_check` | a change to an earlier item that didn't check out | check the law; fix the row in `review/corrections.csv`, or explain in `review/research_log.md` |
 | `borrowing_limit` | a bond item whose borrowing limit doesn't equal the total of its items | explain the gap in `review/research_log.md` |
 | `combine_problem` | anything else the program noticed | read the `detail` column |

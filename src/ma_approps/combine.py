@@ -1160,8 +1160,32 @@ def operating_total(rows: list[Mapping[str, Any]]) -> int:
 
 
 def _fund_key(name: str) -> str:
-    name = re.sub(r"\s+", " ", name).strip().lower()
-    return re.sub(r"^the ", "", name)
+    """A fund name for matching. Laws spell the same fund differently from year to year, so case,
+    punctuation, "&" or "and", a leading "the" and a trailing "fund" don't matter: "Behavioral
+    Health Outreach, Access & Support Trust Fund" matches "Behavioral Health Outreach Access and
+    Support Trust Fund", and "Local Capital Projects" matches "Local Capital Projects Fund"."""
+    name = name.lower().replace("&", " and ")
+    words = re.sub(r"[^a-z0-9]+", " ", name).split()
+    words = [w for w in words if w != "and"]
+    if words[:1] == ["the"]:
+        words = words[1:]
+    if words[-1:] == ["fund"]:
+        words = words[:-1]
+    return " ".join(words)
+
+
+def _fund_lookups(
+    funds: list[Mapping[str, str]],
+) -> tuple[dict[str, Mapping[str, str]], dict[str, Mapping[str, str]]]:
+    """(by name, by CTHRU number). A later row with the same fund number is another name for the
+    first row's fund (config/funds.csv, e.g. "George L. Darey Inland Fisheries and Game Fund"), so
+    both names lead to the first row."""
+    by_number: dict[str, Mapping[str, str]] = {}
+    for f in funds:
+        if f["fund_number"]:
+            by_number.setdefault(f["fund_number"], f)
+    by_name = {_fund_key(f["fund_name"]): by_number.get(f["fund_number"], f) for f in funds}
+    return by_name, by_number
 
 
 def fund_splits(
@@ -1174,8 +1198,7 @@ def fund_splits(
     give the funds with empty shares (Emma, 2026-11-10). A fund that isn't in ``config/funds.csv``
     is kept but reported, and not taken as federal.
     """
-    by_name = {_fund_key(f["fund_name"]): f for f in funds}
-    by_number = {f["fund_number"]: f for f in funds if f["fund_number"]}
+    by_name, by_number = _fund_lookups(funds)
     found: list[tuple[Mapping[str, str], str, float | str]] = []  # (funds.csv row, name, share)
     problems = []
     if row.get("fund_splits_raw"):
