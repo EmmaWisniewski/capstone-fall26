@@ -258,6 +258,30 @@ codebook: the law authorizes more spending than borrowing and doesn't say how th
 (possibly federal reimbursement, or items meant to overlap; §1 of each law lets amounts be shifted
 between projects). Their federal split stays `unknown` (the federal-money task's part 2).
 
+## The 20 amendment changes sent to a person (Q21, Q27)
+
+*Tierney, 2026-11-21; `reports/validation/amendment_amounts.csv`, `review = true`, in-scope laws.*
+Each was read against the law and the item it changes. The program counts each $0, and that is right:
+
+- **Caps or earmarks inside the item (`in_item_text`), not its total:** the Cambridge Health Alliance
+  payment cap in 1595-1068 (2021-29 §48, 2022-42 §42, 2024-206 §42, 2024-248 §127, 2025-14 §84);
+  1599-2026's earmark for the Behavioral Health Trust Fund (2022-42 §46, and 2022-268 §221, read
+  since reader 0.12.0); 1410-0250's Habitat earmark (2023-28 §67); the treasurer's administration cap
+  in 0610-2000 (2023-77 §175, 2024-248 §119); 0321-1510's cap (2025-73 §163).
+- **The same law's §2 adds the same money (`match` + Q27 note):** 1595-1068 (2021-29 §49), 3000-7040
+  (2023-77 §81), 1775-0700 and 8100-0102 (2024-206 §33, §39), 4513-1012, 4590-0912 and 8100-0006
+  (2025-14 §63, §64, §66). Each has its own §2 `INC` row of that amount.
+- **The item already shows the new figure (`already_new`):** 2310-0200 (2022-268 §234) and 7006-0071
+  (2024-248 §86).
+
+**One was wrong and is fixed:** 2021-76 §12 raises 2000-0100 by $100,000, but was matched with the
+same law's §2CI row for 2000-0100 ($100,000), a balance carried forward, not money added. §11–§14
+move a $100,000 earmark for the New England Wildlife Center from 2310-0200 to 2000-0100; §14 printed
+the struck figure without "$", so it was read as a wording change. Both fixed in code; the two items
+now match CTHRU's FY2022 supplementals, and the total is unchanged (+$100,000, −$100,000).
+
+These 20 stay in the review queue until a person can mark items explained (task list).
+
 ## How the data was made: notes moved from the Status Board
 Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
 dataset were built that aren't recorded elsewhere; counts are as of the date given.

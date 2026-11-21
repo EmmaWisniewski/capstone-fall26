@@ -122,6 +122,35 @@ def test_figure_in_one_line_stays_low_confidence():
     assert [a["confidence"] for a in found] == ["low"]
 
 
+@pytest.mark.parametrize(
+    "predicate, old, new",
+    [
+        # the "$" left out (2021-76 §14, 2022-268 §221; Q28)
+        ('striking out the figure "16,181,737" and inserting in place thereof the following '
+         "figure:- $16,081,737.", 16181737, 16081737),
+        ('striking out the figure "198,650,000" and inserting in place thereof the following '
+         "figure:- 192,650,000.", 198650000, 192650000),
+    ],
+)
+def test_figure_change_without_a_dollar_sign(predicate, old, new):
+    [found] = read_amendments._amendment_actions(" by " + predicate, ["1234-5678"], [])
+    assert (found["action_type"], found["old_figure"], found["new_figure"]) == (
+        "figure_change",
+        old,
+        new,
+    )
+
+
+def test_a_year_is_still_a_date_extension_not_a_figure():
+    [found] = read_amendments._amendment_actions(
+        ' by striking out the figure "2021" and inserting in place thereof the following '
+        "figure:- 2022.",
+        ["1234-5678"],
+        [],
+    )
+    assert found["action_type"] == "date_extend"
+
+
 def test_month_and_day_date_change(rows):
     # §49: "July 1" → "November 30" in 4000-0300 of 2021 ch. 24. The year (2023) is in the item's
     # own text, so the dates are recorded as written.
