@@ -9,7 +9,7 @@ needs a person (§7.12, ``review_queue``). Still to build: the extended export a
 dictionary.
 
 The capital file (workstream A, Q5/Q16) is built here already: ``capital_rows`` and
-``write_capital_file``. ``main_columns`` fills the 20 main-export columns from a funding-action row,
+``write_capital_file``. ``main_columns`` fills the main-export columns from a funding-action row,
 so the main file can reuse it and both files say the same thing.
 """
 
@@ -54,13 +54,39 @@ def _us_date(value: str) -> str:
     return date.fromisoformat(value).strftime("%m/%d/%Y") if value else ""
 
 
+def counted(row: Mapping[str, Any], amount: Any = None) -> tuple[str, str]:
+    """The two counting columns (§7.13, decided 2026-11-21): ("Yes" or "No", the dollars that
+    count). An operating row counts when ``counts_toward_total`` says so (§10), less any federal
+    share, so the main file's column adds up to ``combine.operating_total``. A bond item counts
+    toward the separate capital total, less its identified federal share
+    (``combine.capital_total``).
+    ``amount`` replaces the row's own amount, for a human correction of it."""
+    value = row["amount"] if amount is None else str(amount).replace(",", "").strip()
+    if value in ("", None):
+        return "No", ""
+    if row["funding_action"] == "CAP":
+        counts = True
+    else:
+        counts = str(row.get("counts_toward_total")) == "true"
+    if not counts:
+        return "No", "0"
+    share = float(row.get("federal_share") or 0)
+    return "Yes", _money(round(int(value) * (1 - share)))
+
+
+def _counted_sum(rows: list[Mapping[str, Any]]) -> int:
+    """What Excel gives when it sums the "Amount counted toward total ($)" column."""
+    column = "Amount counted toward total ($)"
+    return sum(int(str(r[column]).replace(",", "")) for r in rows if r[column] not in ("", None))
+
+
 def main_columns(
     row: Mapping[str, Any],
     law: Mapping[str, str],
     label: Mapping[str, str] | None = None,
     note: str = "",
 ) -> dict[str, Any]:
-    """The 20 main-export columns (§8, schemas.EXPORT_COLUMNS) for one funding-action row.
+    """The main-export columns (§8, schemas.EXPORT_COLUMNS) for one funding-action row.
 
     ``label`` is the row's labels.csv row, if the label stage has written one. Corrections
     (§7.11) and the law-level total note (column 19) come later with the main file.
@@ -71,6 +97,7 @@ def main_columns(
         return label.get(key) or PLACEHOLDERS[key]
 
     agency = label.get("agency_office") or str(row["agency_header_raw"]).strip().rstrip(".")
+    counts, counted_amount = counted(row)
     return {
         "Record ID": row["record_id"],
         "Law citation": f"{law['acts_year']} Acts, ch. {law['chapter']}",
@@ -86,6 +113,8 @@ def main_columns(
         "Funding action": schemas.FUNDING_ACTION_LABELS[row["funding_action"]],
         "Appropriation/change ($)": _money(row["amount"]),
         "Veto status": row["veto_status"],
+        "Counts toward total?": counts,
+        "Amount counted toward total ($)": counted_amount,
         "Previously funded?": lab("previously_funded"),
         "One-time or recurring funding": lab("one_time_or_recurring"),
         "New funding appropriation or re-appropriation of existing funding?": lab(
@@ -119,7 +148,7 @@ def capital_rows(
     labels: list[Mapping[str, str]] = (),
     notes: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
-    """The capital file (§7.13): every ``CAP`` row, sorted by Record ID, with the 20 main columns
+    """The capital file (§7.13): every ``CAP`` row, sorted by Record ID, with the main columns
     and the details of the borrowing limit that covers it (Q16).
 
     A later law's change to a bond item (issue #41, e.g. 2021-25 §3 raising 2020-383 item
@@ -204,7 +233,10 @@ def write_capital_file(ctx: Context, notes: Mapping[str, str] | None = None) -> 
         w.writeheader()
         w.writerows(rows)
     no_limit = sum(1 for r in rows if not r["Borrowing limit section"])
-    print(f"  capital file: {len(rows)} rows ({no_limit} without a borrowing limit): {path.name}")
+    print(
+        f"  capital file: {len(rows)} rows ({no_limit} without a borrowing limit), "
+        f"${_counted_sum(rows):,} counted toward the capital total: {path.name}"
+    )
     return path
 
 
@@ -284,6 +316,11 @@ def main_rows(
             else:
                 cells[field] = c["new_value"]
                 human = True
+                if field == "Appropriation/change ($)":
+                    # the counted amount follows a corrected amount
+                    counts, amount = counted(row, c["new_value"])
+                    cells["Counts toward total?"] = counts
+                    cells["Amount counted toward total ($)"] = amount
         cells["Human review status"] = "Human reviewed" if human else "Not human reviewed"
         out.append(cells)
     return out, warnings
@@ -309,7 +346,10 @@ def write_main_file(ctx: Context, notes: Mapping[str, str] | None = None) -> Pat
     for w_ in warnings:
         print(f"  WARNING: {w_}")
     reviewed = sum(r["Human review status"] == "Human reviewed" for r in rows)
-    print(f"  main file: {len(rows)} rows ({reviewed} human reviewed): {path.name}")
+    print(
+        f"  main file: {len(rows)} rows ({reviewed} human reviewed), "
+        f"${_counted_sum(rows):,} counted toward the operating total: {path.name}"
+    )
     return path
 
 

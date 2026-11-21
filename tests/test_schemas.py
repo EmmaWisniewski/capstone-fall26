@@ -6,11 +6,13 @@ from ma_approps import schemas
 
 
 def test_export_columns_match_exampledata(root):
-    # exampledata.csv's 19 columns, plus "Veto status" after the amount (Q14)
+    # exampledata.csv's 19 columns, plus "Veto status" after the amount (Q14) and the two counting
+    # columns after that (2026-11-21)
     with open(root / "exampledata.csv", newline="", encoding="utf-8") as f:
         header = next(csv.reader(f))
     i = header.index("Appropriation/change ($)") + 1
-    assert schemas.EXPORT_COLUMNS == (*header[:i], "Veto status", *header[i:])
+    extra = ("Veto status", *schemas.COUNTED_COLUMNS)
+    assert schemas.EXPORT_COLUMNS == (*header[:i], *extra, *header[i:])
     assert schemas.CAPITAL_EXPORT_COLUMNS[: len(schemas.EXPORT_COLUMNS)] == schemas.EXPORT_COLUMNS
 
 

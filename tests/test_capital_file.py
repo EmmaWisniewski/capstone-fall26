@@ -29,7 +29,7 @@ def test_name_and_columns(capital):
     path, header, rows = capital
     assert path.name == "ma_capital_authorizations_cy2021_2025.csv"
     assert header == list(schemas.CAPITAL_EXPORT_COLUMNS)
-    assert len(header) == 31
+    assert len(header) == 33
     assert len(rows) == 16  # every item of the two bond samples
 
 

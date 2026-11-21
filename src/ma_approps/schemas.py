@@ -456,7 +456,9 @@ REVIEW_QUEUE_LEADING = _cols(
 PARAGRAPH_KEYS = ("law_key", "para_idx", "text", "raw_html", "classes", "struck", "bold", "links")
 
 # §7.13 / §8: the export uses the 19 columns of exampledata.csv, in that order, plus "Veto status"
-# after the amount (Q14, decided 2026-11-06)
+# after the amount (Q14, decided 2026-11-06) and the two counting columns after it, so the file can
+# be totalled in Excel (decided 2026-11-21)
+COUNTED_COLUMNS = ("Counts toward total?", "Amount counted toward total ($)")
 EXPORT_COLUMNS = (
     "Record ID",
     "Law citation",
@@ -472,6 +474,7 @@ EXPORT_COLUMNS = (
     "Funding action",
     "Appropriation/change ($)",
     "Veto status",
+    *COUNTED_COLUMNS,
     "Previously funded?",
     "One-time or recurring funding",
     "New funding appropriation or re-appropriation of existing funding?",

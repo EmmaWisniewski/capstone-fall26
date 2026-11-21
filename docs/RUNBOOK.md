@@ -354,6 +354,14 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - `reports/law_status.csv` gives each law's status (`checked`, `partially_checked` or `not_checked`) and the note that fills the spreadsheet's last column, "Source or calculation for total". A `partially_checked` law points you to its differences in `reports/validation/cthru_mismatches.csv` or `bond_totals.csv`;
 - `config/manual_rows.csv` is empty, or each row is justified (see step 8).
 
+**Totals in Excel.** Never add up "Appropriation/change ($)": it includes money the counting rules
+leave out (federal grants, transfers, carried-over balances, interim budgets, chargebacks). Sum
+**"Amount counted toward total ($)"** instead, and filter **"Counts toward total?"** to *Yes* to see
+only the rows that count. In the main file that gives the operating total, in the capital file the
+separate capital total; the `export` stage prints both, e.g. `main file: 8030 rows (…),
+$279,739,092,946 counted toward the operating total`, so you can check your Excel figure against
+it. A total by policy area or fiscal year is the same column, summed with a filter or a pivot table.
+
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
 - update the task list in `OVERVIEW.md` §5;
