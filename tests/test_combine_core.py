@@ -203,6 +203,47 @@ def test_the_section_fund_is_the_default_and_unknown_funds_are_reported():
     assert rows[1]["fund_primary"] == "Mystery Trust Fund"
 
 
+@pytest.mark.parametrize(
+    "printed",
+    [
+        "Behavioral Health Outreach, Access & Support Trust Fund",
+        "behavioral health outreach access and support trust",
+        "the Behavioral  Health Outreach Access and Support Trust Fund",
+    ],
+)
+def test_fund_names_match_despite_spelling(printed):
+    # the laws spell the same fund differently from year to year (2021-24, 2023-28)
+    assert combine._fund_key(printed) == combine._fund_key(
+        "Behavioral Health Outreach, Access and Support Trust Fund"
+    )
+    assert combine._fund_key("Education Fund") != combine._fund_key(
+        "Education and Transportation Fund"
+    )
+
+
+def test_another_name_for_a_fund_leads_to_its_first_row():
+    funds = [
+        {
+            "fund_name": "Darey Inland Fisheries and Game Fund",
+            "fund_number": "0114",
+            "is_federal": "false",
+            "notes": "",
+        },
+        {
+            "fund_name": "George L. Darey Inland Fisheries and Game Fund",
+            "fund_number": "0114",
+            "is_federal": "false",
+            "notes": "another name",
+        },
+    ]
+    printed = row(fund_splits_raw="George L. Darey Inland Fisheries and Game Fund:100")
+    _, splits, problems = combine.combine_rows({"test": [printed]}, LAWS, funds)
+    assert problems == []
+    assert [(s["fund_name"], s["fund_number"]) for s in splits] == [
+        ("Darey Inland Fisheries and Game Fund", "0114")
+    ]
+
+
 def test_a_bond_rows_federal_share_from_its_borrowing_limit_is_kept():
     r = row(
         funding_action="CAP",
