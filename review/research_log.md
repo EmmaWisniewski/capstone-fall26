@@ -282,6 +282,24 @@ now match CTHRU's FY2022 supplementals, and the total is unchanged (+$100,000, �
 
 These 20 stay in the review queue until a person can mark items explained (task list).
 
+## Random-row review, rows 101–200
+
+*Tierney, 2026-11-22; Mario's sample `random_review_sample_final 2.0.xlsx` (200 rows, drawn from
+`main` on 2026-11-21; the 100 rows matched the 2026-11-22 file exactly).* Each row was checked
+against the law text (and CTHRU, where it supplies the amount): amount, funding action, whether it
+counts, agency, purpose and policy area. **93 match.** The 7 that don't, and what was done:
+
+| Row | Record | Problem | Fix |
+|---|---|---|---|
+| 103 | 2023-028-S2D-7004-2030-ORIG-1 | Agency "Office of the Secretary" (the heading) | `label.agency_office`: a bare "Office of the Secretary" takes the line's CTHRU department (49 rows) |
+| 181 | 2025-009-S2D-6642-0049-ORIG-1 | Agency "Transportation" (the secretariat heading) | `DEPARTMENT_NAME_FIXES`: Massachusetts Department of Transportation (14 rows) |
+| 118 | 2023-077-S2CI-2511-0103-PAC-1 | Policy area for cannabis and hemp *agricultural* oversight | Catalog: Environment and natural resources (7 rows) |
+| 176, 177 | 2025-009-S2D-0640-9716/9718-ORIG-1 | Cultural Council arts grants under Government administration (the Lottery's 0640 prefix) | Catalog: the Council's 9 items are Arts, culture, and recreation (22 rows) |
+| 149 | 2024-206-S2-1599-6073-INC-1 | VOCA Bridge +$20,000,000 marked federal because CTHRU books the item to the ARPA fund; the reviewer judges this increase state money | Corrections: counts, $20,000,000 |
+| 160 | 2024-248-S86-7006-0071-RED-1 | A real −$25,000 counted $0: FY2024's override restored the item to $3,332,411, but the check compared against the post-veto printed $3,307,411 (Q30) | Correction: −$25,000 |
+
+The filled-in rows (Matches / What is wrong / Reviewer / Date) went back to Mario for the shared sheet.
+
 ## How the data was made: notes moved from the Status Board
 Moved from DESIGN §21 when the Status Board was retired, 2026-11-18. Facts about how parts of the
 dataset were built that aren't recorded elsewhere; counts are as of the date given.

@@ -114,6 +114,15 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 0640-0010,Government administration and oversight,false,department list (automatic),2026-11-02,LOT: FOR THE PURPOSE OF ADVERTISING.
 0640-0096,Government administration and oversight,false,department list (automatic),2026-11-02,"LOT: HEALTH & WELFARE, FY87, SEIU LOCAL 254,."
 0640-0300,"Arts, culture, and recreation",false,department list (automatic),2026-11-02,ART: MASSACHUSETTS CULTURAL COUNCIL.
+0640-0303,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-0304,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-0305,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9716,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9717,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9718,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9719,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9720,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
+0640-9724,"Arts, culture, and recreation",false,Tierney,2026-11-22,"Massachusetts Cultural Council. Its items share the Lottery's 0640 prefix, so the department rule gave them the Lottery's area (random-row review, 2026-11-22)."
 0699-0005,"Debt service, reserves, and statewide finance",false,Emily R.,2026-11-02,TRE: RANS Premiums Debt Service Retained Revenue.
 0699-0014,"Debt service, reserves, and statewide finance",false,Emily R.,2026-11-02,TRE: Accelerated Bridge Program.
 0699-0015,"Debt service, reserves, and statewide finance",false,Emily R.,2026-11-02,"TRE: FOR THE PAYMENT OF INTEREST,DISCOUNT AND."
@@ -549,7 +558,7 @@ line_item,policy_area,label_every_year,decided_by,decided_on,note
 2330-0199,Environment and natural resources,false,department list (automatic),2026-11-02,FWE: Ventless Trap.
 2330-0300,Environment and natural resources,false,department list (automatic),2026-11-02,FWE: Saltwater Sportfish Licensing.
 2511-0100,Environment and natural resources,false,department list (automatic),2026-11-02,AGR: DEPARTMENT OF AGRICULTURE ADMINISTRATION.
-2511-0103,Government administration and oversight,false,Emily R.,2026-11-02,"AGR: Cannabis and Hemp Oversight. Regulation, so Government administration and oversight rather than the department's Environment (spot-check change)."
+2511-0103,Environment and natural resources,false,Tierney,2026-11-22,"AGR: Cannabis and Hemp Agricultural Oversight. Agricultural regulation, so Environment and natural resources (random-row review, 2026-11-22; was Government administration and oversight)."
 2511-0105,Environment and natural resources,false,department list (automatic),2026-11-02,AGR: FOR THE PURPOSE OF SUPPLEMENTAL FOODS.
 2511-0107,Environment and natural resources,false,department list (automatic),2026-11-02,AGR: Community Food Security.
 2511-0111,Environment and natural resources,false,department list (automatic),2026-11-02,AGR: Food Security Infrastructure Grants.
