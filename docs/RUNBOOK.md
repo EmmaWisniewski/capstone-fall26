@@ -332,6 +332,8 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - `reports/law_status.csv` gives each law's status (`checked`, `partially_checked` or `not_checked`) and the note that fills the spreadsheet's last column, "Source or calculation for total". A `partially_checked` law points you to its differences in `reports/validation/cthru_mismatches.csv` or `bond_totals.csv`;
 - `config/manual_rows.csv` is empty, or each row is justified (see step 8).
 
+**Have people check a random sample.** Run `python -m ma_approps sample`. It writes `reports/random_review_sample.csv`: 200 rows of the main file (change with `--size`; the same `--seed` gives the same rows). An "Amount source" column says whether the amount came from CTHRU (annual budgets) or from the law's own text; rows from the law text have no second check, so read those closely. Each reviewer checks their rows against the law (the Source URL column links to it) and fills in the blank columns on the right. Put each mistake they find in `review/corrections.csv`, or, if it's a pattern that will come back, ask for it to be handled in the program.
+
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
 - update the task list in `OVERVIEW.md` §5;
