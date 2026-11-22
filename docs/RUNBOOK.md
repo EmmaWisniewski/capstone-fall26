@@ -363,6 +363,8 @@ separate capital total; the `export` stage prints both, e.g. `main file: 8030 ro
 $279,739,092,946 counted toward the operating total`, so you can check your Excel figure against
 it. A total by policy area or fiscal year is the same column, summed with a filter or a pivot table.
 
+**Have people check a random sample.** Run `python -m ma_approps sample`. It writes `reports/random_review_sample.csv`: 200 rows of the main file (change with `--size`; the same `--seed` gives the same rows). An "Amount source" column says whether the amount came from CTHRU (annual budgets) or from the law's own text; rows from the law text have no second check, so read those closely. Each reviewer checks their rows against the law (the Source URL column links to it) and fills in the blank columns on the right. Put each mistake they find in `review/corrections.csv`, or, if it's a pattern that will come back, ask for it to be handled in the program.
+
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);
 - update the task list in `OVERVIEW.md` §5;

@@ -2,6 +2,7 @@
 
     python -m ma_approps run --stage {laws…validate|all} [--law 2023-28] [--offline]
     python -m ma_approps validate
+    python -m ma_approps sample [--size 200] [--seed 2026]
 
 Stages run in DESIGN §6 order. A stage module exposes ``IMPLEMENTED`` and ``run(ctx)``; stubs
 are skipped with a message so the empty pipeline stays green (M0).
@@ -72,9 +73,17 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("validate", help="shortcut for run --stage validate")
 
+    sample = sub.add_parser("sample", help="draw random rows of the main file for people to check")
+    sample.add_argument("--size", type=int, default=200, help="how many rows (default 200)")
+    sample.add_argument("--seed", type=int, default=2026, help="same seed = same rows")
+
     args = parser.parse_args(argv)
     ctx = _context(args)
     if args.command == "validate":
         return run_stages(ctx, ["validate"])
+    if args.command == "sample":
+        from ma_approps import sample as sample_mod
+
+        return sample_mod.run(ctx, args.size, args.seed)
     names = list(STAGE_NAMES) if args.stage == "all" else [args.stage]
     return run_stages(ctx, names)
