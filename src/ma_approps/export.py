@@ -369,13 +369,34 @@ REASONS = {
         1,
         "config/line_item_catalog.csv (review/corrections.csv for a 1599 reserve)",
     ),
-    "cthru_mismatch": (1, "a fix, or the explanation in review/research_log.md"),
+    "cthru_mismatch": (1, "a fix, or the explanation in review/queue_explanations.csv"),
     "unknown_fund": (1, "config/funds.csv"),
-    "amendment_check": (2, "review/corrections.csv, or review/research_log.md"),
-    "borrowing_limit": (2, "review/research_log.md"),
-    "combine_problem": (3, "depends on the problem; review/research_log.md"),
+    "amendment_check": (2, "review/corrections.csv, or review/queue_explanations.csv"),
+    "borrowing_limit": (2, "review/queue_explanations.csv"),
+    "combine_problem": (3, "depends on the problem; review/queue_explanations.csv"),
 }
 UNKNOWN_FUND = "fund not in config/funds.csv"
+assert tuple(REASONS) == schemas.QUEUE_REASONS
+# The columns that identify a queue line, for review/queue_explanations.csv (§7.21)
+QUEUE_KEY = ("record_id", "reason", "law_key", "fiscal_year", "line_item")
+
+
+def _queue_key(row: Mapping[str, Any]) -> tuple[str, ...]:
+    return tuple(str(row.get(c) or "") for c in QUEUE_KEY)
+
+
+def explain(
+    rows: list[dict[str, Any]], explanations: list[Mapping[str, str]]
+) -> tuple[list[dict[str, Any]], int, list[Mapping[str, str]]]:
+    """Leave out the queue lines a person has explained in review/queue_explanations.csv (§7.21):
+    a line is explained when a row there has the same record ID, reason, law, fiscal year and line
+    item, and a written explanation. Returns (lines still to review, how many were explained, the
+    explanations that match no line: stale, e.g. after a later fix removed the difference)."""
+    given = {_queue_key(e): e for e in explanations if (e.get("explanation") or "").strip()}
+    keys = {_queue_key(q) for q in rows}
+    remaining = [q for q in rows if _queue_key(q) not in given]
+    stale = [e for k, e in given.items() if k not in keys]
+    return remaining, len(rows) - len(remaining), stale
 
 
 def review_queue(
@@ -519,14 +540,32 @@ def write_review_queue(ctx: Context, main_path: Path, capital_path: Path) -> Pat
         validate.check_amendment_amounts(ctx) or [],
         _read(ctx.reports_dir / "combine_problems.csv"),
     )
+    explanations_path = ctx.review_dir / "queue_explanations.csv"
+    rows, explained, stale = explain(rows, _read(explanations_path))
     path = ctx.review_queue
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=QUEUE_COLUMNS, lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
+    stale_path = ctx.reports_dir / "validation" / "queue_explanations_stale.csv"
+    stale_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(stale_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(
+            f, fieldnames=schemas.columns("queue_explanations"), lineterminator="\n"
+        )
+        w.writeheader()
+        w.writerows({c: e.get(c, "") for c in schemas.columns("queue_explanations")} for e in stale)
     counts = Counter(q["reason"] for q in rows)
     summary = ", ".join(f"{counts[r]} {r}" for r in REASONS if counts[r]) or "nothing"
-    print(f"  review queue: {len(rows)} rows ({summary}): {path.name}")
+    print(
+        f"  review queue: {len(rows)} rows ({summary}); {explained} explained in "
+        f"{explanations_path.name}: {path.name}"
+    )
+    if stale:
+        print(
+            f"  {len(stale)} explanations match no queue line any more (listed in "
+            f"{stale_path.name}): remove them from {explanations_path.name}"
+        )
     return path
 
 
