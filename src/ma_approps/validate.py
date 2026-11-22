@@ -35,6 +35,7 @@ def _files(ctx: Context) -> list[tuple[str, Path]]:
         ("item_number_fixes", ctx.config_dir / "item_number_fixes.csv"),
         ("corrections", ctx.review_dir / "corrections.csv"),
         ("unread_explanations", ctx.review_dir / "unread_explanations.csv"),
+        ("queue_explanations", ctx.review_dir / "queue_explanations.csv"),
         ("citation_fixes", ctx.config_dir / "citation_fixes.csv"),
         ("raw_manifest", ctx.raw_dir / "manifest.csv"),
         *(

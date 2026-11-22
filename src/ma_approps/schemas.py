@@ -452,6 +452,28 @@ REVIEW_QUEUE_LEADING = _cols(
     Col("priority", "int"),
 )
 
+# §7.12 the reasons a row is on the review queue, most urgent first (export.REASONS)
+QUEUE_REASONS = (
+    "policy_area",
+    "cthru_mismatch",
+    "unknown_fund",
+    "amendment_check",
+    "borrowing_limit",
+    "combine_problem",
+)
+# §7.21 review/queue_explanations.csv (human-edited; a review-queue line a person has settled,
+# copied from the queue with the explanation added; decided 2026-11-21)
+SCHEMAS["queue_explanations"] = _cols(
+    Col("record_id"),
+    Col("reason", "enum", QUEUE_REASONS, required=True),
+    Col("law_key"),
+    Col("fiscal_year"),
+    Col("line_item"),
+    Col("explanation", required=True),
+    Col("explained_by", required=True),
+    Col("date", "date", required=True),
+)
+
 # §7.2 data/interim/paragraphs/{law_key}.jsonl keys
 PARAGRAPH_KEYS = ("law_key", "para_idx", "text", "raw_html", "classes", "struck", "bold", "links")
 

@@ -195,3 +195,71 @@ def test_a_run_writing_elsewhere_never_overwrites_the_real_queue(root, tmp_path)
     assert Context(root=root).review_queue == root / "review" / "review_queue.csv"
     test_run = Context(root=root, output_dir=tmp_path / "output")
     assert test_run.review_queue == tmp_path / "output" / "review_queue.csv"
+
+
+# -- review/queue_explanations.csv (§7.21, decided 2026-11-21) ---------------------------------
+
+
+def line(rid, reason="cthru_mismatch", fy="2025", item="1000-0001", law="2024-140"):
+    return {
+        "record_id": rid,
+        "reason": reason,
+        "priority": 1,
+        "law_key": law,
+        "fiscal_year": fy,
+        "line_item": item,
+        "detail": "",
+        "where_to_record": "",
+    }
+
+
+def explanation(rid, reason="cthru_mismatch", fy="2025", item="1000-0001", text="Why."):
+    return {
+        "record_id": rid,
+        "reason": reason,
+        "law_key": "2024-140",
+        "fiscal_year": fy,
+        "line_item": item,
+        "explanation": text,
+        "explained_by": "Emma",
+        "date": "2026-11-21",
+    }
+
+
+def test_an_explained_line_leaves_the_queue_and_a_stale_one_is_reported():
+    rows = [line("a"), line("b"), line("", item="2000-0002")]  # "" = money CTHRU has, no row
+    remaining, explained, stale = export.explain(
+        rows,
+        [
+            explanation("a"),
+            explanation("", item="2000-0002"),
+            explanation("gone"),  # its difference was fixed since: stale
+            explanation("b", text="  "),  # no explanation written: doesn't count
+        ],
+    )
+    assert [q["record_id"] for q in remaining] == ["b"]
+    assert explained == 2
+    assert [e["record_id"] for e in stale] == ["gone"]
+
+
+def test_an_explanation_must_match_the_line_s_reason_and_year():
+    rows = [line("a", reason="amendment_check", fy="2025")]
+    remaining, explained, _ = export.explain(
+        rows, [explanation("a", reason="cthru_mismatch"), explanation("a", fy="2024")]
+    )
+    assert (len(remaining), explained) == (1, 0)
+
+
+def test_the_explanations_file_format_is_checked():
+    header = schemas.columns("queue_explanations")
+    good = explanation("a")
+    bad = dict(explanation("a"), reason="not_a_reason", date="21/11/2026")
+    assert schemas.validate_rows("queue_explanations", header, [good]) == []
+    assert {p.column for p in schemas.validate_rows("queue_explanations", header, [bad])} == {
+        "reason",
+        "date",
+    }
+
+
+def test_the_reasons_match_the_queue_s():
+    assert tuple(export.REASONS) == schemas.QUEUE_REASONS

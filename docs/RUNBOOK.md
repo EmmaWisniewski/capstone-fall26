@@ -216,18 +216,27 @@ edit it, because the next run rewrites it. Work through it from the top:
 | Reason | What it means | What to do |
 |---|---|---|
 | `policy_area` | the row has no policy area yet | see "Labels and policy areas" below |
-| `cthru_mismatch` | our amount for that year and line item differs from the Comptroller's | find why (the law, a misread, a CTHRU quirk); fix it, or write the explanation in `review/research_log.md` under the line item |
+| `cthru_mismatch` | our amount for that year and line item differs from the Comptroller's | find why (the law, a misread, a CTHRU quirk); fix it, or, if the difference is right, mark it explained (below) |
 | `unknown_fund` | the law names a fund the program doesn't know, so it can't tell whether the money is federal | add a row to `config/funds.csv`. If it's another name for a fund already listed (spelling differences like "&" or a missing "Fund" are matched already), copy that fund's `fund_number` and say so in `notes`. Otherwise set `is_federal` to `true` only if the money comes from a federal source (federal grants, ARPA, CARES); state surplus and state trust funds are `false` (partner's rule, DESIGN Q1) |
-| `amendment_check` | a change to an earlier item that didn't check out | check the law; fix the row in `review/corrections.csv`, or explain in `review/research_log.md` |
-| `borrowing_limit` | a bond item whose borrowing limit doesn't equal the total of its items | explain the gap in `review/research_log.md` |
+| `amendment_check` | a change to an earlier item that didn't check out | check the law; fix the row in `review/corrections.csv`, or, if the program is right, mark it explained (below) |
+| `borrowing_limit` | a bond item whose borrowing limit doesn't equal the total of its items | find why (a veto, a federal share, or the law doesn't say) and mark it explained (below) |
 | `combine_problem` | anything else the program noticed | read the `detail` column |
 
 The `detail` column says what was found, and `where_to_record` says where the decision goes. A blank
 **record_id** means there's no row to fix (for example, money the Comptroller shows that no law
 in our list gave): use `law_key`, `fiscal_year` and `line_item` to find it. Re-run the program
-after your fixes: a fixed row leaves the queue. *Known gap:* a CTHRU difference, amendment or
-borrowing limit explained only in `review/research_log.md` stays listed, because the program
-doesn't read that file.
+after your fixes: a fixed row leaves the queue.
+
+**Marking a line explained.** When a line needs no fix, because the program is right or it's a
+known limitation, copy its first columns (`record_id`, `reason`, `law_key`, `fiscal_year`,
+`line_item`, exactly as in the queue) into a new row of **`review/queue_explanations.csv`**, then
+fill in `explanation` (why, in plain words), `explained_by` (your name) and `date`
+(`YYYY-MM-DD`). Edit it in a plain-text editor, not Excel, which changes dates when it saves. On
+the next run the line leaves the queue, and export's message says how many lines were explained.
+If export says some explanations "match no queue line any more", a later fix removed that
+difference: delete those rows (they're listed in
+`reports/validation/queue_explanations_stale.csv`). Longer reasoning still goes in
+`review/research_log.md`.
 
 ### Labels and policy areas (`label` stage)
 
