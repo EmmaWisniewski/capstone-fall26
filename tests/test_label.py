@@ -122,6 +122,19 @@ def test_inherited_heading_from_another_department_is_replaced():
                                depts) == "Suffolk Sheriff's Department"
 
 
+def test_a_bare_office_of_the_secretary_takes_the_lines_cthru_department():
+    # 2023-28 §2D 7004-2030 (weatherization) is printed under "Office of the Secretary." with no
+    # secretariat heading above it (random-row review, 2026-11-22)
+    depts = label.Departments([
+        cthru("7004-0101", 2024, account="x",
+              dept_name="EXECUTIVE OFFICE OF HOUSING AND LIVABLE COMMUNITIES"),
+    ])
+    row = action("a", "7004-2030", 2024, header="Office of the Secretary.")
+    assert label.agency_office(row, None, "", depts) == (
+        "Executive Office of Housing and Livable Communities"
+    )
+
+
 def test_department_names_are_cleaned_up():
     names = {
         "DEPARTMENT of AGRICULTURAL RESOURCES": "Department of Agricultural Resources",
@@ -130,6 +143,7 @@ def test_department_names_are_cleaned_up():
         "SHERIFF DEPARTMENT SUFFOLK": "Suffolk Sheriff's Department",
         "SPRINGFIELD TECH COMM COLLEGE": "Springfield Technical Community College",
         "VETERANS' HOME IN CHELSEA": "Veterans' Home in Chelsea",
+        "TRANSPORTATION.": "Massachusetts Department of Transportation",
     }
     for raw, clean in names.items():
         assert label.department_display_name(raw) == clean

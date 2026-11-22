@@ -118,6 +118,8 @@ DEPARTMENT_NAME_FIXES = (
     (r"^Mass Bay Community College$", "MassBay Community College"),
     (r"^Mt Wachusett\b", "Mount Wachusett"),
     (r"\bTech Comm College$", "Technical Community College"),
+    # MassDOT's items printed under only the "TRANSPORTATION." heading (6642-0049, 2025-9 §2D)
+    (r"^Transportation$", "Massachusetts Department of Transportation"),
 )
 
 
@@ -277,6 +279,13 @@ def agency_office(
     agency = header_agency(row["agency_header_raw"], secretariat_header)
     if not departments:
         return agency
+    # A heading that names no office (a bare "Office of the Secretary" with no secretariat above
+    # it): the line's CTHRU department says more (7004-2030 in 2023-28 §2D; random-row review,
+    # 2026-11-22)
+    if (not agency or _VAGUE_HEADER.match(agency)) and row["line_item"]:
+        named = departments.name_for(row["line_item"], int(row["fiscal_year"]))
+        if named:
+            return named
     if agency:
         return departments.fix_inherited(agency, row["line_item"])
     # An amendment's own text names no office: the line's department in CTHRU
