@@ -305,7 +305,8 @@ def check_cthru(
     - ``gaa``: ORIG appropriations vs CTHRU ``original_enacted``.
     - ``supplemental``: NEW + INC + RED amounts vs ``supplemental``. Every row counts, whether or
       not it counts toward the operating total: CTHRU carries federal and ARPA money too.
-    - ``retained_revenue``: fee-revenue ceilings vs ``retained_revenue_ceiling``. CTHRU shows §2B
+    - ``retained_revenue``: fee-revenue ceilings vs ``retained_revenue_ceiling``, or, when CTHRU
+      gives no ceiling, its ``retained_revenue_estimate`` (Q31, issue #36). CTHRU shows §2B
       chargebacks only as ceilings, so those rows go here, not to ``gaa``. A same-year increase
       to such an item (a supplement, or an amendment of the GAA's figure) is added to its
       ceiling, because CTHRU folds it in (8100-0102 FY2024: $45M printed + $7M = $52M).
@@ -358,6 +359,23 @@ def check_cthru(
             if r["fiscal_year"] in years and _int(r[column])
         }
 
+    def theirs_fee_revenue() -> dict[tuple[str, str], int]:
+        # CTHRU's ceiling, or, when it gives none, its estimate: it books most fee-revenue items,
+        # and in FY2025 most chargebacks, as an estimate only (Q31, issue #36; decided 2026-11-24).
+        # Not for an account with an appropriation: there an estimate is something else, e.g.
+        # 8800-0001's leave to spend $5,000,000 "in excess of the current appropriation"
+        out = {}
+        for r in cthru_rows:
+            if r["fiscal_year"] not in years:
+                continue
+            estimate = _int(r.get("retained_revenue_estimate"))
+            if _int(r["original_enacted"]):
+                estimate = 0
+            value = _int(r["retained_revenue_ceiling"]) or estimate
+            if value:
+                out[(r["fiscal_year"], r["line_item"])] = value
+        return out
+
     def amount(r: dict[str, str]) -> int:
         return _int(r["amount"])
 
@@ -392,7 +410,7 @@ def check_cthru(
         _compare(
             "retained_revenue",
             group([r for r in orig if is_ceiling(r)] + [r for r in deltas if in_ceiling_group(r)]),
-            theirs("retained_revenue_ceiling"),
+            theirs_fee_revenue(),
             amount,
             matches=matches,
         ),
