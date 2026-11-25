@@ -1137,7 +1137,30 @@ def _amendment_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) 
 def starting_items(inputs: Mapping[str, list]) -> list[dict[str, str]]:
     """Every item with a starting amount for the running amounts (§5.5): items_raw, bond_items_raw
     and hand-kept items in manual_rows (issue #41)."""
-    return inputs["items_raw"] + inputs["bond_items_raw"] + manual_items(inputs["manual_rows"])
+    items = restored_by_override(
+        inputs["items_raw"], inputs["law_list"], inputs["cthru_line_items"]
+    )
+    return items + inputs["bond_items_raw"] + manual_items(inputs["manual_rows"])
+
+
+def restored_by_override(
+    items: list[dict[str, str]], law_list: list[Mapping[str, str]], cthru: list[Mapping[str, str]]
+) -> list[dict[str, str]]:
+    """``items`` with each overridden GAA item starting at CTHRU's amount when CTHRU is above the
+    printed figure (Q30, decided 2026-11-24). Such a law prints the Governor's reduced figure, and
+    CTHRU the amount the Legislature restored (the same test as ``_annual_veto_status``); a later
+    change to the item is checked against what was restored. 2024-248 §86 lowers 7006-0071 from the
+    restored $3,332,411 to $3,307,411, which against the printed $3,307,411 read as no change."""
+    by_cthru = {(r["fiscal_year"], r["line_item"]): r for r in cthru}
+    restored = {}
+    for item, law in _gaa_items(items, law_list):
+        if item["veto_kind_inline"] != "overridden" or not item["amount"]:
+            continue
+        row = by_cthru.get((_annual_fy(item, law), item["line_item"]), {})
+        theirs = _int(row.get("original_enacted"))
+        if theirs and theirs > int(item["amount"]):
+            restored[id(item)] = str(theirs)
+    return [{**r, "amount": restored[id(r)]} if id(r) in restored else r for r in items]
 
 
 def _federal_grant_builder(inputs: Mapping[str, list], settings: Mapping[str, Any]) -> list[dict]:
