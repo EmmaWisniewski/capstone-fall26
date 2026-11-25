@@ -63,6 +63,9 @@ AMOUNT_FIELDS = {
     "supplemental": "supplemental_budget_appropriations",
     "retained_revenue_ceiling": "authorized_retained_revenue_ceiling",
     "total_enacted": "total_enacted_budget_appropriation",
+    # CTHRU books most fee-revenue items, and in FY2025 most chargebacks, as an estimate with no
+    # ceiling (Q31, issue #36): kept so the CTHRU comparison can check them (§13 check 4)
+    "retained_revenue_estimate": "retained_revenue_estimate",
 }
 
 
@@ -221,7 +224,7 @@ def aggregate(rows: list[dict]) -> list[dict[str, str]]:
     out = []
     for (fy, account), group in sorted(by_account.items()):
         funded = [r for r in group if _has_money(r)]
-        if not funded:  # includes fee items CTHRU only estimates (rule 1 above)
+        if not funded:
             continue
         by_dept: dict[str, list[dict]] = defaultdict(list)
         for r in group:

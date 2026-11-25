@@ -70,6 +70,16 @@ def test_aggregate_sums_departments_and_formats_ids():
     assert row["retained_revenue_ceiling"] == "0"
 
 
+def test_aggregate_keeps_accounts_cthru_only_estimates():
+    # Q31, issue #36: most fee-revenue items have an estimate but no ceiling
+    rows = [
+        {"fiscal_year": "2025.0", "appropriation_account_number": "12345678",
+         "department_code": "AAA", "fund_number": "0015", "retained_revenue_estimate": "45.0"},
+    ]
+    (row,) = cthru.aggregate(rows)
+    assert (row["retained_revenue_estimate"], row["retained_revenue_ceiling"]) == ("45", "0")
+
+
 def test_fiscal_years_come_from_the_law_list(root):
     # FY2021 (in-scope supplementals) through FY2026 (2025 ch. 9). The reference-only FY2020 budget
     # and the excluded FY2027 one don't add years.

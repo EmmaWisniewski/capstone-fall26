@@ -185,6 +185,25 @@ def test_a_chargeback_increase_is_added_to_the_chargeback_ceiling():
     assert run_cthru(actions, [cthru(retained_revenue_ceiling="121")]) == (1, [])
 
 
+
+def test_a_fee_item_cthru_only_estimates_is_compared_with_its_estimate():
+    # CTHRU books most fee-revenue items, and in FY2025 most chargebacks, as an estimate with no
+    # ceiling (Q31, issue #36)
+    fee = action(amount_kind="retained_revenue_ceiling", amount="45", flags="retained_revenue")
+    assert run_cthru([fee], [cthru(retained_revenue_estimate="45")]) == (1, [])
+    chargeback = action(section_type="isf", amount="70")
+    assert run_cthru([chargeback], [cthru(retained_revenue_estimate="70")]) == (1, [])
+    # CTHRU's ceiling, when it gives one, wins over its estimate
+    rows = [cthru(retained_revenue_ceiling="50", retained_revenue_estimate="45")]
+    _, report = run_cthru([fee], rows)
+    assert by_status(report) == {("retained_revenue", "1000-0001"): "unexplained"}
+
+
+def test_an_estimate_on_an_account_with_an_appropriation_is_not_a_fee_ceiling():
+    # e.g. 8800-0001: leave to spend more "in excess of the current appropriation"
+    rows = [cthru(original_enacted="100", retained_revenue_estimate="5")]
+    assert run_cthru([action()], rows) == (1, [])
+
 # -- Bond totals ---------------------------------------------------------------------------
 
 

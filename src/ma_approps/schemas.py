@@ -268,6 +268,7 @@ SCHEMAS: dict[str, tuple[Col, ...]] = {
         Col("supplemental", "int"),
         Col("retained_revenue_ceiling", "int"),
         Col("total_enacted", "int"),
+        Col("retained_revenue_estimate", "int"),  # Q31, issue #36 (decided 2026-11-24)
     ),
 }
 # §7.3 data/interim/bond_items_raw.csv: same columns as items_raw (workstream A writes it)
