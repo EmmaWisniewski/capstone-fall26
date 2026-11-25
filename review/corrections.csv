@@ -337,4 +337,3 @@ record_id,field,new_value,expected_old_value,reviewer,review_date,note
 2022-268-S2A-1599-1214-NEW-1,Policy area,Health and public health,Not classified,Tierney,2026-11-21,"1599 reserve; same area as this item's other years (Emily R., 2026-11-12). Manual row (Q28)."
 2024-206-S2-1599-6073-INC-1,Counts toward total?,Yes,No,Tierney,2026-11-22,"Random-row review: this 2024-206 §2 increase to VOCA Bridge is state money; CTHRU books the item to the Federal COVID-19 Response Fund (ARPA), so the fund rule marked it federal."
 2024-206-S2-1599-6073-INC-1,Amount counted toward total ($),"20,000,000",0,Tierney,2026-11-22,Random-row review: state money (see the row above).
-2024-248-S86-7006-0071-RED-1,Appropriation/change ($),"-25,000",0,Tierney,2026-11-22,"Random-row review: the FY2024 item was restored to $3,332,411 by veto override (CTHRU agrees); §86 lowers it to $3,307,411, a real -$25,000. The check compared against the post-veto printed figure (Q30)."

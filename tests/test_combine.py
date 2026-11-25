@@ -116,6 +116,34 @@ def test_date_order_text_figures_mismatches_and_strikes():
     ]
 
 
+
+def test_a_change_to_an_overridden_item_starts_from_the_amount_cthru_shows_restored():
+    # Q30: the law prints the Governor's reduced figure; CTHRU has what the Legislature restored.
+    # 2024-248 §86 lowered 7006-0071 from the restored $3,332,411 to the printed $3,307,411
+    laws = [
+        {"law_key": "2098-1", "approved_date": "2098-07-01", "primary_fy": "2099",
+         "parse_strategy": "auto", "role": "in_scope", "law_type": "gaa"},
+        {"law_key": "2099-2", "approved_date": "2099-01-15", "primary_fy": "2099",
+         "parse_strategy": "auto", "role": "in_scope", "law_type": "supplemental"},
+    ]
+    items = [
+        {**_item("2098-1", "1000-0001", 3307), "veto_kind_inline": "overridden"},
+        {**_item("2098-1", "1000-0002", 500), "veto_kind_inline": "overridden"},  # CTHRU below
+        {**_item("2098-1", "1000-0003", 70), "veto_kind_inline": "none"},
+    ]
+    cthru = [
+        {"fiscal_year": "2099", "line_item": "1000-0001", "original_enacted": "3332"},
+        {"fiscal_year": "2099", "line_item": "1000-0002", "original_enacted": "400"},
+        {"fiscal_year": "2099", "line_item": "1000-0003", "original_enacted": "90"},
+    ]
+    inputs = {"items_raw": items, "bond_items_raw": [], "manual_rows": [], "law_list": laws,
+              "cthru_line_items": cthru}
+    started = combine.starting_items(inputs)
+    assert [r["amount"] for r in started] == ["3332", "500", "70"]
+    amendments = [_amend("2099-2", "86", "figure_change", "1000-0001", 3332, 3307)]
+    (row,) = combine.amendment_amounts(started, amendments, laws)
+    assert (row["check"], row["change"]) == ("match", -25)
+
 def test_a_carried_forward_balance_is_not_the_same_money():
     # 2021-76 §2CI carries $100,000 of 2000-0100 forward; §12's +$100,000 is new money (Q28)
     laws = [

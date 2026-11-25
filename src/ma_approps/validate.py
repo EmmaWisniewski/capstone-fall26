@@ -193,11 +193,13 @@ def check_amendment_amounts(ctx: Context) -> list[dict] | None:
         "items_raw": rows(ctx.interim_dir / "items_raw.csv"),
         "bond_items_raw": rows(ctx.interim_dir / "bond_items_raw.csv"),
         "manual_rows": rows(ctx.config_dir / "manual_rows.csv"),
+        "law_list": rows(ctx.config_dir / "law_list.csv"),
+        "cthru_line_items": rows(ctx.interim_dir / "cthru_line_items.csv"),
     }
     return combine.amendment_amounts(
         combine.starting_items(inputs),
         rows(ctx.interim_dir / "amendments_raw.csv"),
-        rows(ctx.config_dir / "law_list.csv"),
+        inputs["law_list"],
     )
 
 
