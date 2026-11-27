@@ -506,6 +506,14 @@ EXPORT_COLUMNS = (
     "Source or calculation for total",
 )
 # §7.13: the capital file adds the borrowing-limit details to the export columns (Q16, Q17, Q11)
+# §7.13: the summary file, the counted totals of the main and capital files (decided 2026-11-27)
+SUMMARY_COLUMNS = (
+    "Breakdown",
+    "Fiscal year",
+    "Group",
+    "Rows counted",
+    "Amount counted toward total ($)",
+)
 CAPITAL_EXPORT_COLUMNS = (
     *EXPORT_COLUMNS,
     "Borrowing limit section",

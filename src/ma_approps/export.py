@@ -569,9 +569,71 @@ def write_review_queue(ctx: Context, main_path: Path, capital_path: Path) -> Pat
     return path
 
 
+# -- the summary file (§7.13, decided 2026-11-27) -------------------------------------------
+
+ALL_YEARS = "All years"
+SUMMARY_BREAKDOWNS = (
+    # (Breakdown, which file, column that names the group, or None for one group)
+    ("Operating total", "main", None),
+    ("Operating, by policy area", "main", "Policy area"),
+    ("Operating, by funding action", "main", "Funding action"),
+    ("Capital total", "capital", None),
+    ("Capital, by policy area", "capital", "Policy area"),
+)
+
+
+def summary_rows(
+    main: list[Mapping[str, Any]], capital: list[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """The counted totals of the two files, by fiscal year and for all years together: what Excel
+    gives when it sums "Amount counted toward total ($)" over the rows whose "Counts toward
+    total?" is Yes (§7.13). Built from the finished files, so corrections are included and the
+    "Operating total" for all years equals the sum ``write_main_file`` prints."""
+    files = {"main": main, "capital": capital}
+    out: list[dict[str, Any]] = []
+    for breakdown, which, column in SUMMARY_BREAKDOWNS:
+        groups: dict[tuple[str, str], list[int]] = {}
+        for r in files[which]:
+            if r["Counts toward total?"] != "Yes":
+                continue
+            amount = int(str(r["Amount counted toward total ($)"]).replace(",", "") or 0)
+            group = str(r[column]) if column else "All"
+            for fy in (str(r["Fiscal year"]), ALL_YEARS):
+                count, total = groups.get((fy, group), [0, 0])
+                groups[(fy, group)] = [count + 1, total + amount]
+        for (fy, group), (count, total) in sorted(
+            groups.items(), key=lambda kv: (kv[0][0] == ALL_YEARS, kv[0][0], kv[0][1])
+        ):
+            out.append(
+                {
+                    "Breakdown": breakdown,
+                    "Fiscal year": fy,
+                    "Group": group,
+                    "Rows counted": count,
+                    "Amount counted toward total ($)": _money(total),
+                }
+            )
+    return out
+
+
+def write_summary(ctx: Context, main_path: Path, capital_path: Path) -> Path:
+    """Write ``ma_appropriations_summary_cy….csv`` next to the main file; returns its path."""
+    rows = summary_rows(_read(main_path), _read(capital_path))
+    path = ctx.output_dir / output_name("ma_appropriations_summary", ctx.settings)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=schemas.SUMMARY_COLUMNS, lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+    years = sorted({r["Fiscal year"] for r in rows} - {ALL_YEARS})
+    span = f"FY{years[0]}–FY{years[-1]}" if years else "no years"
+    print(f"  summary: {len(rows)} rows, counted totals by fiscal year ({span}): {path.name}")
+    return path
+
+
 def run(ctx: Context) -> int:
     notes = law_notes(ctx)
     main_path = write_main_file(ctx, notes)
     capital_path = write_capital_file(ctx, notes)
+    write_summary(ctx, main_path, capital_path)
     write_review_queue(ctx, main_path, capital_path)
     return 0
