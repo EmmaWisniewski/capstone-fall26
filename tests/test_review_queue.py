@@ -263,3 +263,13 @@ def test_the_explanations_file_format_is_checked():
 
 def test_the_reasons_match_the_queue_s():
     assert tuple(export.REASONS) == schemas.QUEUE_REASONS
+
+
+def test_catalog_drift_goes_on_the_queue_without_a_record_id():
+    drift = [{"fiscal_year": "2022", "line_item": "7061-9612", "detail": "CTHRU name changed"}]
+    files = exported("A")
+    rows = export.review_queue(files, [action("A")], [cthru(original_enacted="100")], LAWS, [], [],
+                               [], drift)
+    assert [(q["record_id"], q["reason"], q["line_item"], q["priority"]) for q in rows] == [
+        ("", "catalog_drift", "7061-9612", 3)
+    ]

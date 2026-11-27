@@ -703,3 +703,19 @@ def test_law_filter(root, samples_dir, tmp_path):
     assert read_amendments.run(ctx) == 0
     _, rows = schemas.read_csv(tmp_path / "interim" / "amendments_raw.csv")
     assert [r["law_key"] for r in rows] == ["2021-35"]
+
+
+def test_a_law_with_no_section_headings_is_read_as_section_1():
+    # 2022-83 (shortened): one unnumbered paragraph after the enacting clause
+    html = (
+        "<p>Be it enacted by the Senate and House of Representatives in General Court assembled,"
+        " and by the authority of the same, as follows:</p>"
+        "<p>Item 4513-1020 of section 2 of chapter 24 of the acts of 2021 is hereby amended by"
+        " adding the following words:- ; provided further, that not less than $8,000,000 shall be"
+        " expended from this item for early intervention staffing recovery payments</p>"
+        "<p>Approved, June 10, 2022.</p>"
+    )
+    rows, unread = read_amendments.read_law("2022-83", "other", html)
+    found = [(r["section"], r["action_type"], r["target_law_key"], r["target_item"]) for r in rows]
+    assert found == [("1", "text_insert", "2021-24", "4513-1020")]
+    assert unread == []

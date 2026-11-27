@@ -221,6 +221,7 @@ edit it, because the next run rewrites it. Work through it from the top:
 | `amendment_check` | a change to an earlier item that didn't check out | check the law; fix the row in `review/corrections.csv`, or, if the program is right, mark it explained (below) |
 | `borrowing_limit` | a bond item whose borrowing limit doesn't equal the total of its items | find why (a veto, a federal share, or the law doesn't say) and mark it explained (below) |
 | `combine_problem` | anything else the program noticed | read the `detail` column |
+| `catalog_drift` | the Comptroller renamed a line item or moved it to another department | check the item's policy area still fits: if it does, mark it explained (below); if not, change its row in `config/line_item_catalog.csv` |
 
 The `detail` column says what was found, and `where_to_record` says where the decision goes. A blank
 **record_id** means there's no row to fix (for example, money the Comptroller shows that no law
@@ -362,7 +363,10 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - every CTHRU difference is explained or flagged;
 - every annual-budget item showing **Veto status** *vetoed* at $0 is a real veto. The program reads an item CTHRU doesn't list as vetoed, so check each against the Governor's veto message for that budget and the bill's history (an item "passed over veto" was overridden). A misread one gets a row in `review/corrections.csv` (amount and veto status), as 1231-1000 in FY2025 did (`review/research_log.md`, Q29);
 - `reports/law_status.csv` gives each law's status (`checked`, `partially_checked` or `not_checked`) and the note that fills the spreadsheet's last column, "Source or calculation for total". A `partially_checked` law points you to its differences in `reports/validation/cthru_mismatches.csv` or `bond_totals.csv`;
-- `config/manual_rows.csv` is empty, or each row is justified (see step 8).
+- `config/manual_rows.csv` is empty, or each row is justified (see step 8); `validate` prints how many there are per law;
+- `reports/validation/coverage_problems.csv` is empty or each line is understood: a law with no row in the data (find why the program didn't read it) or an item whose fund shares don't add up to 100% (usually a misprint in the law; note it in `review/research_log.md`);
+- `reports/validation/correction_problems.csv` is empty: each line is a fix in `review/corrections.csv` that didn't reach the main file. Fix its record ID, field or `expected_old_value`, or delete it if it's no longer needed;
+- `validate` says at least 99% of budget rows have a description.
 
 **Totals in Excel.** Never add up "Appropriation/change ($)": it includes money the counting rules
 leave out (federal grants, transfers, carried-over balances, interim budgets, chargebacks). Sum

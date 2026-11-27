@@ -43,7 +43,7 @@ from ma_approps import paragraphs, read_bonds, read_items, schemas
 from ma_approps.context import Context
 
 IMPLEMENTED = True
-READER_VERSION = "0.12.0"
+READER_VERSION = "0.12.1"
 
 UNREAD_COLUMNS = ("law_key", "section", "reason", "text", "explanation")
 
@@ -60,6 +60,8 @@ SECTION_START_RE = re.compile(r"^SECTION\s+(\d+[A-Z]*)\b\.?\s*")
 # GAA (2021-24), "SECTION 2" in FY2025 (issue #12). Only when it is the whole paragraph, so a
 # quoted "Section 67. Item …" inside an amendment is not taken for a new section.
 SECTION2_HEADING_RE = re.compile(r"^section\s+(2[A-Z]{0,3})\.?$", re.I)
+# The enacting clause: a law with no SECTION headings (2022-83) is the text after it, as section 1
+ENACTING_RE = re.compile(r"^Be it enacted\b", re.I)
 AMENDED_RE = re.compile(
     r"^(?P<subject>.{0,400}?)\s+(?:is|are)\s+hereby\s+(?:further\s+)?amended\b(?P<predicate>.*)$",
     re.S,
@@ -184,6 +186,10 @@ ITEM_LINE_RE = re.compile(rf"{ITEM}(?!\d)")
 GOVERNOR_NOTE_RE = re.compile(r"^(?:The )?Governor (?:disapproved|returned)\b")
 
 
+def _starts_section(text: str) -> bool:
+    return bool(SECTION_START_RE.match(text) or SECTION2_HEADING_RE.match(text))
+
+
 def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Group paragraphs into sections, in source order: ``section``, ``texts`` and ``vetoed``.
 
@@ -191,7 +197,14 @@ def _sections(paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
     section it only marks that section, and anywhere else it stays in place in the text. A section
     is ``vetoed`` if any of its text is struck through or a note says the Governor disapproved,
     and ``returned`` if a note says the Governor returned it with a recommendation of amendment.
+    A law with no SECTION headings is one section, "1": the text after its enacting clause (2022-83
+    amends item 4513-1020 in one unnumbered paragraph).
     """
+    if not any(_starts_section(p["text"]) for p in paras):
+        start = next((i for i, p in enumerate(paras) if ENACTING_RE.match(p["text"])), None)
+        if start is not None and start + 1 < len(paras):
+            first = {**paras[start + 1], "text": "SECTION 1. " + paras[start + 1]["text"]}
+            paras = [first] + paras[start + 2 :]
     out: list[dict[str, Any]] = []
     notes: list[str] = []
     for p in paras:

@@ -461,6 +461,7 @@ QUEUE_REASONS = (
     "amendment_check",
     "borrowing_limit",
     "combine_problem",
+    "catalog_drift",  # §12 step 6, §13 check 11 (decided 2026-11-27)
 )
 # §7.21 review/queue_explanations.csv (human-edited; a review-queue line a person has settled,
 # copied from the queue with the explanation added; decided 2026-11-21)

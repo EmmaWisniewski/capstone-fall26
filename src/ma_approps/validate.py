@@ -1,16 +1,17 @@
 """`validate`: the validation suite (DESIGN §13). Owner: workstream E.
 
-Implemented: check 1 (file formats and allowed values), the coverage check on the ``unread_*``
-reports (a row is explained in the report's own column or in review/unread_explanations.csv,
-§7.19, Q22), check 3 (struck figures), check 4 (CTHRU comparison) and check 7 (bond totals).
-Check 8 (law status) writes reports/law_status.csv, whose note the export repeats in its last
-column. Checks 3, 4 and 7 are reported, not failures. Still to come: orphaned corrections
-(task list, docs/OVERVIEW.md §5).
+Every check is built except two parts of check 5 (item-number prefix vs CTHRU department, an item
+twice in one section; known limitations). Check 1 (file formats and allowed values) and the
+coverage check on the ``unread_*`` reports (a row is explained in the report's own column or in
+review/unread_explanations.csv, §7.19, Q22) fail the run; checks 3 to 11 are reported, not
+failures. Check 8 (law status) writes reports/law_status.csv, whose note the export repeats in its
+last column.
 """
 
 from __future__ import annotations
 
 import csv
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
@@ -693,6 +694,101 @@ def law_status(
     return out
 
 
+# -- Checks 5, 6, 9, 10 and 11 (built 2026-11-27) ----------------------------------------------
+
+COVERAGE_COLUMNS = ("check", "record_id", "law_key", "line_item", "detail")
+CORRECTION_COLUMNS = ("record_id", "field", "new_value", "problem")
+
+
+def check_coverage(
+    actions: list[dict[str, str]],
+    law_list: list[dict[str, str]],
+    fund_splits: list[dict[str, str]],
+) -> list[dict]:
+    """Check 6, every in-scope law has a funding-action row (2022-83 had none until the amendment
+    reader read laws with no SECTION headings), and check 5, an item's fund shares add up to 100%
+    (±0.01 points; FY2025's 3000-4060 prints 80.49% + 19.41%, a misprint in the law)."""
+    out = []
+    have = {r["law_key"] for r in actions}
+    for law in law_list:
+        if law["role"] == "in_scope" and law["law_key"] not in have:
+            out.append({"check": "law_without_rows", "record_id": "", "law_key": law["law_key"],
+                        "line_item": "", "detail": "an in-scope law with no row in the data"})
+    shares: dict[str, float] = {}
+    for s in fund_splits:
+        if s["share"]:
+            shares[s["record_id"]] = shares.get(s["record_id"], 0.0) + float(s["share"])
+    by_id = {r["record_id"]: r for r in actions}
+    for rid, total in shares.items():
+        if abs(total - 1) > 0.0001:
+            row = by_id.get(rid, {})
+            out.append({"check": "fund_shares", "record_id": rid, "law_key": row.get("law_key", ""),
+                        "line_item": row.get("line_item", ""),
+                        "detail": f"fund shares add up to {total * 100:.2f}%"})
+    return out
+
+
+def check_corrections(
+    corrections: list[dict[str, str]],
+    main_rows: list[dict[str, str]],
+    actions: list[dict[str, str]],
+) -> list[dict]:
+    """Check 9: corrections (§7.11) that don't reach the main file: no row with the record ID in it
+    (a bond row: the capital file doesn't apply corrections), a field that isn't one of its
+    columns, or a cell that doesn't show the new value (export skips a correction whose
+    ``expected_old_value`` no longer matches)."""
+    exported = {r["Record ID"]: r for r in main_rows}
+    capital = {r["record_id"] for r in actions if r["funding_action"] == "CAP"}
+    last = {(c["record_id"], c["field"]): c for c in corrections}  # a later one wins
+    out = []
+    for (rid, field), c in last.items():
+        if rid not in exported:
+            problem = ("a bond row: the capital file doesn't apply corrections" if rid in capital
+                       else "no row with this record ID in the main file")
+        elif field not in schemas.EXPORT_COLUMNS:
+            problem = "not a column of the main file"
+        elif exported[rid][field] != c["new_value"]:
+            problem = (f"not applied: the cell is {exported[rid][field]!r} (expected_old_value "
+                       f"{c['expected_old_value']!r} no longer matches)")
+        else:
+            continue
+        out.append({"record_id": rid, "field": field, "new_value": c["new_value"],
+                    "problem": problem})
+    return out
+
+
+def _name(text: str) -> str:
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in text.lower()).split())
+
+
+def catalog_drift(
+    catalog: list[dict[str, str]], cthru_rows: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    """Check 11 (§12 step 6): a catalog item whose CTHRU account name or department changes from
+    one fiscal year to the next (capitalization and punctuation aside), so a person confirms its
+    label still fits: one line per change, for the later year (7061-9612 was "For Worcester
+    Polytechnic Institute" in FY2021 and "Safe and Supportive Schools" from FY2022)."""
+    items = {r["line_item"] for r in catalog}
+    years: dict[str, dict[str, dict[str, str]]] = {}
+    for r in cthru_rows:
+        if r["line_item"] in items:
+            years.setdefault(r["line_item"], {})[r["fiscal_year"]] = r
+    out = []
+    for item in sorted(years):
+        rows = [years[item][fy] for fy in sorted(years[item])]
+        for before, after in zip(rows, rows[1:], strict=False):
+            for field, what in (("account_name", "name"), ("department_name", "department")):
+                if _name(before[field]) != _name(after[field]):
+                    out.append({
+                        "fiscal_year": after["fiscal_year"],
+                        "line_item": item,
+                        "detail": f"CTHRU {what} changed: {before[field]!r} "
+                        f"(FY{before['fiscal_year']}) to {after[field]!r} "
+                        f"(FY{after['fiscal_year']})",
+                    })
+    return out
+
+
 def _write_report(path: Path, columns: tuple[str, ...], rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -775,4 +871,48 @@ def run(ctx: Context) -> int:
             f"  law status: {counts['checked']} checked, {counts['partially_checked']} partly "
             f"checked, {counts['not_checked']} not checked, in reports/law_status.csv"
         )
+    if actions:
+        _report_completeness(ctx, actions, cthru_rows)
     return 1 if schema_problems or unread else 0
+
+
+def _report_completeness(
+    ctx: Context, actions: list[dict[str, str]], cthru_rows: list[dict[str, str]]
+) -> None:
+    """Checks 5, 6, 9, 10 and 11: reported, not failures."""
+    out = ctx.reports_dir / "validation"
+    law_list = _read_rows(ctx.config_dir / "law_list.csv")
+    coverage = check_coverage(actions, law_list, _read_rows(ctx.interim_dir / "fund_splits.csv"))
+    _write_report(out / "coverage_problems.csv", COVERAGE_COLUMNS, coverage)
+    laws = sum(c["check"] == "law_without_rows" for c in coverage)
+    shares = len(coverage) - laws
+    print(
+        f"  coverage: {_plural(laws, 'in-scope law', 'in-scope laws')} with no row, "
+        f"{_plural(shares, 'item', 'items')} whose fund shares don't add up to 100%, in "
+        "coverage_problems.csv (reported, not a failure)"
+    )
+    labels = {r["record_id"]: r for r in _read_rows(ctx.interim_dir / "labels.csv")}
+    budget = [r for r in actions if r["funding_action"] == "ORIG"]
+    described = sum(bool(labels.get(r["record_id"], {}).get("program_purpose")) for r in budget)
+    if budget:
+        print(f"  descriptions: {described} of {len(budget)} budget rows "
+              f"({described / len(budget):.1%}; the target is at least 99%)")
+    scope = ctx.settings["scope"]
+    main_path = ctx.output_dir / (
+        f"ma_appropriations_cy{scope['approved_from'][:4]}_{scope['approved_to'][:4]}.csv"
+    )
+    if main_path.exists():
+        problems = check_corrections(
+            _read_rows(ctx.review_dir / "corrections.csv"), _read_rows(main_path), actions
+        )
+        _write_report(out / "correction_problems.csv", CORRECTION_COLUMNS, problems)
+        print(f"  corrections not reaching the main file: {len(problems)} in "
+              "correction_problems.csv (reported, not a failure)")
+    manual = Counter(r["law_key"] for r in _read_rows(ctx.config_dir / "manual_rows.csv"))
+    listed = ", ".join(f"{k} {n}" for k, n in sorted(manual.items())) or "none"
+    print(f"  hand-kept rows (config/manual_rows.csv, target zero): {sum(manual.values())} "
+          f"({listed})")
+    drift = catalog_drift(_read_rows(ctx.config_dir / "line_item_catalog.csv"), cthru_rows)
+    _write_report(out / "catalog_drift.csv", ("fiscal_year", "line_item", "detail"), drift)
+    print(f"  catalog drift: {len(drift)} changes in CTHRU names or departments of catalog items, "
+          "in catalog_drift.csv and the review queue")
