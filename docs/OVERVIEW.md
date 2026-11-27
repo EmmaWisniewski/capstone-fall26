@@ -180,6 +180,7 @@ Status key: ☐ not started · ◐ in progress · ☑ done
 
 | Task | Why it matters | Due | Who's on it | Status | Notes for the next person |
 |---|---|---|---|---|---|
+| **A summary table the program writes** | The 4 Dec charts and the partner need yearly totals by policy area; a total worked out by hand can skip the counting rules (CLAUDE.md) | 4 Dec | Tierney | ◐ | A small CSV next to the main file, rewritten every run: counted totals by fiscal year × policy area and by funding action, plus the capital total |
 | **Write down what's awkward while making the 4 Dec charts** | The fixes should come from real use, not guesses | 4 Dec | | ☐ | Anyone making the charts: add a line here for each thing that was hard to do in Excel |
 | **Fix what's on that list** | The partner and the analyst will work in Excel | 11 Dec | | ☐ | Ideas to weigh: plain words where the file still shows codes; amounts and dates Excel reads as numbers and dates; consistent "Unknown" and "Not classified"; an Excel copy with a frozen header, filters and a short "Read me" tab pointing to the codebook. Any column or value change goes through DESIGN §7.13/§9, `schemas.py` and the Decision Log, within the partner's `exampledata.csv` columns |
 
