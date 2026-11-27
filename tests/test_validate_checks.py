@@ -261,3 +261,63 @@ def test_limit_with_no_items_and_other_laws_cap_rows():
     matched, report = validate.check_bond_totals([restated], [limit()])
     assert matched == 0
     assert [(r["status"], r["items_total"]) for r in report] == [("no_items", 0)]
+
+
+# -- Checks 5, 6, 9 and 11 -----------------------------------------------------------------------
+
+
+def test_coverage_lists_laws_with_no_row_and_fund_shares_off_100_percent():
+    laws = LAWS + [
+        {"law_key": "2022-83", "role": "in_scope"}, {"law_key": "2002-1", "role": "reference"}
+    ]
+    splits = [
+        {"record_id": "R", "share": "0.8049"}, {"record_id": "R", "share": "0.1941"},
+        {"record_id": "S", "share": "0.5"}, {"record_id": "S", "share": "0.5"},
+        {"record_id": "T", "share": ""},  # CTHRU funds with no printed split
+    ]
+    found = validate.check_coverage([action(), action(record_id="S")], laws, splits)
+    assert [(c["check"], c["record_id"] or c["law_key"]) for c in found] == [
+        ("law_without_rows", "2022-83"), ("fund_shares", "R")
+    ]
+    assert found[1]["detail"] == "fund shares add up to 99.90%"
+
+
+def test_corrections_that_dont_reach_the_main_file_are_listed():
+    main = [{"Record ID": "A", "Appropriation/change ($)": "-25,000"},
+            {"Record ID": "B", "Appropriation/change ($)": "100"}]
+    actions = [action(record_id="C", funding_action="CAP")]
+    fix = {"field": "Appropriation/change ($)", "expected_old_value": ""}
+    corrections = [
+        {**fix, "record_id": "A", "new_value": "-25,000"},  # applied
+        {**fix, "record_id": "B", "new_value": "200", "expected_old_value": "50"},  # skipped
+        {**fix, "record_id": "C", "new_value": "1"},  # a bond row
+        {**fix, "record_id": "Z", "new_value": "1"},  # no such row
+        {**fix, "record_id": "A", "field": "Colour", "new_value": "x"},
+    ]
+    problems = validate.check_corrections(corrections, main, actions)
+    found = {p["record_id"]: p["problem"] for p in problems}
+    assert set(found) == {"B", "C", "Z", "A"}
+    assert found["B"].startswith("not applied")
+    assert found["C"].startswith("a bond row")
+    assert found["Z"] == "no row with this record ID in the main file"
+    assert found["A"] == "not a column of the main file"
+
+
+def test_catalog_drift_is_a_change_of_cthru_name_or_department_not_of_capitals():
+    catalog = [{"line_item": "7061-9612"}, {"line_item": "4200-0300"}]
+    def row(item, fy, name, dept="DOE"):
+        return {"line_item": item, "fiscal_year": fy, "account_name": name, "department_name": dept}
+    cthru_rows = [
+        row("7061-9612", "2022", "Safe and Supportive Schools"),
+        row("7061-9612", "2021", "FOR WORCESTER POLYTECHNIC INSTITUTE"),
+        row("7061-9612", "2023", "Safe and Supportive Schools", "EOE"),
+        row("4200-0300", "2021", "RESIDENTIAL SERVICES"),
+        row("4200-0300", "2022", "Residential Services"),
+        row("9999-0001", "2021", "A"), row("9999-0001", "2022", "B"),  # not in the catalog
+    ]
+    found = [(d["line_item"], d["fiscal_year"], d["detail"].split(":")[0])
+             for d in validate.catalog_drift(catalog, cthru_rows)]
+    assert found == [
+        ("7061-9612", "2022", "CTHRU name changed"),
+        ("7061-9612", "2023", "CTHRU department changed"),
+    ]

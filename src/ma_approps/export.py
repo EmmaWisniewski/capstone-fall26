@@ -374,6 +374,11 @@ REASONS = {
     "amendment_check": (2, "review/corrections.csv, or review/queue_explanations.csv"),
     "borrowing_limit": (2, "review/queue_explanations.csv"),
     "combine_problem": (3, "depends on the problem; review/queue_explanations.csv"),
+    "catalog_drift": (
+        3,
+        "config/line_item_catalog.csv if the label no longer fits; "
+        "otherwise review/queue_explanations.csv",
+    ),
 }
 UNKNOWN_FUND = "fund not in config/funds.csv"
 assert tuple(REASONS) == schemas.QUEUE_REASONS
@@ -407,6 +412,7 @@ def review_queue(
     limits: list[dict[str, str]],
     amendments: list[Mapping[str, Any]],
     problems: list[Mapping[str, str]],
+    drift: list[Mapping[str, str]] = (),
 ) -> list[dict[str, Any]]:
     """Every row of the main and capital files (``exported``, corrections applied) that needs a
     person, one line per row and reason, most urgent first (§7.12). Built from the checks the
@@ -419,6 +425,8 @@ def review_queue(
       tell whether it is federal (``combine_problems.csv``); ``combine_problem`` for the rest.
     - ``amendment_check``: an amendment whose struck figure didn't check out (Q21, Q27).
     - ``borrowing_limit``: a bond item under a borrowing limit its items don't add up to (Q11).
+    - ``catalog_drift``: CTHRU renamed a catalog item or moved it to another department
+      (``validate.catalog_drift``), so a person confirms the label still fits.
 
     A problem with no row in the files (money CTHRU has and we don't, a limit with no items)
     gets a blank ``record_id``; ``law_key`` and ``line_item`` say where to look."""
@@ -510,6 +518,9 @@ def review_queue(
         if not rows:
             add("borrowing_limit", str(g["note"]), law_key=str(g["law_key"]))
 
+    for d in drift:
+        add("catalog_drift", d["detail"], fiscal_year=d["fiscal_year"], line_item=d["line_item"])
+
     seen, unique = set(), []
     for q in out:
         key = (q["record_id"], q["reason"], q["detail"], q["law_key"], q["line_item"])
@@ -539,6 +550,10 @@ def write_review_queue(ctx: Context, main_path: Path, capital_path: Path) -> Pat
         _read(ctx.interim_dir / "bond_authorizations_raw.csv"),
         validate.check_amendment_amounts(ctx) or [],
         _read(ctx.reports_dir / "combine_problems.csv"),
+        validate.catalog_drift(
+            _read(ctx.config_dir / "line_item_catalog.csv"),
+            _read(ctx.interim_dir / "cthru_line_items.csv"),
+        ),
     )
     explanations_path = ctx.review_dir / "queue_explanations.csv"
     rows, explained, stale = explain(rows, _read(explanations_path))
