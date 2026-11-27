@@ -173,3 +173,38 @@ def test_the_main_files_counted_column_adds_up_to_the_operating_total():
     rows, _ = build(actions)
     total = sum(int(r["Amount counted toward total ($)"].replace(",", "")) for r in rows)
     assert total == combine.operating_total(actions) == 1600
+
+
+# -- the summary file (§7.13, decided 2026-11-27) --------------------------------------------
+
+
+def exported_row(fy, area, action, counts, amount):
+    return {
+        "Fiscal year": fy, "Policy area": area, "Funding action": action,
+        "Counts toward total?": counts, "Amount counted toward total ($)": amount,
+    }
+
+
+def test_summary_totals_counted_rows_by_year_group_and_all_years():
+    main = [
+        exported_row("2024", "Education", "Original appropriation", "Yes", "1,000"),
+        exported_row("2024", "Education", "Supplemental increase", "Yes", "500"),
+        exported_row("2025", "Housing and homelessness", "Original appropriation", "Yes", "200"),
+        exported_row("2025", "Education", "Original appropriation", "No", "0"),  # left out
+    ]
+    capital = [exported_row("2024", "Transportation", "Capital authorization", "Yes", "9,000")]
+    rows = {
+        (r["Breakdown"], r["Fiscal year"], r["Group"]): (r["Rows counted"],
+                                                          r["Amount counted toward total ($)"])
+        for r in export.summary_rows(main, capital)
+    }
+    assert rows[("Operating total", "2024", "All")] == (2, "1,500")
+    assert rows[("Operating total", "All years", "All")] == (3, "1,700")
+    assert rows[("Operating, by policy area", "2025", "Housing and homelessness")] == (1, "200")
+    assert ("Operating, by policy area", "2025", "Education") not in rows
+    assert rows[("Operating, by funding action", "All years", "Original appropriation")] == (
+        2,
+        "1,200",
+    )
+    assert rows[("Capital total", "All years", "All")] == (1, "9,000")
+    assert list(export.summary_rows(main, capital)[0]) == list(schemas.SUMMARY_COLUMNS)
