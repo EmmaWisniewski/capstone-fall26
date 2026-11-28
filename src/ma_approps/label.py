@@ -186,7 +186,9 @@ def department_display_name(name: str) -> str:
     return name
 
 
-def header_agency(agency_header: str, secretariat_header: str = "") -> str:
+def header_agency(
+    agency_header: str, secretariat_header: str = "", own_offices: Iterable[str] = ()
+) -> str:
     """The law's printed agency header. A bare "Office of the Secretary" (common in bond laws)
     says nothing on its own, so the secretariat header above it is used instead; a bare
     "Highway Division" gets its parent's name in front. Some offices are printed with only the
@@ -196,7 +198,9 @@ def header_agency(agency_header: str, secretariat_header: str = "") -> str:
         return header
     if not header or _VAGUE_HEADER.match(header):
         return department_display_name(secretariat_header)
-    if _BARE_DIVISION.match(header):
+    # A division that is a department of its own in CTHRU ("Military Division", "Human Resources
+    # Division") keeps the law's wording, with no parent added (Decision Log, 2026-11-27)
+    if _BARE_DIVISION.match(header) and header not in set(own_offices):
         return f"{department_display_name(secretariat_header)} {header}"
     return header
 
@@ -278,7 +282,8 @@ def agency_office(
     found = agency_from_text(row["item_text"])
     if found:
         return found
-    agency = header_agency(row["agency_header_raw"], secretariat_header)
+    own = departments.prefixes if departments else ()
+    agency = header_agency(row["agency_header_raw"], secretariat_header, own)
     if agency and not _VAGUE_HEADER.match(agency):
         return departments.fix_inherited(agency, row["line_item"]) if departments else agency
     # The law names no office (an amendment's own text) or its heading is a bare "Office of the
@@ -469,7 +474,7 @@ def label_rows(
             continue
         secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
         named = agency_from_text(r["item_text"]) or header_agency(
-            r["agency_header_raw"], secretariat
+            r["agency_header_raw"], secretariat, cthru_departments.prefixes
         )
         if named and not _VAGUE_HEADER.match(named):
             named = cthru_departments.fix_inherited(named, r["line_item"])

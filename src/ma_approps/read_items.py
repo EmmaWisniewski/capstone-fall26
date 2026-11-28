@@ -30,7 +30,7 @@ from ma_approps.context import Context
 from ma_approps.paragraphs import ITEM_START_RE, TRAILING_AMOUNT_RE, paragraphs
 
 IMPLEMENTED = True
-READER_VERSION = "0.2.1"
+READER_VERSION = "0.2.2"
 
 # Law types read here; bonds go to read_bonds (A) and interim budgets to read_amendments (C)
 LAW_TYPES = ("gaa", "supplemental", "surplus", "other")
@@ -270,6 +270,10 @@ def read_law(
     section: str | None = None
     fund = fy = ""
     secretariat = agency = ""
+    # An ALL-CAPS heading with items directly under it, and no office line, is an office itself
+    # (2022-126 §2D: MASSACHUSETTS DEVELOPMENTAL DISABILITIES COUNCIL), not the parent of the
+    # offices printed after it
+    office_heading = False
     notes: list[str] = []
     item: Item | None = None
     section_items: list[dict] = []
@@ -304,6 +308,7 @@ def read_law(
             if name != section:
                 close_section()
                 section, secretariat, agency, notes = name, "", "", []
+                office_heading = False
                 # Section 1 names the fund for the sections after it unless they name their own.
                 # Not for 2C sections: they carry forward old balances, whatever their fund.
                 fund, fy = ("", act_fy) if name.startswith("2C") else (act_fund, act_fy)
@@ -324,6 +329,8 @@ def read_law(
         if start := _item_start(text, fixes):
             close_item()
             in_preamble = False
+            if secretariat and not agency:
+                office_heading = True
             item = Item(section, p["para_idx"], start[0], secretariat, agency, notes, [p],
                         printed=start[1])
             item.complete = _ends_item(text)
@@ -343,8 +350,10 @@ def read_law(
             close_item()
             in_preamble = False
             if _is_caps(text):
-                secretariat, agency = text, ""
+                secretariat, agency, office_heading = text, "", False
             else:
+                if office_heading:  # the heading above named one office; it isn't a parent
+                    secretariat, office_heading = "", False
                 agency = text
         elif in_preamble:
             own_fund, own_fy = _preamble_facts(text)

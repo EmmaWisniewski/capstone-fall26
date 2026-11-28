@@ -440,3 +440,16 @@ def test_amendment_with_no_office_takes_the_office_the_law_names_for_the_item():
                   cthru("4003-0111", 2022, dept="OCA", dept_name=refugees)]
     out = {r["record_id"]: r for r in label.label_rows([original, amendment], cthru_rows, [], [])}
     assert out[amendment["record_id"]]["agency_office"] == "Office of Immigrants and Refugees"
+
+
+def test_a_division_that_is_a_department_keeps_the_laws_wording():
+    # 2022-126 §2D prints "Military Division"; CTHRU has it as a department of its own
+    eops = "EXECUTIVE OFFICE OF PUBLIC SAFETY AND SECURITY"
+    assert label.header_agency("Military Division.", eops, {"Military Division"}) == (
+        "Military Division"
+    )
+    # a division CTHRU doesn't list still takes its parent's name (MassDOT's bond items)
+    assert label.header_agency("Highway Division", "MASSACHUSETTS DEPARTMENT OF TRANSPORTATION",
+                               {"Military Division"}) == (
+        "Massachusetts Department of Transportation Highway Division"
+    )
