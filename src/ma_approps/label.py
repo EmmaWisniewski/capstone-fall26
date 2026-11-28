@@ -3,13 +3,17 @@
 
 Owner: workstream D (Labels). No LLM.
 
-- Agency / office (§8 column 9): the office the law text says the line pays for ("For the
-  operation of the division of marine fisheries" gives "Division of Marine Fisheries"), else an
-  office named at the start of the CTHRU account name, else the line's CTHRU department that
-  fiscal year, else the law's printed agency header (or, when that header is just "Office of
+- Agency / office (§8 column 9): the law's wording first: the office the law text says the line
+  pays for ("For the operation of the division of marine fisheries" gives "Division of Marine
+  Fisheries"), else the law's printed agency header (or, when that header is just "Office of
   the Secretary" or missing, the secretariat header above it, read from items_raw /
   bond_items_raw). A header inherited from another department is replaced by the department
-  that owns the line item's first four digits in CTHRU.
+  that owns the line item's first four digits in CTHRU. Only when the law names no office
+  (an amendment's own text) does CTHRU supply it: an office at the start of the CTHRU account
+  name, else the line's CTHRU department that fiscal year. An amendment row, whose text names
+  no office, takes the office the law names for the item it changes: the office in its
+  description or the heading printed above it, in any row of that item (the same fiscal year
+  first), before CTHRU is asked.
 - Program / purpose (§8 column 10): the first clause of the law text with boilerplate like "For
   the operation of" removed, else the CTHRU account name.
 - Policy area (§12): config/line_item_catalog.csv, then config/department_policy_areas.csv
@@ -182,7 +186,9 @@ def department_display_name(name: str) -> str:
     return name
 
 
-def header_agency(agency_header: str, secretariat_header: str = "") -> str:
+def header_agency(
+    agency_header: str, secretariat_header: str = "", own_offices: Iterable[str] = ()
+) -> str:
     """The law's printed agency header. A bare "Office of the Secretary" (common in bond laws)
     says nothing on its own, so the secretariat header above it is used instead; a bare
     "Highway Division" gets its parent's name in front. Some offices are printed with only the
@@ -192,7 +198,9 @@ def header_agency(agency_header: str, secretariat_header: str = "") -> str:
         return header
     if not header or _VAGUE_HEADER.match(header):
         return department_display_name(secretariat_header)
-    if _BARE_DIVISION.match(header):
+    # A division that is a department of its own in CTHRU ("Military Division", "Human Resources
+    # Division") keeps the law's wording, with no parent added (Decision Log, 2026-11-27)
+    if _BARE_DIVISION.match(header) and header not in set(own_offices):
         return f"{department_display_name(secretariat_header)} {header}"
     return header
 
@@ -269,29 +277,28 @@ def agency_office(
     departments: Departments | None = None,
 ) -> str:
     """§8 column 9: the most specific administering office."""
-    found = (
-        agency_from_text(row["item_text"])
-        or (account and agency_from_account(account["account_name"]))
-        or (account and department_display_name(account["department_name"]))
+    # The law's own wording first: the office its text names, then the agency heading printed
+    # above the item. CTHRU's names are only for rows where the law names no office.
+    found = agency_from_text(row["item_text"])
+    if found:
+        return found
+    own = departments.prefixes if departments else ()
+    agency = header_agency(row["agency_header_raw"], secretariat_header, own)
+    if agency and not _VAGUE_HEADER.match(agency):
+        return departments.fix_inherited(agency, row["line_item"]) if departments else agency
+    # The law names no office (an amendment's own text) or its heading is a bare "Office of the
+    # Secretary" with no secretariat above it: CTHRU says more (7004-2030 in 2023-28 §2D;
+    # random-row review, 2026-11-22). The account name, then the line's department.
+    found = (account and agency_from_account(account["account_name"])) or (
+        account and department_display_name(account["department_name"])
     )
     if found:
         return found
-    agency = header_agency(row["agency_header_raw"], secretariat_header)
-    if not departments:
-        return agency
-    # A heading that names no office (a bare "Office of the Secretary" with no secretariat above
-    # it): the line's CTHRU department says more (7004-2030 in 2023-28 §2D; random-row review,
-    # 2026-11-22)
-    if (not agency or _VAGUE_HEADER.match(agency)) and row["line_item"]:
+    if departments and row["line_item"]:
         named = departments.name_for(row["line_item"], int(row["fiscal_year"]))
         if named:
             return named
-    if agency:
-        return departments.fix_inherited(agency, row["line_item"])
-    # An amendment's own text names no office: the line's department in CTHRU
-    if not row["line_item"]:
-        return ""
-    return departments.name_for(row["line_item"], int(row["fiscal_year"]))
+    return agency
 
 
 def is_legal_text(text: str) -> bool:
@@ -458,6 +465,34 @@ def label_rows(
         secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
         return agency_office(r, account, secretariat, cthru_departments)
 
+    # The office the law itself names for a line: its description's office, else the heading
+    # printed above it, from any row of the line (even one with no description text). An
+    # amendment row that names no office takes this, not CTHRU's name (Decision Log, 2026-11-27).
+    law_known: dict[tuple[str, int], str] = {}
+    for r in sorted(funding_rows, key=lambda r: r["funding_action"] != "ORIG"):
+        if not r["line_item"]:
+            continue
+        secretariat = secretariats.get((r["law_key"], r["section"], r["line_item"]), "")
+        named = agency_from_text(r["item_text"]) or header_agency(
+            r["agency_header_raw"], secretariat, cthru_departments.prefixes
+        )
+        if named and not _VAGUE_HEADER.match(named):
+            named = cthru_departments.fix_inherited(named, r["line_item"])
+            law_known.setdefault((r["line_item"], int(r["fiscal_year"])), named)
+    law_by_line: dict[str, str] = {}
+    for (line, _fy), named in sorted(law_known.items(), key=lambda kv: -kv[0][1]):
+        law_by_line.setdefault(line, named)  # latest year first
+    # The division or office the law's text itself names for a line ("For the operation of the
+    # division of state parks and recreation"): "division when applicable" (Mario, 2026-11-27)
+    text_known: dict[tuple[str, int], str] = {}
+    for r in sorted(funding_rows, key=lambda r: r["funding_action"] != "ORIG"):
+        unit = agency_from_text(r["item_text"]) if r["line_item"] else ""
+        if unit and not _VAGUE_HEADER.match(unit):  # "the office of the secretary" names no office
+            text_known.setdefault((r["line_item"], int(r["fiscal_year"])), unit)
+    text_by_line: dict[str, str] = {}
+    for (line, _fy), unit in sorted(text_known.items(), key=lambda kv: -kv[0][1]):
+        text_by_line.setdefault(line, unit)
+
     # Each line's own agency and purpose, from rows whose text describes it, so an amendment
     # row (whose text is the amending section) matches the line it changes
     known: dict[tuple[str, int], tuple[str, str]] = {}
@@ -479,6 +514,22 @@ def label_rows(
             known_agency, known_purpose = known.get((r["line_item"], fy)) or by_line.get(
                 r["line_item"], ("", "")
             )
+        if is_legal_text(r["item_text"]) or not r["item_text"].strip():
+            known_agency = (
+                law_known.get((r["line_item"], fy))
+                or law_by_line.get(r["line_item"])
+                or known_agency
+            )
+        # A row that names no office borrows the division the law's text names for its item. Failing
+        # that, a row with its own printed heading keeps it, and only then does it borrow the
+        # item's other name (random-row review, 2026-11-27: 2022-042 §2B 4000-1701)
+        if is_legal_text(r["item_text"]) or not r["item_text"].strip():
+            unit = text_known.get((r["line_item"], fy)) or text_by_line.get(r["line_item"])
+            own = header_agency(r["agency_header_raw"], secretariat, cthru_departments.prefixes)
+            if unit:
+                known_agency = unit
+            elif own and not _VAGUE_HEADER.match(own):
+                known_agency = ""
         agency = known_agency or agency_for(r)
         purpose, purpose_method = program_purpose(
             r, account or latest_account.get(r["line_item"]), known_purpose

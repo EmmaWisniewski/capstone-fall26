@@ -208,3 +208,27 @@ def test_summary_totals_counted_rows_by_year_group_and_all_years():
     )
     assert rows[("Capital total", "All years", "All")] == (1, "9,000")
     assert list(export.summary_rows(main, capital)[0]) == list(schemas.SUMMARY_COLUMNS)
+
+
+SWAP_TEXT = (
+    "SECTION 228. Section 2 of chapter 42 of the acts of 2022 is hereby amended by striking out "
+    "item 4003-0100 and inserting in place thereof the following item:-\n"
+    "4003-0122 .......... $10,000,000"
+)
+FIGURE_TEXT = (
+    "SECTION 234. Said item 2310-0200 is hereby further amended by striking out the figure "
+    "\u201c$16,111,887\u201d and inserting in place thereof the following figure:- $16,011,887."
+)
+
+
+def test_row_notes_explain_a_swap_and_a_figure_the_item_already_shows():
+    old = dict(fa("a", "RED", item="4003-0100", amount="-10000000"), item_text=SWAP_TEXT)
+    new = dict(fa("b", "NEW", item="4003-0122", amount="10000000"), item_text=SWAP_TEXT)
+    assert "replaced by item 4003-0122" in export.row_note(old)
+    assert "replaces item 4003-0100" in export.row_note(new)
+    shown = dict(fa("c", "RED", item="2310-0200", amount="0"), item_text=FIGURE_TEXT)
+    assert export.row_note(shown).startswith("Counts $0")
+    # a real cut by figure, and an ordinary row, get no note
+    real = dict(shown, amount="-100000")
+    assert export.row_note(real) == ""
+    assert export.row_note(fa("d")) == ""

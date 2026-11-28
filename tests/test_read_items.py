@@ -337,3 +337,17 @@ def test_samples_expected_rows(sample_run, samples_dir):
 def test_samples_unread(sample_run):
     _, unread = schemas.read_csv(sample_run.reports_dir / "unread_paragraphs.csv")
     assert unread == []  # the misprinted "911-1003" is fixed by config/item_number_fixes.csv
+
+
+def test_a_capitals_heading_with_items_straight_under_it_is_not_a_parent():
+    # 2022-126 §2D: the Council has its own item (1100-1702); the offices printed after it are
+    # not its divisions, so "Military Division" must not become "...Council Military Division"
+    items, _ = read(
+        "<p>SECTION 2.</p><p>MASSACHUSETTS DEVELOPMENTAL DISABILITIES COUNCIL.</p>"
+        "<p>1100-1702 For a grant ...... $5</p>"
+        "<p>Military Division.</p><p>8700-2104 For a grant ...... $6</p>"
+    )
+    assert [(r["secretariat_header_raw"], r["agency_header_raw"]) for r in items] == [
+        ("MASSACHUSETTS DEVELOPMENTAL DISABILITIES COUNCIL.", ""),
+        ("", "Military Division."),
+    ]
