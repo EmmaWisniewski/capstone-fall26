@@ -215,7 +215,7 @@ def test_new_or_reapprop_follows_the_group_rule():
         "ORIG": "New", "NEW": "New", "INC": "New", "RED": "New", "CAP": "New",
         "REAUTH": "Re-appropriation", "PAC": "Re-appropriation",
         "XFER": "Transfer of existing authority", "PURP": "Transfer of existing authority",
-        "INT": "Pending",
+        "INT": "New",  # decided 2026-11-27
     }
     for funding_action, answer in expected.items():
         assert label.new_or_reapprop(action("a", "1234-5678", 2024, funding_action)) == answer

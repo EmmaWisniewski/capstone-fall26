@@ -368,6 +368,8 @@ it contains a comma: `"Arts, culture, and recreation"`.
 - `reports/validation/correction_problems.csv` is empty: each line is a fix in `review/corrections.csv` that didn't reach the main file. Fix its record ID, field or `expected_old_value`, or delete it if it's no longer needed;
 - `validate` says at least 99% of budget rows have a description.
 
+**What each column means** is in [`CODEBOOK.md`](CODEBOOK.md), with the counting rules and the known limitations.
+
 **Totals in Excel.** Never add up "Appropriation/change ($)": it includes money the counting rules
 leave out (federal grants, transfers, carried-over balances, interim budgets, chargebacks). Sum
 **"Amount counted toward total ($)"** instead, and filter **"Counts toward total?"** to *Yes* to see
@@ -377,7 +379,7 @@ $279,739,092,946 counted toward the operating total`, so you can check your Exce
 it. A total by policy area or fiscal year is the same column, summed with a filter or a pivot table.
 The ready-made totals are in **`data/output/ma_appropriations_summary_cy….csv`**, which every run rewrites: the counted total by fiscal year, by fiscal year and policy area, and by fiscal year and funding action, plus the capital total ("All years" rows give the grand totals). Use it for charts and tables instead of adding the rows up by hand.
 
-**Have people check a random sample.** Run `python -m ma_approps sample`. It writes `reports/random_review_sample.csv`: 200 rows of the main file (change with `--size`; the same `--seed` gives the same rows). An "Amount source" column says whether the amount came from CTHRU (annual budgets) or from the law's own text; rows from the law text have no second check, so read those closely. Each reviewer checks their rows against the law (the Source URL column links to it) and fills in the blank columns on the right. Put each mistake they find in `review/corrections.csv`, or, if it's a pattern that will come back, ask for it to be handled in the program.
+**Have people check a random sample.** Run `python -m ma_approps sample`. It writes `reports/random_review_sample.csv`: 200 rows of the main file (change with `--size`; the same `--seed` gives the same rows). An "Amount source" column says whether the amount came from CTHRU (annual budgets) or from the law's own text; rows from the law text have no second check, so read those closely. Each reviewer checks their rows against the law (the Source URL column links to it) and fills in the blank columns on the right. Put each mistake they find in `review/corrections.csv`, or, if it's a pattern that will come back, ask for it to be handled in the program. For each row they confirm is right, add a line to `review/corrections.csv` too, so the row says *Human reviewed* in the spreadsheet: its `record_id`, `field` = `Human review status`, `new_value` = `Human reviewed`, `expected_old_value` left blank, the reviewer's name, the date, and a `note` such as `Random-row review 2027: every column matches the law`.
 
 **Then record the year:**
 - add Decision Log entries for anything you decided (DESIGN §20);

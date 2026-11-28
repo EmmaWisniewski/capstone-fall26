@@ -85,7 +85,7 @@ Each stage is **one Python file** in `src/ma_approps/`. You run them all with
 ```
 README.md, CLAUDE.md          setup steps; rules Claude follows in this repo
 docs/                         OVERVIEW (this), WORKFLOW (git + Claude), DESIGN (full detail),
-                              RUNBOOK and CODEBOOK (for the analyst; CODEBOOK still to write)
+                              RUNBOOK and CODEBOOK (for the analyst)
 exampledata.csv               the target format (4 example rows)
 policyareas.csv               the 18 allowed policy areas
 config/                       files humans edit: the law list, the label spreadsheets, fix files, settings
@@ -109,7 +109,7 @@ reports/                      check results the program generates (never edit by
 |---|---|---|
 | **The dataset** | our partner | The main spreadsheet and the separate bond (capital) spreadsheet, emailed to the partner, and also attached to a GitHub release (a fixed, downloadable version) |
 | **The runbook** ([`RUNBOOK.md`](RUNBOOK.md)) | the analyst | Step-by-step instructions for adding a new year of laws, without Claude Code |
-| **The codebook** (`CODEBOOK.md`, to write) | the analyst and our partner | Every column, allowed value and counting rule in plain words, plus the known limitations |
+| **The codebook** ([`CODEBOOK.md`](CODEBOOK.md)) | the analyst and our partner | Every column, allowed value and counting rule in plain words, plus the known limitations |
 
 ### Deadlines
 
@@ -192,7 +192,7 @@ Status key: ☐ not started · ◐ in progress · ☑ done
 | **Remove yearly hand edits** | Each one is a chance for the re-run to go wrong | 11 Dec | | ☐ | In `config/settings.toml`: the `[scope]` dates, `discover_years`, and `contact_email` (still Emma's address) |
 | **Readable messages and reports** | The analyst has to understand what the program tells them | 11 Dec | | ☐ | The program's messages, `validate`'s output and the report CSVs |
 | **Rewrite the runbook for the analyst** | It's a final deliverable, and today it assumes Claude Code | 11 Dec | | ◐ | First draft exists. Remove the **Say:** lines; write step 5 (`cthru`) and step 6's `combine` and `export` parts; explain every flag and review item, and how to edit each fix file (Excel changes `false` and dates when it saves, so the labels part says to use a plain-text editor) |
-| **Write the codebook** (`docs/CODEBOOK.md`) | It's a final deliverable: what every column and value means | 11 Dec | Emma | ◐ | Every column of the main and capital files, allowed values, counting rules, flags and known limitations. Starting points: DESIGN §8–§10, `review/research_log.md`, and the plain-language partner page in git history (`docs/plain-language/partner-decisions.md`, deleted 2026-11-18). Written by hand (decided 2026-11-18), plus a test that fails if any column of the main or capital file isn't named in it. Once it's written, trim DESIGN §8–§10's export text so each rule is written once |
+| **Write the codebook** (`docs/CODEBOOK.md`) | It's a final deliverable: what every column and value means | 11 Dec | Emma | ◐ | **First draft written** (branch `docs/codebook`, 27 Nov): the three files, every column with an example, the allowed values, the counting rules, the known limitations and how the data was checked. A test (`tests/test_codebook.py`) fails if a column of the main, capital or summary file, or a policy area, isn't in it. Emma read and edited it (27 Nov): partner named only as OSA, Oxford commas, interim budgets now `New`, confirmed rows count as human reviewed. **Still to do:** record the random-review rows confirmed correct in `review/corrections.csv` once the sample spreadsheet with results is in the project (runbook, random-sample step); add the limitations from Q28 and any later decisions; once it's final, trim DESIGN §8–§10's export text so each rule is written once |
 | **Re-run test on the 2026 laws** | The only proof someone else can re-run it | 11 Dec | | ☐ | Someone who didn't write the program follows the runbook in the terminal, without Claude Code or code changes, e.g. on 2026-55, 2026-101 and the FY2027 budget; list what broke |
 | **The extended file** (DESIGN §7.13) | Nice to have, unless the partner asks for it | 11 Dec | | ☐ | The main file plus every funding-actions column |
 | **Publish the final files** | How the partner receives the dataset | 11 Dec | | ☐ | Email the spreadsheet to the partner; attach the main, capital and summary files, plus that run's `reports/law_status.csv` and `reports/validation/` files, to a GitHub release whose notes name the commit they were built from (never commit them; git ignores them anyway). The old snapshot branch `d/dataset-snapshot-2026-11-12` can then be deleted |
