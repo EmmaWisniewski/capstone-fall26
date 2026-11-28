@@ -24,9 +24,9 @@ Owner: workstream D (Labels). No LLM.
   the GAA the year before or the year after, else ``One-time``. Supplemental and bond rows are
   ``One-time`` (interim rule).
 - New vs. re-appropriation (§8 column 16, Q3 decided by the group 2026-11-11): appropriations,
-  supplemental increases and reductions, and bonds are ``New``; carried-over money and
-  reauthorizations are ``Re-appropriation``; transfers and purpose changes are ``Transfer of
-  existing authority``; interim budgets stay ``Pending``.
+  supplemental increases and reductions, bonds and interim budgets are ``New`` (interim budgets
+  decided by Emma, 2026-11-27); carried-over money and reauthorizations are ``Re-appropriation``;
+  transfers and purpose changes are ``Transfer of existing authority``.
 """
 
 from __future__ import annotations
@@ -56,6 +56,9 @@ INPUTS = {
 # Funding actions that add or remove enacted authority (§9.2). Reauthorizations, transfers,
 # purpose changes and interim budgets don't fund a line on their own.
 AUTHORITY_ACTIONS = frozenset(("ORIG", "NEW", "INC", "RED", "VETO", "OVR", "CAP"))
+# Interim budgets give new authority too, though it is charged against the budget that follows,
+# so they never count toward a total (Decision Log, 2026-11-27)
+NEW_ACTIONS = AUTHORITY_ACTIONS | {"INT"}
 ONE_TIME_ACTIONS = frozenset(("NEW", "INC", "RED", "CAP"))
 REAPPROPRIATION_ACTIONS = frozenset(("REAUTH", "PAC"))
 TRANSFER_ACTIONS = frozenset(("XFER", "PURP"))
@@ -418,13 +421,13 @@ def one_time_or_recurring(row: Row, gaa_funded: set[tuple[str, int]]) -> str:
 def new_or_reapprop(row: Row) -> str:
     """Q3 (group, 2026-11-11): the §8 column 16 rule, by funding action."""
     action = row["funding_action"]
-    if action in AUTHORITY_ACTIONS:
+    if action in NEW_ACTIONS:
         return "New"
     if action in REAPPROPRIATION_ACTIONS:
         return "Re-appropriation"
     if action in TRANSFER_ACTIONS:
         return "Transfer of existing authority"
-    return "Pending"  # interim budgets: no rule decided
+    return "Pending"  # a funding action with no rule yet
 
 
 # ---------------------------------------------------------------------------
