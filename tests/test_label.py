@@ -488,3 +488,17 @@ def test_a_row_without_text_borrows_the_division_the_law_names_for_its_item():
     assert out[carried["record_id"]]["agency_office"] == (
         "Office of the Secretary of Public Safety and Security"
     )
+
+
+def test_the_reserves_heading_names_no_office():
+    # 2021-102 §2A prints "Reserves" above 7010-0013; the secretariat above it is the office
+    assert label.header_agency("Reserves", "EXECUTIVE OFFICE FOR ADMINISTRATION AND FINANCE") == (
+        "Executive Office for Administration and Finance"
+    )
+    row = action("2021-102-S2A-7010-0013-NEW-1", "7010-0013", 2022, "NEW", header="Reserves")
+    row["law_key"], row["section"] = "2021-102", "2A"
+    item = dict.fromkeys(schemas.columns("items_raw"), "")
+    item.update(law_key="2021-102", section="2A", line_item="7010-0013",
+                secretariat_header_raw="EXECUTIVE OFFICE FOR ADMINISTRATION AND FINANCE.")
+    [out] = label.label_rows([row], [], [], [], [item])
+    assert out["agency_office"] == "Executive Office for Administration and Finance"
