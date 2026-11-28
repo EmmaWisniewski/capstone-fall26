@@ -104,7 +104,11 @@ _ACCOUNT_SUFFIX = re.compile(
     r"\s*(?:-.*|\b(?:administration|admin|operations|rr|it|isf)\b.*)$", re.I
 )
 CTHRU_NAME_LIMIT = 60  # CTHRU cuts account names at 60 characters
-_VAGUE_HEADER = re.compile(r"^Office of the (?:Secretary|Commissioner|Director)$", re.I)
+# Headings that name no office: "Reserves" heads the 1599 reserve items, which belong to the
+# secretariat above it (random-row review, 2026-11-27: 2021-102 §2A 7010-0013)
+_VAGUE_HEADER = re.compile(
+    r"^(?:Office of the (?:Secretary|Commissioner|Director)|Reserves?)$", re.I
+)
 # A division named without its parent, e.g. "Highway Division" under MassDOT
 _BARE_DIVISION = re.compile(r"^(?!.*\bof\b)[\w&' ]+ Division$", re.I)
 
