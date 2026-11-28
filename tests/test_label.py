@@ -453,3 +453,38 @@ def test_a_division_that_is_a_department_keeps_the_laws_wording():
                                {"Military Division"}) == (
         "Massachusetts Department of Transportation Highway Division"
     )
+
+
+def test_a_row_with_its_own_printed_heading_keeps_it():
+    # 2022-042 §2B prints "Office of the Secretary of Health and Human Services" above 4000-1701's
+    # increase; the item's budget row names the secretariat. The row's own heading wins.
+    original = action("2021-024-S2B-4000-1701-ORIG-1", "4000-1701", 2022,
+                      header="Office of the Secretary.")
+    original["law_key"], original["section"] = "2021-024", "2B"
+    increase = action("2022-042-S2B-4000-1701-INC-1", "4000-1701", 2022, "INC",
+                      header="Office of the Secretary of Health and Human Services")
+    increase["law_key"], increase["section"] = "2022-042", "2B"
+    out = {r["record_id"]: r for r in label.label_rows([original, increase], [], [], [])}
+    assert out[increase["record_id"]]["agency_office"] == (
+        "Office of the Secretary of Health and Human Services"
+    )
+
+
+def test_a_row_without_text_borrows_the_division_the_law_names_for_its_item():
+    # "Division when applicable, else department" (Mario, 2026-11-27). 2022-042 §2 raises 2810-0100
+    # with no text of its own; the budget names the division. "The office of the secretary" names
+    # no office, so the row keeps its own heading.
+    park = action("2021-024-S2-2810-0100-ORIG-1", "2810-0100", 2022, text="For the operation of "
+                  "the division of state parks and recreation; provided, that", header="Department "
+                  "of Conservation and Recreation")
+    raise_ = action("2022-042-S2-2810-0100-INC-1", "2810-0100", 2022, "INC",
+                    header="Department of Conservation and Recreation")
+    vague = action("2021-024-S2-8000-0600-ORIG-1", "8000-0600", 2022, text="For the operation of "
+                   "the office of the secretary; provided", header="Office of the Secretary.")
+    carried = action("2021-076-S2CI-8000-0600-PAC-1", "8000-0600", 2022, "PAC",
+                     header="Office of the Secretary of Public Safety and Security")
+    out = {r["record_id"]: r for r in label.label_rows([park, raise_, vague, carried], [], [], [])}
+    assert out[raise_["record_id"]]["agency_office"] == "Division of State Parks and Recreation"
+    assert out[carried["record_id"]]["agency_office"] == (
+        "Office of the Secretary of Public Safety and Security"
+    )

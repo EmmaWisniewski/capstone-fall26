@@ -482,6 +482,16 @@ def label_rows(
     law_by_line: dict[str, str] = {}
     for (line, _fy), named in sorted(law_known.items(), key=lambda kv: -kv[0][1]):
         law_by_line.setdefault(line, named)  # latest year first
+    # The division or office the law's text itself names for a line ("For the operation of the
+    # division of state parks and recreation"): "division when applicable" (Mario, 2026-11-27)
+    text_known: dict[tuple[str, int], str] = {}
+    for r in sorted(funding_rows, key=lambda r: r["funding_action"] != "ORIG"):
+        unit = agency_from_text(r["item_text"]) if r["line_item"] else ""
+        if unit and not _VAGUE_HEADER.match(unit):  # "the office of the secretary" names no office
+            text_known.setdefault((r["line_item"], int(r["fiscal_year"])), unit)
+    text_by_line: dict[str, str] = {}
+    for (line, _fy), unit in sorted(text_known.items(), key=lambda kv: -kv[0][1]):
+        text_by_line.setdefault(line, unit)
 
     # Each line's own agency and purpose, from rows whose text describes it, so an amendment
     # row (whose text is the amending section) matches the line it changes
@@ -510,6 +520,16 @@ def label_rows(
                 or law_by_line.get(r["line_item"])
                 or known_agency
             )
+        # A row that names no office borrows the division the law's text names for its item. Failing
+        # that, a row with its own printed heading keeps it, and only then does it borrow the
+        # item's other name (random-row review, 2026-11-27: 2022-042 §2B 4000-1701)
+        if is_legal_text(r["item_text"]) or not r["item_text"].strip():
+            unit = text_known.get((r["line_item"], fy)) or text_by_line.get(r["line_item"])
+            own = header_agency(r["agency_header_raw"], secretariat, cthru_departments.prefixes)
+            if unit:
+                known_agency = unit
+            elif own and not _VAGUE_HEADER.match(own):
+                known_agency = ""
         agency = known_agency or agency_for(r)
         purpose, purpose_method = program_purpose(
             r, account or latest_account.get(r["line_item"]), known_purpose
