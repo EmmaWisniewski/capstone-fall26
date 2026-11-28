@@ -282,6 +282,31 @@ now match CTHRU's FY2022 supplementals, and the total is unchanged (+$100,000, �
 
 These 20 stay in the review queue until a person can mark items explained (task list).
 
+## Random-row review, rows 1–100
+
+*Mario, 2026-11-21 to 2026-11-23; `random_review_sample_final 2.0.xlsx` (200 rows, drawn from `main`
+on 2026-11-21; the sheet's rows 2–101, "Excel row" below).* Each row was checked against the law
+text: amount, funding action, whether it counts, agency, purpose and policy area. **90 match.** The
+10 marked "No" are all about the **agency name**, which the sheet showed in CTHRU's wording; three
+more rows (42, 60, 62) are marked "Yes" with a note that the agency is slightly off. The amounts,
+funding actions and counting were not found wrong in any of the 100 rows. Where each stands on the
+27 Nov run (agency names follow the law's wording, Decision Log 2026-11-27):
+
+| Excel row | Record | Problem | Status |
+|---|---|---|---|
+| 33 | 2021-076-S2A-7004-0105-NEW-1 | Agency shown as CTHRU's "Executive Office of Housing and Livable Communities" | Fixed: now the law's heading, "Department of Housing and Community Development" |
+| 62 | 2022-126-S2-7003-0800-ORIG-1 | Agency shown as the secretariat, not the office the law names | Fixed: "Department of Career Services", the law's heading and text |
+| 71 | 2022-126-S2D-8700-2104-ORIG-1 | "Massachusetts Developmental Disabilities Council Military Division" | Fixed at the reader (`read_items` 0.2.2): a capitals heading with items straight under it isn't a parent office; 133 rows named the Council, now the 14 that are its own items. Now "Military Division" |
+| 73 | 2022-126-S2E-1599-6152-ORIG-1 | "Office of the Comptroller" is CTHRU's name; the law names no office | Fixed: "Executive Office for Administration and Finance", the secretariat the law prints |
+| 88 | 2023-028-S2-0511-0250-ORIG-1 | "Secretary of State" is CTHRU's name | Fixed: "Secretary of the Commonwealth" |
+| 89 | 2023-028-S2-1410-0015-ORIG-1 | "Executive Office of Veterans' Services" is CTHRU's name | Fixed: "Department of Veterans' Services", the law's heading |
+| 59, 78 | 2022-126-S2-2810-0100-ORIG-1, 2022-268-S234-2310-0200-RED-1 | The text names a division ("the division of state parks and recreation", "…fisheries and wildlife"); the heading above the item names the department (Conservation and Recreation, Fish and Game) | **Open:** which one is the agency? Waiting on the reviewer's answer; the same pattern may reach many rows, to be counted first |
+| 42 | 2021-102-S2A-7010-0013-NEW-1 | The law's heading is "Reserves", not an office | **Open:** proposed: treat such headings as naming no office and use the capitals heading above (about 14 rows) |
+| 37, 40, 48 | 2021-076-S2CI-7100-0700-PAC-1, 2021-076-S7-1595-6368-REAUTH-1, 2022-042-S2B-4000-1701-INC-1 | Names that don't clearly follow the law's wording ("University of Massachusetts", "Massachusetts Department of Transportation", "Executive Office of Health and Human Services" against the law's "Office of the Secretary of Health and Human Services") | **Open:** to be traced |
+| 60 | 2022-126-S2-5011-0100-ORIG-1 | Marked "Yes" with a note | The name matches the law's heading ("Department of Mental Health"); no change |
+
+The filled-in sheet stays with Mario. Rows 101–200 are below.
+
 ## Random-row review, rows 101–200
 
 *Tierney, 2026-11-22; Mario's sample `random_review_sample_final 2.0.xlsx` (200 rows, drawn from
