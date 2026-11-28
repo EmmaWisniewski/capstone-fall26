@@ -16,6 +16,7 @@ so the main file can reuse it and both files say the same thing.
 from __future__ import annotations
 
 import csv
+import re
 from collections import Counter
 from collections.abc import Mapping
 from datetime import date
@@ -80,6 +81,47 @@ def _counted_sum(rows: list[Mapping[str, Any]]) -> int:
     return sum(int(str(r[column]).replace(",", "")) for r in rows if r[column] not in ("", None))
 
 
+_SWAP = re.compile(
+    r"striking\s+out\s+item\s+(\d{4}-\d{4})\s+and\s+inserting\s+in\s+place\s+thereof\s+the\s+"
+    r"following\s+item\s*:?\s*-?\s*(\d{4}-\d{4})",
+    re.I,
+)
+_FIGURE = re.compile(
+    r"striking\s+out\s+the\s+figure\s+\W?\$[\d,]+\W?\s+and\s+inserting\s+in\s+place\s+thereof\s+"
+    r"the\s+following\s+figure",
+    re.I,
+)
+
+
+def row_note(row: Mapping[str, Any]) -> str:
+    """A sentence for a row whose amount looks odd beside its wording (decided 2026-11-27):
+
+    - an amendment that strikes one item and inserts another: the struck item's row is a cut and
+      the new item's row is the same money added, so together they change nothing;
+    - an amendment that changes a figure but counts $0, because the item already shows the new
+      figure (or the figure is a cap or earmark inside the item).
+    """
+    text = str(row.get("item_text") or "")
+    swap = _SWAP.search(text)
+    if swap:
+        old, new = swap.groups()
+        if row["line_item"] == old:
+            return f"Item {old} is struck out and replaced by item {new}: the money moves to {new}."
+        if row["line_item"] == new:
+            return f"Item {new} replaces item {old}: the money moves here from {old}."
+    if (
+        row["funding_action"] in ("RED", "INC")
+        and str(row.get("amount")) == "0"
+        and _FIGURE.search(text)
+    ):
+        return (
+            "Counts $0: the figure this section changes is already in the item as the budget "
+            "prints it (or is a cap or earmark inside the item), so the item's amount "
+            "doesn't change."
+        )
+    return ""
+
+
 def main_columns(
     row: Mapping[str, Any],
     law: Mapping[str, str],
@@ -122,7 +164,9 @@ def main_columns(
         ),
         "Human review status": "Not human reviewed",
         "Source URL": row["source_url"],
-        "Source or calculation for total": note or TOTAL_NOT_CHECKED,
+        "Source or calculation for total": " ".join(
+            part for part in (row_note(row), note or TOTAL_NOT_CHECKED) if part
+        ),
     }
 
 

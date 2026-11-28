@@ -412,3 +412,31 @@ def test_a_later_bond_change_takes_the_policy_area_of_the_item_it_changes():
         ("Transportation", "department"),
         ("", ""),
     ]
+
+
+def test_law_header_beats_cthru_names_when_the_text_names_no_office():
+    # An amendment under the law's heading keeps the law's name, not CTHRU's account or department
+    row = action("a", "2330-0100", 2024, "INC", text="Said item 2330-0100 is hereby amended",
+                 header="Division of Marine Fisheries")
+    assert label.agency_office(row, FWE_ACCOUNT) == "Division of Marine Fisheries"
+    row = action("b", "0930-0101", 2024, text="For the state center on child wellbeing",
+                 header="Child Advocate's Office")
+    assert label.agency_office(row, OCA_CENTER) == "Child Advocate's Office"
+
+
+def test_amendment_with_no_office_takes_the_office_the_law_names_for_the_item():
+    # 2022-268 §228 strikes 4003-0100; the item's own row in 2022-42 has a heading but no text.
+    # CTHRU files the 4003 lines elsewhere, but the law's heading wins (Decision Log, 2026-11-27).
+    original = action("2022-042-S2-4003-0100-NEW-1", "4003-0100", 2022, "NEW",
+                      header="Office of Immigrants and Refugees")
+    original["law_key"], original["section"] = "2022-042", "2"
+    amendment = action("2022-268-S228-4003-0100-RED-1", "4003-0100", 2022, "RED", -10_000_000,
+                       text="SECTION 228. Section 2 of chapter 42 is hereby amended by "
+                            "striking out item 4003-0100 and inserting in place thereof the "
+                            "following item:-")
+    amendment["law_key"], amendment["section"] = "2022-268", "228"
+    refugees = "OFFICE FOR REFUGEES AND IMMIGRANTS"
+    cthru_rows = [cthru("4003-0122", 2022, dept="OCA", dept_name=refugees),
+                  cthru("4003-0111", 2022, dept="OCA", dept_name=refugees)]
+    out = {r["record_id"]: r for r in label.label_rows([original, amendment], cthru_rows, [], [])}
+    assert out[amendment["record_id"]]["agency_office"] == "Office of Immigrants and Refugees"
